@@ -1,7 +1,10 @@
 {
   "name": "nutrisense-webapp",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.1.0",
+  "description": "NutriSense Web Application — Intelligent Contextual Nutrition Platform",
+  "author": "NutriSense Development Team",
+  "license": "MIT",
   "type": "module",
   "scripts": {
     "dev": "vite",
