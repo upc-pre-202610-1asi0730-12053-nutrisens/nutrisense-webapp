@@ -16,14 +16,17 @@ const props = defineProps({
   isUnsafe:     { type: Boolean, default: false },
 })
 
+/** @type {(event: 'detail', recipe: Object) => void} */
 const emit = defineEmits(['detail'])
 
 const { t } = useI18n()
 
+/** @type {import('vue').ComputedRef<number>} */
 const missingCount = computed(() =>
   props.recipe.missingIngredients(props.pantryIngredientIds).length
 )
 
+/** @type {import('vue').ComputedRef<number>} */
 const matchScore = computed(() => {
   const total = props.recipe.ingredients.length
   if (!total) return 0

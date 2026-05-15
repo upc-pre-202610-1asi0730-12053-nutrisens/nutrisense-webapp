@@ -1,4 +1,6 @@
 // PATH: src/app/activity-wearable/presentation/routes/activity-wearable.routes.js
+
+/** @type {import('vue-router').RouteRecordRaw[]} */
 export const activityWearableRoutes = [
   {
     path: 'activity',

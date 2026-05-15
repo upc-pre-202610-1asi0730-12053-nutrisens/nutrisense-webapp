@@ -4,6 +4,12 @@ import { ref, onMounted, watch } from 'vue'
 import { Chart } from 'chart.js/auto'
 import { formatNum } from '../../../shared/infrastructure/format-utils.js'
 
+/**
+ * @typedef {Object} WeightChartProps
+ * @property {{ loggedAt: string, weightKg: number }[]} weightLogs
+ * @property {string} [label]
+ */
+
 const props = defineProps({
   weightLogs: { type: Array, required: true },
   label: { type: String, default: 'Weight (kg)' },
@@ -12,6 +18,7 @@ const props = defineProps({
 const canvasRef = ref(null)
 let chart = null
 
+/** Destroys any existing chart instance and builds a fresh line chart from current weightLogs. */
 function buildChart() {
   if (!canvasRef.value) return
   if (chart) { chart.destroy(); chart = null }

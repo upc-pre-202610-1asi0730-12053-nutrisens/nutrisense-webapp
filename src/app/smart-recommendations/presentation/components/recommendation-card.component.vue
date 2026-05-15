@@ -13,6 +13,7 @@ defineProps({
   isUnsafe:      { type: Boolean, default: false  },
 })
 
+/** @type {(event: 'log', recommendation: Object) => void} */
 const emit = defineEmits(['log'])
 
 const { t } = useI18n()

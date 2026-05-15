@@ -4,10 +4,16 @@ import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ActivityType } from '../../domain/model/activity-type.record.js'
 
+/**
+ * @typedef {Object} ActivityLogFormProps
+ * @property {boolean} [visible]
+ */
+
 defineProps({
   visible: { type: Boolean, default: false },
 })
 
+/** @type {(event: 'submit', payload: { activityType: string, intensity: string, durationMinutes: number, caloriesBurned: number }) => void} */
 const emit = defineEmits(['submit', 'cancel'])
 const { t } = useI18n()
 
@@ -38,6 +44,7 @@ const estimatedCalories = computed(() =>
   ActivityType(activityType.value).estimateCalories(intensity.value, durationMinutes.value)
 )
 
+/** Validates the form and emits submit with the activity payload, then resets. */
 function handleSubmit() {
   durationError.value = ''
   const d = durationMinutes.value
@@ -54,6 +61,7 @@ function handleSubmit() {
   reset()
 }
 
+/** Resets all form fields to their initial values. */
 function reset() {
   activityType.value = 'walking'
   intensity.value = 'medium'
@@ -61,6 +69,7 @@ function reset() {
   durationError.value = ''
 }
 
+/** Resets the form and emits cancel. */
 function handleCancel() {
   reset()
   emit('cancel')

@@ -2,6 +2,15 @@
 <script setup>
 import { useI18n } from 'vue-i18n'
 
+/**
+ * @typedef {Object} PlanCardProps
+ * @property {import('../../domain/model/subscription-plan.entity.js').SubscriptionPlan} plan
+ * @property {boolean} [isCurrentPlan]
+ * @property {'monthly'|'annual'} [billingPeriod]
+ * @property {boolean} [isChanging]
+ * @property {boolean} [isUpgrade]
+ */
+
 const props = defineProps({
   plan: { type: Object, required: true },
   isCurrentPlan: { type: Boolean, default: false },
@@ -10,6 +19,7 @@ const props = defineProps({
   isUpgrade: { type: Boolean, default: true },
 })
 
+/** @type {(event: 'select', planId: string) => void} */
 const emit = defineEmits(['select'])
 const { t } = useI18n()
 
@@ -34,6 +44,10 @@ function featureLabel(featureId) {
   return t(featureKeyMap[featureId] ?? featureId)
 }
 
+/**
+ * Returns the formatted price string for the current billing period.
+ * @returns {string}
+ */
 function getPrice() {
   const price = props.billingPeriod === 'annual'
     ? (props.plan.priceMonthly * annualMultiplier).toFixed(2)

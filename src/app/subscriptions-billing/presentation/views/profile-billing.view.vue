@@ -30,7 +30,7 @@ const userId = localStorage.getItem('ns_user_id') ?? ''
 const showUpgradeDialog = ref(false)
 const billingPeriod = ref('monthly')
 
-/** All plans the user can switch to (excludes the current one). */
+/** @type {import('vue').ComputedRef<import('../../domain/model/subscription-plan.entity.js').SubscriptionPlan[]>} */
 const selectablePlans = computed(() =>
   currentPlan.value
     ? plans.value.filter(p => p.id !== currentPlan.value.id)
@@ -55,7 +55,10 @@ onMounted(() => {
   store.fetchPaymentHistory(userId)
 })
 
-/** @param {string} planId */
+/**
+ * Opens a confirmation dialog and changes the subscription plan on confirm.
+ * @param {string} planId
+ */
 function handleSelectPlan(planId) {
   const target = plans.value.find(p => p.id === planId)
   const planName = target ? t(target.key) : ''
@@ -72,6 +75,7 @@ function handleSelectPlan(planId) {
   })
 }
 
+/** Opens a confirmation dialog and cancels the subscription at period end on confirm. */
 function handleCancel() {
   const planName = currentPlan.value ? t(currentPlan.value.key) : ''
   confirm.require({
@@ -87,12 +91,17 @@ function handleCancel() {
   })
 }
 
+/** Reactivates a previously cancelled subscription and shows a success toast. */
 function handleReactivate() {
   store.reactivateSubscription()
   toast.add({ severity: 'success', summary: t('subscription.reactivate'), life: 3000 })
 }
 
-/** @param {string} planId */
+/**
+ * Returns the translated plan name for a given plan ID, falling back to the raw ID.
+ * @param {string} planId
+ * @returns {string}
+ */
 function getPlanName(planId) {
   const plan = plans.value.find(p => p.id === planId)
   return plan ? t(plan.key) : planId

@@ -16,6 +16,11 @@ onMounted(() => {
   store.fetchPlans()
 })
 
+/**
+ * Returns the translated plan name for a given plan ID, falling back to the raw ID.
+ * @param {string} planId
+ * @returns {string}
+ */
 function getPlanName(planId) {
   const plan = plans.value.find(p => p.id === planId)
   return plan ? t(plan.key) : planId

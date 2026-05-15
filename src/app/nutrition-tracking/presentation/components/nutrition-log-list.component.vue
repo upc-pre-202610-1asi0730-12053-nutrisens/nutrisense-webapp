@@ -3,11 +3,18 @@
 import { useI18n } from 'vue-i18n'
 import { formatNum } from '../../../shared/infrastructure/format-utils.js'
 
+/**
+ * @typedef {Object} NutritionLogListProps
+ * @property {import('../../domain/model/nutrition-log.entity.js').NutritionLog[]} logs
+ * @property {boolean} [loading]
+ */
+
 defineProps({
   logs: { type: Array, required: true },
   loading: { type: Boolean, default: false },
 })
 
+/** @type {(event: 'remove', logId: string) => void} */
 const emit = defineEmits(['remove'])
 
 const { t } = useI18n()

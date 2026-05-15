@@ -32,8 +32,16 @@ function handleChangePassword() {
 /* ── Delete account ── */
 const showDeleteDialog = ref(false)
 const deleteConfirmText = ref('')
+/**
+ * Returns true only when the user has typed the exact confirmation string.
+ * @returns {boolean}
+ */
 const canDelete = () => deleteConfirmText.value === 'DELETE'
 
+/**
+ * Signs the user out and deletes their local session, then redirects to login.
+ * Only proceeds if canDelete() is true.
+ */
 function handleDeleteAccount() {
   if (!canDelete()) return
   iamStore.signOut()

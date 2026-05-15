@@ -2,6 +2,16 @@
 <script setup>
 import { useI18n } from 'vue-i18n'
 
+/**
+ * @typedef {Object} KpiCardProps
+ * @property {string} label
+ * @property {string|number} value
+ * @property {string} [unit]
+ * @property {string} [icon]
+ * @property {string} [color]
+ * @property {boolean} [loading]
+ */
+
 defineProps({
   label: { type: String, required: true },
   value: { type: [String, Number], required: true },

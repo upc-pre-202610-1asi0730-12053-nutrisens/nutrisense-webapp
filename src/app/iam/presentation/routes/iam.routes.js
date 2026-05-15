@@ -1,6 +1,7 @@
 // PATH: src/app/iam/presentation/routes/iam.routes.js
 import { subscriptionsBillingProfileChildren } from '../../../subscriptions-billing/presentation/routes/subscriptions-billing.routes.js'
 
+/** @type {import('vue-router').RouteRecordRaw} */
 export const onboardingRoute = {
   path: '/onboarding',
   name: 'onboarding',
@@ -8,6 +9,7 @@ export const onboardingRoute = {
   meta: { requiresAuth: true, title: 'NutriSense — Get Started' },
 }
 
+/** @type {import('vue-router').RouteRecordRaw[]} */
 export const iamRoutes = [
   {
     path: '/login',

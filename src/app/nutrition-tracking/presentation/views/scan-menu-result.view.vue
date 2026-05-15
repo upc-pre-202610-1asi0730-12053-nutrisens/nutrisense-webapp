@@ -48,6 +48,7 @@ function openAddDialog(food) {
   showAddDialog.value = true
 }
 
+/** Adds the pending food to today's log using its serving size, then navigates back. */
 function confirmAdd() {
   if (!pendingFood.value) return
   const grams = pendingFood.value.servingSizeG > 0 ? pendingFood.value.servingSizeG : 100
@@ -69,6 +70,7 @@ function translateFlag(flag) {
   return translated !== rKey ? translated : t(`condition.${flag}`)
 }
 
+/** Clears the current menu scan result and returns to the scan tab. */
 function scanAgain() {
   store.resetMenuScan()
   router.push({ name: 'nutrition-log', query: { tab: 'smart-scan' } })

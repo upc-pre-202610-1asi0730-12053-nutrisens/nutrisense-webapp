@@ -156,6 +156,7 @@ function openDetail(log) {
   showDetailModal.value = true
 }
 
+/** Opens the edit modal pre-populated with the selected log's current quantity. */
 function openEdit() {
   if (!selectedLog.value) return
   editGrams.value       = selectedLog.value.quantityG
@@ -163,6 +164,7 @@ function openEdit() {
   showEditModal.value   = true
 }
 
+/** Validates the edited quantity and saves the update, then closes the edit modal. */
 function confirmEdit() {
   if (!selectedLog.value || !isViewingToday.value) return
   if (!editGrams.value || editGrams.value < 1) {
@@ -182,6 +184,7 @@ const searchResults   = ref([])
 const pendingMealType = ref('breakfast')
 
 let debounceTimer = null
+/** Debounces food search input and filters the foods list against the translated keys. */
 function onSearchInput() {
   clearTimeout(debounceTimer)
   debounceTimer = setTimeout(() => {
@@ -201,6 +204,10 @@ watch(showSearch, open => {
   }
 })
 
+/**
+ * Opens the food search panel with the given meal type pre-selected.
+ * @param {string} [meal]
+ */
 function openSearch(meal = 'breakfast') {
   pendingMealType.value = meal
   showSearch.value      = true
@@ -253,6 +260,10 @@ const selectedFoodConflicts = computed(() => {
   )
 })
 
+/**
+ * Selects a food item and opens the add-to-log modal.
+ * @param {{ id: string, key: string }} food
+ */
 function selectFood(food) {
   selectedFood.value = food
   addMealType.value  = pendingMealType.value
@@ -261,6 +272,7 @@ function selectFood(food) {
   showAddModal.value = true
 }
 
+/** Adds the selected food to today's log and closes the add modal. */
 function confirmAdd() {
   if (!isViewingToday.value) return
   nutritionStore.addToLog(userId, selectedFood.value.id, addGrams.value, addMealType.value, 'manual')
@@ -268,7 +280,10 @@ function confirmAdd() {
   showAddModal.value = false
 }
 
-/* Remove */
+/**
+ * Prompts the user to confirm removal, then removes the log entry.
+ * @param {string} logId
+ */
 function removeEntry(logId) {
   confirm.require({
     message: t('nutrition.removeEntryConfirm'),
@@ -292,16 +307,31 @@ const mealMeta = {
   dinner:    { labelKey: 'meal.dinner',    icon: 'pi-moon',  color: '#6366f1', bg: '#e0e7ff', border: '#6366f1' },
 }
 
+/**
+ * Returns the total calories for all logs in a given meal type.
+ * @param {string} type
+ * @returns {number}
+ */
 function mealTotal(type) {
   return (logsByMealType.value?.[type] ?? []).reduce((s, l) => {
     try { return s + (l.macros?.().calories ?? 0) } catch { return s }
   }, 0)
 }
 
+/**
+ * Returns the translated food name from a log entry, falling back to the raw name.
+ * @param {{ foodKey?: string, name?: string }} log
+ * @returns {string}
+ */
 function foodName(log) {
   try { return log.foodKey ? t(log.foodKey) : (log.name ?? t('nutrition.unknownFood')) } catch { return log.name ?? t('nutrition.unknownFood') }
 }
 
+/**
+ * Returns the calorie value from a log entry's macros, defaulting to 0 on error.
+ * @param {{ macros?: () => { calories: number } }} log
+ * @returns {number}
+ */
 function logKcal(log) {
   try { return log.macros?.().calories ?? 0 } catch { return 0 }
 }
@@ -317,6 +347,11 @@ watch(menuScanResult, result => {
 
 const scanDragOver = ref({ dish: false, menu: false })
 
+/**
+ * Handles a drag-and-drop image onto a scan zone.
+ * @param {'dish'|'menu'} type
+ * @param {DragEvent} e
+ */
 function handleDrop(type, e) {
   e.preventDefault()
   scanDragOver.value[type] = false
@@ -324,15 +359,29 @@ function handleDrop(type, e) {
   if (file) processScanFile(type, file)
 }
 
+/**
+ * Programmatically clicks the hidden file input for the given scan type.
+ * @param {'dish'|'menu'} type
+ */
 function triggerFileInput(type) {
   document.getElementById(`scan-input-${type}`)?.click()
 }
 
+/**
+ * Called when the user selects a file via the file input.
+ * @param {'dish'|'menu'} type
+ * @param {Event} e
+ */
 function onFileChange(type, e) {
   const file = e.target.files?.[0]
   if (file) processScanFile(type, file)
 }
 
+/**
+ * Validates the image type and triggers the appropriate scan simulation.
+ * @param {'dish'|'menu'} type
+ * @param {File} file
+ */
 function processScanFile(type, file) {
   if (!file.type.match(/image\/(jpeg|png)/)) {
     toast.add({ severity: 'warn', summary: t('scan.invalidImageType'), life: 3000 })

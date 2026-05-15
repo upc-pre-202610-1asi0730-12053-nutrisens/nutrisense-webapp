@@ -1,4 +1,6 @@
 // PATH: src/app/smart-recommendations/presentation/routes/smart-recommendations.routes.js
+
+/** @type {import('vue-router').RouteRecordRaw[]} */
 export const smartRecommendationsRoutes = [
   {
     path: 'recommendations',

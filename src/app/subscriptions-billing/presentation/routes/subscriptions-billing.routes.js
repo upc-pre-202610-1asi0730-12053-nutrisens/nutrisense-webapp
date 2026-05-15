@@ -1,6 +1,6 @@
 // PATH: src/app/subscriptions-billing/presentation/routes/subscriptions-billing.routes.js
 
-/** Standalone top-level route shown after onboarding. Not inside app-layout. */
+/** @type {import('vue-router').RouteRecordRaw} */
 export const planSelectionRoute = {
   path: '/plan-selection',
   name: 'plan-selection',
@@ -8,7 +8,7 @@ export const planSelectionRoute = {
   meta: { requiresAuth: true, title: 'NutriSense — Choose Your Plan' },
 }
 
-/** Child routes injected into the /profile shell (owned by this bounded context). */
+/** @type {import('vue-router').RouteRecordRaw[]} */
 export const subscriptionsBillingProfileChildren = [
   {
     path: 'billing',
@@ -18,7 +18,7 @@ export const subscriptionsBillingProfileChildren = [
   },
 ]
 
-/** Standalone routes registered under /app. */
+/** @type {import('vue-router').RouteRecordRaw[]} */
 export const subscriptionsBillingRoutes = [
   {
     path: 'subscription',
