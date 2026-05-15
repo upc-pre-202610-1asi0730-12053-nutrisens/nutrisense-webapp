@@ -1,0 +1,91 @@
+/* PATH: src/app/shared/presentation/styles/variables.css */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+
+:root {
+  /* ── Spec tokens (--color-*) ── */
+  --color-primary:                #508b89;
+  --color-primary-dark:           #3A6A68;
+  --color-bg:                     #f5f7f7;
+  --color-cta:                    #F4C5AE;
+  --color-cta-active:             #E0A98E;
+  --color-text:                   #111827;
+  --color-text-secondary:         #5C5C5C;
+  --color-border:                 #E0D6D0;
+  --color-danger:                 #E53E3E;
+  --color-success:                #38A169;
+  --color-weight-loss:            #508B89;
+  --color-muscle-gain:            #3B82F6;
+  --color-surface:                #ffffff;
+  --color-sidebar-bg:             #508b89;
+  --color-sidebar-text:           rgba(255,255,255,0.85);
+  --color-sidebar-text-muted:     rgba(255,255,255,0.6);
+  --color-sidebar-hover:          rgba(255,255,255,0.10);
+  --color-sidebar-active:         rgba(255,255,255,0.20);
+  --color-sidebar-active-border:  #F4C5AE;
+  --sidebar-width-expanded:       240px;
+  --sidebar-width-collapsed:      64px;
+
+  /* ── Legacy tokens (--ns-*) mapped to spec palette ── */
+  --ns-primary:          #508b89;
+  --ns-primary-dark:     #3A6A68;
+  --ns-primary-light:    #a8c8c7;
+  --ns-secondary:        #3B82F6;
+  --ns-secondary-dark:   #1d4ed8;
+  --ns-accent:           #F4C5AE;
+  --ns-danger:           #E53E3E;
+  --ns-warning:          #f59e0b;
+  --ns-success:          #38A169;
+  --ns-info:             #3B82F6;
+
+  --ns-surface:          #ffffff;
+  --ns-surface-alt:      #f5f7f7;
+  --ns-surface-card:     #ffffff;
+  --ns-border:           #E0D6D0;
+  --ns-border-light:     #ede8e4;
+
+  --ns-text:             #111827;
+  --ns-text-secondary:   #5C5C5C;
+  --ns-text-muted:       #9ca3af;
+  --ns-text-inverse:     #ffffff;
+
+  --ns-sidebar-bg:       #508b89;
+  --ns-sidebar-text:     rgba(255,255,255,0.85);
+  --ns-sidebar-active:   #F4C5AE;
+  --ns-sidebar-hover:    rgba(255,255,255,0.10);
+  --ns-sidebar-width:    240px;
+  --ns-topbar-height:    64px;
+
+  --ns-radius:           12px;
+  --ns-radius-sm:        8px;
+  --ns-radius-xs:        4px;
+  --ns-radius-full:      9999px;
+
+  --ns-shadow-sm:  0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  --ns-shadow:     0 4px 6px rgba(0,0,0,0.05), 0 2px 4px rgba(0,0,0,0.04);
+  --ns-shadow-lg:  0 10px 15px rgba(0,0,0,0.07), 0 4px 6px rgba(0,0,0,0.05);
+
+  --ns-font:       'Poppins', sans-serif;
+  --ns-font-mono:  'Courier New', monospace;
+  --ns-transition: 150ms ease;
+
+  --ns-protein-color: #3B82F6;
+  --ns-carbs-color:   #F4C5AE;
+  --ns-fat-color:     #a855f7;
+  --ns-fiber-color:   #38A169;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  font-family: var(--ns-font);
+  color: var(--ns-text);
+  background-color: var(--ns-surface-alt);
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
