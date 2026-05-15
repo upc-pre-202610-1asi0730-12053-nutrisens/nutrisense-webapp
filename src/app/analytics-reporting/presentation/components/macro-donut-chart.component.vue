@@ -4,6 +4,16 @@ import { ref, onMounted, watch } from 'vue'
 import { Chart } from 'chart.js/auto'
 import { formatNum } from '../../../shared/infrastructure/format-utils.js'
 
+/**
+ * @typedef {Object} MacroDonutChartProps
+ * @property {number} [proteinG]
+ * @property {number} [carbsG]
+ * @property {number} [fatG]
+ * @property {string} [proteinLabel]
+ * @property {string} [carbsLabel]
+ * @property {string} [fatLabel]
+ */
+
 const props = defineProps({
   proteinG: { type: Number, default: 0 },
   carbsG: { type: Number, default: 0 },
@@ -16,6 +26,7 @@ const props = defineProps({
 const canvasRef = ref(null)
 let chart = null
 
+/** Destroys any existing chart instance and builds a fresh doughnut chart from current props. */
 function buildChart() {
   if (!canvasRef.value) return
   if (chart) { chart.destroy(); chart = null }

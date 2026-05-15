@@ -16,8 +16,10 @@ const props = defineProps({
 const { t } = useI18n()
 const router = useRouter()
 
+/** @type {import('vue').ComputedRef<string>} */
 const requiredPlanLabel = computed(() => t(`plan.${props.requiredPlan}`))
 
+/** Navigates to the subscription management page. */
 function goToSubscription() {
   router.push({ name: 'profile-subscription' })
 }

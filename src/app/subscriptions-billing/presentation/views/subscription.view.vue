@@ -62,6 +62,7 @@ function handleSelectPlan(planId) {
   planChangeSuccess.value = false
 }
 
+/** Submits the pending plan change to the store, then clears the dialog state. */
 function handleConfirmChange() {
   if (!pendingPlanId.value) return
   showConfirmDialog.value = false
@@ -70,15 +71,18 @@ function handleConfirmChange() {
   pendingPlanId.value = null
 }
 
+/** Closes the confirmation dialog without applying any changes. */
 function handleCancelDialog() {
   showConfirmDialog.value = false
   pendingPlanId.value = null
 }
 
+/** Cancels the active subscription at the end of the current billing period. */
 function handleCancel() {
   store.cancelSubscription()
 }
 
+/** Reactivates a subscription that was previously set to cancel at period end. */
 function handleReactivate() {
   store.reactivateSubscription()
 }

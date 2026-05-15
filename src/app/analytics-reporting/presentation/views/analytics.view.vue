@@ -111,6 +111,7 @@ onBeforeUnmount(() => {
   calorieChart?.destroy()
 })
 
+/** Destroys any existing calorie chart and rebuilds a bar chart from logs in the current date range. */
 function buildCalorieChart() {
   if (!calorieCanvasRef.value) return
   calorieChart?.destroy()
@@ -184,6 +185,7 @@ const isApplyDisabled = computed(() => {
   return new Date(draftEnd.value) < new Date(draftStart.value)
 })
 
+/** Applies the custom date range from the draft inputs and closes the modal. */
 function handleApplyCustomRange() {
   analyticsStore.setCustomRange(
     new Date(draftStart.value + 'T00:00:00'),
@@ -192,6 +194,7 @@ function handleApplyCustomRange() {
   showCustomModal.value = false
 }
 
+/** Reverts the selected range to the value before the custom modal was opened and closes it. */
 function handleCancelCustomRange() {
   analyticsStore.setRange(previousRange.value)
   showCustomModal.value = false
@@ -208,6 +211,7 @@ watch(currentTier, tier => {
   }
 })
 
+/** Closes the export modal (PDF generation is a future integration point). */
 function handleExportPdf() {
   showExportModal.value = false
 }

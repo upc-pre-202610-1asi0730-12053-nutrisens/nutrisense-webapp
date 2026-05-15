@@ -235,6 +235,7 @@ const goalLabel = computed(() => {
   return t('recommendations.goalFor', { goal: t(key) })
 })
 
+/** @type {import('vue').ComputedRef<string|null>} */
 const travelLabel = computed(() => {
   if (!travelModeActive.value) return null
   return activeCityName.value

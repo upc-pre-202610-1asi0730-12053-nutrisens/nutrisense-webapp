@@ -1,4 +1,6 @@
 // PATH: src/app/analytics-reporting/presentation/routes/analytics-reporting.routes.js
+
+/** @type {import('vue-router').RouteRecordRaw[]} */
 export const analyticsReportingRoutes = [
   {
     path: 'dashboard',

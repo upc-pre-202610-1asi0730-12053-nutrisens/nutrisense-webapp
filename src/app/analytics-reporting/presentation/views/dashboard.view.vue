@@ -89,6 +89,12 @@ const caloriesRemaining = computed(() =>
 )
 const netBalance = computed(() => dailyCaloriesConsumed.value - todayCaloriesBurned.value)
 
+/**
+ * Returns the percentage of val relative to goal, clamped to 0–100.
+ * @param {number} val
+ * @param {number} goal
+ * @returns {number}
+ */
 function pct(val, goal) { return goal > 0 ? Math.min(100, Math.round(val / goal * 100)) : 0 }
 const proteinPct = computed(() => pct(dailyMacros.value?.proteinG ?? 0, proteinGoal.value))
 const carbsPct   = computed(() => pct(dailyMacros.value?.carbsG   ?? 0, carbsGoal.value))
@@ -106,6 +112,7 @@ watch(donutValues, vals => {
   chartInstance.update()
 })
 
+/** Initialises the macro doughnut chart on the canvas ref. */
 function buildChart() {
   if (!chartRef.value) return
   chartInstance = new Chart(chartRef.value, {
@@ -136,12 +143,22 @@ const mealConfig = {
   dinner:    { labelKey: 'meal.dinner',    color: '#9ca3af' },
 }
 
+/**
+ * Returns the total calories for a given meal type, or null if no logs exist.
+ * @param {string} meal
+ * @returns {number|null}
+ */
 function mealKcal(meal) {
   const logs = logsByMealType.value?.[meal] ?? []
   if (!logs.length) return null
   return logs.reduce((s, l) => { try { return s + (l.macros?.().calories ?? 0) } catch { return s } }, 0)
 }
 
+/**
+ * Returns the translated name of the first food logged for a given meal type, or null.
+ * @param {string} meal
+ * @returns {string|null}
+ */
 function mealFirstFood(meal) {
   const logs = logsByMealType.value?.[meal] ?? []
   if (!logs.length) return null
@@ -149,6 +166,10 @@ function mealFirstFood(meal) {
   try { return log.foodKey ? t(log.foodKey) : (log.name ?? null) } catch { return log.name ?? null }
 }
 
+/**
+ * Navigates to the nutrition log view, optionally pre-selecting a meal type.
+ * @param {string} [meal]
+ */
 function goToLog(meal) {
   router.push({ name: 'nutrition-log', query: meal ? { meal } : {} })
 }

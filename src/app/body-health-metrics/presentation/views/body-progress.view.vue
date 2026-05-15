@@ -140,6 +140,7 @@ watch(showWeightForm, open => {
   }
 })
 
+/** Validates the weight input and saves it via the store, then closes the dialog. */
 function handleLogWeight() {
   weightError.value = ''
   const w = newWeight.value

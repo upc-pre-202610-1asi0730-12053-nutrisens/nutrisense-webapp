@@ -3,6 +3,14 @@
 import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 
+/**
+ * @typedef {Object} NutritionLogFormProps
+ * @property {import('../../../../nutrition-tracking/domain/model/food.entity.js').Food[]} foods
+ * @property {string} mealType
+ * @property {boolean} [visible]
+ * @property {string[]} [conflictFlags]
+ */
+
 const props = defineProps({
   foods: { type: Array, required: true },
   mealType: { type: String, required: true },
@@ -10,6 +18,7 @@ const props = defineProps({
   conflictFlags: { type: Array, default: () => [] },
 })
 
+/** @type {(event: 'submit', payload: { foodId: string, grams: number, mealType: string }) => void} */
 const emit = defineEmits(['submit', 'cancel', 'search'])
 
 const { t } = useI18n()
@@ -29,6 +38,7 @@ const mealTypeOptions = [
 
 const selectedMealType = ref(props.mealType)
 
+/** @type {import('vue').ComputedRef<{ calories: number, proteinG: number, carbsG: number, fatG: number }|null>} */
 const preview = computed(() => {
   if (!selectedFood.value || !quantityG.value) return null
   const f = selectedFood.value
@@ -41,15 +51,21 @@ const preview = computed(() => {
   }
 })
 
+/** Emits the current search query so the parent can fetch matching foods. */
 function onSearch() {
   emit('search', searchQuery.value)
 }
 
+/**
+ * Sets the selected food and populates the search field with its translated name.
+ * @param {{ id: string, key: string, caloriesPer100g: number, proteinPer100g: number, carbsPer100g: number, fatPer100g: number }} food
+ */
 function selectFood(food) {
   selectedFood.value = food
   searchQuery.value = t(food.key)
 }
 
+/** Validates the quantity and emits submit with the log payload, then resets. */
 function handleSubmit() {
   if (!selectedFood.value) return
   quantityError.value = ''
@@ -66,6 +82,7 @@ function handleSubmit() {
   reset()
 }
 
+/** Resets all form fields to their initial values. */
 function reset() {
   searchQuery.value = ''
   selectedFood.value = null
@@ -73,6 +90,7 @@ function reset() {
   quantityError.value = ''
 }
 
+/** Resets the form and emits cancel. */
 function handleCancel() {
   reset()
   emit('cancel')

@@ -24,6 +24,7 @@
   --color-sidebar-active-border:  #F4C5AE;
   --sidebar-width-expanded:       240px;
   --sidebar-width-collapsed:      64px;
+  --topbar-height:                3.25rem;
 
   /* ── Legacy tokens (--ns-*) mapped to spec palette ── */
   --ns-primary:          #508b89;

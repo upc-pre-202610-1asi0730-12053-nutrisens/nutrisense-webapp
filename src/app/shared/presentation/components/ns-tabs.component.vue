@@ -1,15 +1,23 @@
 <!-- PATH: src/app/shared/presentation/components/ns-tabs.component.vue -->
 <script setup>
+/**
+ * @typedef {{ value: string, label: string, icon?: string, disabled?: boolean }} NsTab
+ */
+
+/**
+ * @typedef {Object} NsTabsProps
+ * @property {string} modelValue
+ * @property {NsTab[]} tabs
+ * @property {'md'|'sm'} [size]
+ */
+
 defineProps({
   modelValue: { type: String, required: true },
-  tabs: {
-    type: Array,
-    required: true,
-    // [{ value: string, label: string, icon?: string, disabled?: boolean }]
-  },
-  size: { type: String, default: 'md' }, // 'md' | 'sm'
+  tabs: { type: Array, required: true },
+  size: { type: String, default: 'md' },
 })
 
+/** @type {(event: 'update:modelValue', value: string) => void} */
 defineEmits(['update:modelValue'])
 </script>
 

@@ -66,6 +66,7 @@ const dishBannerLevel = computed(() => {
   return null
 })
 
+/** Adds all detected dish items to the selected meal in the nutrition log. */
 function addAllToLog() {
   if (!dishScanResult.value || !isViewingToday.value) return
   dishScanResult.value.detectedItems.forEach(({ food, estimatedGrams }) => {
@@ -80,6 +81,7 @@ function addAllToLog() {
   router.push({ name: 'nutrition-log' })
 }
 
+/** Clears the current scan result and returns to the scan tab. */
 function scanAgain() {
   store.resetDishScan()
   router.push({ name: 'nutrition-log', query: { tab: 'smart-scan' } })
