@@ -2050,6 +2050,13 @@
       "loggedAt": "2026-05-15T03:31:49.318Z",
       "note": null,
       "id": "7EnPozcMHoI"
+    },
+    {
+      "userId": "XYW8XXgPFTQ",
+      "weightKg": 78,
+      "loggedAt": "2026-05-15T10:30:23.042Z",
+      "note": null,
+      "id": "BYqAdkZiH-w"
     }
   ],
   "body_measurements": [
@@ -2284,6 +2291,17 @@
       "date": "2026-05-14",
       "loggedAt": "2026-05-15T01:54:31.313Z",
       "id": "jVG5ViAeQsQ"
+    },
+    {
+      "userId": "XYW8XXgPFTQ",
+      "activityType": "walking",
+      "intensity": "medium",
+      "durationMinutes": 30,
+      "caloriesBurned": 120,
+      "source": "manual",
+      "date": "2026-05-15",
+      "loggedAt": "2026-05-15T10:36:22.946Z",
+      "id": "xgHfqZBgn88"
     }
   ],
   "pantry": [
@@ -5806,6 +5824,83 @@
       "lastLogDate": "2026-05-14",
       "weeklyCompletionRate": 0.14285714285714285,
       "id": "7TkrA8Dc90c"
+    },
+    {
+      "currentStreak": 0,
+      "longestStreak": 1,
+      "lastLogDate": "2026-05-14",
+      "weeklyCompletionRate": 0.14285714285714285,
+      "id": "V2iu-5bB7G0"
+    },
+    {
+      "currentStreak": 0,
+      "longestStreak": 1,
+      "lastLogDate": "2026-05-14",
+      "weeklyCompletionRate": 0.14285714285714285,
+      "id": "y6pTQ7WAvBw"
+    },
+    {
+      "currentStreak": 0,
+      "longestStreak": 1,
+      "lastLogDate": "2026-05-14",
+      "weeklyCompletionRate": 0.14285714285714285,
+      "id": "BxtJsOqA2hE"
+    },
+    {
+      "currentStreak": 0,
+      "longestStreak": 1,
+      "lastLogDate": "2026-05-14",
+      "weeklyCompletionRate": 0.14285714285714285,
+      "id": "mDz6Yx_OOl8"
+    },
+    {
+      "currentStreak": 0,
+      "longestStreak": 1,
+      "lastLogDate": "2026-05-14",
+      "weeklyCompletionRate": 0.14285714285714285,
+      "id": "22iOgwNAQ2A"
+    },
+    {
+      "currentStreak": 0,
+      "longestStreak": 1,
+      "lastLogDate": "2026-05-14",
+      "weeklyCompletionRate": 0.14285714285714285,
+      "id": "7TCfbSYQ0yE"
+    },
+    {
+      "currentStreak": 0,
+      "longestStreak": 1,
+      "lastLogDate": "2026-05-14",
+      "weeklyCompletionRate": 0.14285714285714285,
+      "id": "AzA5I_qpJu0"
+    },
+    {
+      "currentStreak": 0,
+      "longestStreak": 1,
+      "lastLogDate": "2026-05-14",
+      "weeklyCompletionRate": 0.14285714285714285,
+      "id": "27rfrlc9lM8"
+    },
+    {
+      "currentStreak": 0,
+      "longestStreak": 1,
+      "lastLogDate": "2026-05-14",
+      "weeklyCompletionRate": 0.14285714285714285,
+      "id": "C4CpdrFoIzE"
+    },
+    {
+      "currentStreak": 0,
+      "longestStreak": 1,
+      "lastLogDate": "2026-05-14",
+      "weeklyCompletionRate": 0.14285714285714285,
+      "id": "LmGzWr2YPpk"
+    },
+    {
+      "currentStreak": 0,
+      "longestStreak": 1,
+      "lastLogDate": "2026-05-14",
+      "weeklyCompletionRate": 0.14285714285714285,
+      "id": "Jclx_ypAJMA"
     }
   ],
   "$schema": "./node_modules/json-server/schema.json"

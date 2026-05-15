@@ -1,6 +1,6 @@
 <!-- PATH: src/app/shared/presentation/components/app-layout.component.vue -->
 <script setup>
-import { ref, computed, onMounted, toRefs } from 'vue'
+import { ref, computed, onMounted, onUnmounted, toRefs } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useIamStore } from '../../../iam/application/iam.store.js'
@@ -12,7 +12,14 @@ const router = useRouter()
 const iamStore = useIamStore()
 const { currentUser } = toRefs(iamStore)
 
+const MOBILE_BP = 768
+
+const windowWidth = ref(window.innerWidth)
+/** @type {import('vue').ComputedRef<boolean>} */
+const isMobile = computed(() => windowWidth.value <= MOBILE_BP)
+
 const collapsed = ref(false)
+const mobileOpen = ref(false)
 
 const navItems = [
   { section: 'main',  icon: 'pi pi-th-large',  name: 'dashboard',       labelKey: 'nav.dashboard',       captionKey: 'nav.caption.dashboard' },
@@ -30,22 +37,46 @@ const toolsItems = computed(() => navItems.filter(i => i.section === 'tools'))
 
 const firstName = computed(() => currentUser.value?.firstName ?? '')
 
+/** @type {import('vue').ComputedRef<Record<string, boolean>>} */
+const shellClasses = computed(() => ({
+  'sidebar-collapsed': collapsed.value && !isMobile.value,
+}))
+
+/** @type {import('vue').ComputedRef<Record<string, boolean>>} */
+const sidebarClasses = computed(() => ({
+  'sidebar--mobile-open': isMobile.value && mobileOpen.value,
+}))
+
+/** @type {import('vue').ComputedRef<Record<string, string>>} */
+const sidebarStyle = computed(() => {
+  if (isMobile.value) return {}
+  return { width: collapsed.value ? 'var(--sidebar-width-collapsed)' : 'var(--sidebar-width-expanded)' }
+})
+
 /**
  * Returns true if the nav item matches the current route.
- * @param {object} item
+ * @param {{ name: string }} item
  * @returns {boolean}
  */
 function isActive(item) {
   return route.name === item.name || route.path.startsWith(`/app/${item.name}`)
 }
 
+/** Whether the sidebar label/text should be visible (expanded on desktop, always on mobile). */
+const showLabels = computed(() => !collapsed.value || isMobile.value)
+
 function toggleCollapsed() { collapsed.value = !collapsed.value }
+function toggleMobile() { mobileOpen.value = !mobileOpen.value }
+function closeMobile() { mobileOpen.value = false }
 
 /**
- * Navigates to the given route name.
+ * Navigates to the given route and closes the mobile sidebar.
  * @param {string} routeName
  */
-function navigateTo(routeName) { router.push({ name: routeName }) }
+function navigateTo(routeName) {
+  router.push({ name: routeName })
+  if (isMobile.value) mobileOpen.value = false
+}
 
 function signOut() {
   iamStore.signOut()
@@ -53,9 +84,19 @@ function signOut() {
   router.push({ name: 'login' })
 }
 
+function handleResize() {
+  windowWidth.value = window.innerWidth
+  if (windowWidth.value > MOBILE_BP) mobileOpen.value = false
+}
+
 onMounted(() => {
   const userId = localStorage.getItem('ns_user_id')
   if (userId && !currentUser.value) iamStore.fetchCurrentUser(userId)
+  window.addEventListener('resize', handleResize)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', handleResize)
 })
 </script>
 
@@ -63,27 +104,65 @@ onMounted(() => {
   <pv-toast />
   <pv-confirm-dialog />
 
-  <div class="app-shell" :class="{ 'sidebar-collapsed': collapsed }">
+  <!-- Mobile top bar -->
+  <header v-if="isMobile" class="mobile-topbar" role="banner">
+    <button
+      class="topbar-menu-btn"
+      :aria-label="t('nav.openMenu')"
+      :aria-expanded="mobileOpen"
+      @click="toggleMobile"
+    >
+      <i class="pi pi-bars" aria-hidden="true" />
+    </button>
+    <img src="/favicon.svg" class="topbar-logo-img" alt="" aria-hidden="true" />
+    <span class="topbar-logo">NutriSense</span>
+  </header>
+
+  <!-- Mobile backdrop -->
+  <transition name="backdrop-fade">
+    <div
+      v-if="isMobile && mobileOpen"
+      class="sidebar-backdrop"
+      aria-hidden="true"
+      @click="closeMobile"
+    />
+  </transition>
+
+  <div class="app-shell" :class="shellClasses">
     <!-- SIDEBAR -->
     <aside
       class="sidebar"
-      :style="{ width: collapsed ? 'var(--sidebar-width-collapsed)' : 'var(--sidebar-width-expanded)' }"
+      :class="sidebarClasses"
+      :style="sidebarStyle"
       aria-label="Main navigation"
     >
       <!-- Header -->
       <div class="sidebar-header">
-        <div v-if="!collapsed" class="sidebar-logo-wrap">
+        <div v-if="showLabels" class="sidebar-logo-wrap">
           <img src="/favicon.svg" class="sidebar-logo-img" alt="" aria-hidden="true" />
           <span class="sidebar-logo">NutriSense</span>
         </div>
-        <button class="sidebar-toggle" :aria-label="t('common.close')" @click="toggleCollapsed">
+        <button
+          v-if="isMobile"
+          class="sidebar-toggle"
+          :aria-label="t('common.close')"
+          @click="closeMobile"
+        >
+          <i class="pi pi-times" />
+        </button>
+        <button
+          v-else
+          class="sidebar-toggle"
+          :aria-label="t('common.close')"
+          @click="toggleCollapsed"
+        >
           <i class="pi pi-bars" />
         </button>
       </div>
 
       <nav>
         <!-- MAIN section -->
-        <div v-if="!collapsed" class="sidebar-section-label">MAIN</div>
+        <div v-if="showLabels" class="sidebar-section-label">MAIN</div>
         <button
           v-for="item in mainItems"
           :key="item.name"
@@ -93,14 +172,14 @@ onMounted(() => {
           @click="navigateTo(item.name)"
         >
           <i :class="item.icon" class="sidebar-nav-icon" aria-hidden="true" />
-          <div v-if="!collapsed" class="sidebar-nav-text">
+          <div v-if="showLabels" class="sidebar-nav-text">
             <span class="sidebar-nav-primary">{{ t(item.labelKey) }}</span>
             <span class="sidebar-nav-caption">{{ t(item.captionKey) }}</span>
           </div>
         </button>
 
         <!-- TOOLS section -->
-        <div v-if="!collapsed" class="sidebar-section-label">TOOLS</div>
+        <div v-if="showLabels" class="sidebar-section-label">TOOLS</div>
         <button
           v-for="item in toolsItems"
           :key="item.name"
@@ -110,7 +189,7 @@ onMounted(() => {
           @click="navigateTo(item.name)"
         >
           <i :class="item.icon" class="sidebar-nav-icon" aria-hidden="true" />
-          <div v-if="!collapsed" class="sidebar-nav-text">
+          <div v-if="showLabels" class="sidebar-nav-text">
             <span class="sidebar-nav-primary">{{ t(item.labelKey) }}</span>
             <span class="sidebar-nav-caption">{{ t(item.captionKey) }}</span>
           </div>
@@ -121,7 +200,7 @@ onMounted(() => {
 
       <!-- Profile + Sign Out -->
       <div class="sidebar-footer">
-        <LanguageSwitcher v-if="!collapsed" variant="dark" />
+        <LanguageSwitcher v-if="showLabels" variant="dark" />
         <button
           class="sidebar-nav-item"
           :class="{ active: isActive(profileItem) }"
@@ -129,7 +208,7 @@ onMounted(() => {
           @click="navigateTo(profileItem.name)"
         >
           <i :class="profileItem.icon" class="sidebar-nav-icon" aria-hidden="true" />
-          <div v-if="!collapsed" class="sidebar-nav-text">
+          <div v-if="showLabels" class="sidebar-nav-text">
             <span class="sidebar-nav-primary">{{ t(profileItem.labelKey) }}</span>
             <span class="sidebar-nav-caption">{{ t(profileItem.captionKey) }}</span>
           </div>
@@ -137,11 +216,10 @@ onMounted(() => {
         <button
           class="sidebar-nav-item sidebar-signout"
           :aria-label="t('nav.signOut')"
-          role="button"
           @click="signOut"
         >
           <i class="pi pi-sign-out sidebar-nav-icon" aria-hidden="true" />
-          <span v-if="!collapsed" class="sidebar-nav-primary">{{ t('nav.signOut') }}</span>
+          <span v-if="showLabels" class="sidebar-nav-primary">{{ t('nav.signOut') }}</span>
         </button>
       </div>
     </aside>
@@ -154,24 +232,26 @@ onMounted(() => {
 </template>
 
 <style scoped>
+/* ── Shell ── */
 .app-shell {
   display: flex;
   min-height: 100vh;
   background: var(--color-bg);
 }
 
+/* ── Sidebar ── */
 .sidebar {
   display: flex;
   flex-direction: column;
   background: var(--color-sidebar-bg);
   min-height: 100vh;
-  transition: width 0.2s ease;
   overflow: hidden;
   position: fixed;
   top: 0;
   left: 0;
   z-index: 100;
   box-shadow: 2px 0 12px rgba(0,0,0,0.10);
+  transition: width 0.2s ease;
 }
 
 .sidebar-header {
@@ -214,8 +294,13 @@ onMounted(() => {
   padding: 0.25rem;
   display: flex;
   align-items: center;
+  border-radius: 6px;
+  transition: background 0.15s;
 }
 
+.sidebar-toggle:hover {
+  background: rgba(255,255,255,0.15);
+}
 
 .sidebar-section-label {
   color: rgba(255,255,255,0.4);
@@ -310,6 +395,7 @@ onMounted(() => {
   color: rgba(255,255,255,0.9);
 }
 
+/* ── Main content ── */
 .main-content {
   margin-left: var(--sidebar-width-expanded);
   flex: 1;
@@ -323,16 +409,91 @@ onMounted(() => {
   margin-left: var(--sidebar-width-collapsed);
 }
 
+/* ── Mobile top bar ── */
+.mobile-topbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--topbar-height);
+  background: var(--color-sidebar-bg);
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0 1rem;
+  z-index: 98;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+}
+
+.topbar-menu-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: rgba(255,255,255,0.9);
+  font-size: 1.125rem;
+  padding: 0.375rem;
+  display: flex;
+  align-items: center;
+  border-radius: 6px;
+  transition: background 0.15s;
+  flex-shrink: 0;
+}
+
+.topbar-menu-btn:hover {
+  background: rgba(255,255,255,0.15);
+}
+
+.topbar-logo-img {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.topbar-logo {
+  color: #fff;
+  font-family: 'Poppins', sans-serif;
+  font-weight: 700;
+  font-size: 1rem;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+
+/* ── Backdrop ── */
+.sidebar-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.38);
+  z-index: 99;
+  touch-action: none;
+}
+
+.backdrop-fade-enter-active,
+.backdrop-fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.backdrop-fade-enter-from,
+.backdrop-fade-leave-to {
+  opacity: 0;
+}
+
+/* ── Mobile overrides ── */
 @media (max-width: 768px) {
   .sidebar {
+    width: var(--sidebar-width-expanded) !important;
     transform: translateX(-100%);
+    transition: transform 0.25s ease;
   }
-  .app-shell:not(.sidebar-collapsed) .sidebar {
+
+  .sidebar--mobile-open {
     transform: translateX(0);
   }
+
   .main-content {
     margin-left: 0 !important;
     padding: 1rem;
+    padding-top: calc(var(--topbar-height) + 1rem);
   }
 }
 </style>

@@ -206,6 +206,12 @@ function handleRegister() {
   gap: 0.75rem;
 }
 
+@media (max-width: 480px) {
+  .auth-form__row {
+    grid-template-columns: 1fr;
+  }
+}
+
 .auth-form__field {
   display: flex;
   flex-direction: column;
