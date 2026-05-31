@@ -1,6 +1,7 @@
 // PATH: src/router.js
 import { createRouter, createWebHistory } from 'vue-router'
 import { useIamStore } from './app/iam/application/iam.store.js'
+import { useSubscriptionsBillingStore } from './app/subscriptions-billing/application/subscriptions-billing.store.js'
 import { iamRoutes, onboardingRoute } from './app/iam/presentation/routes/iam.routes.js'
 import { analyticsReportingRoutes } from './app/analytics-reporting/presentation/routes/analytics-reporting.routes.js'
 import { nutritionTrackingRoutes } from './app/nutrition-tracking/presentation/routes/nutrition-tracking.routes.js'
@@ -60,6 +61,12 @@ router.beforeEach(async (to, _from) => {
     }
     if (user && user.isOnboardingComplete() && to.name === 'onboarding') {
       return { name: 'dashboard' }
+    }
+
+    if (to.name === 'plan-selection') {
+      const billingStore = useSubscriptionsBillingStore()
+      if (!billingStore.subscriptionLoaded) await billingStore.checkSubscription(userId)
+      if (billingStore.subscription) return { name: 'dashboard' }
     }
   }
 })
