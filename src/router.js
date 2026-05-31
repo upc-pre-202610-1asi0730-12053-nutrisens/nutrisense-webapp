@@ -53,6 +53,11 @@ router.beforeEach(async (to, _from) => {
   if (userId && to.meta?.requiresAuth) {
     const iamStore = useIamStore()
     if (!iamStore.userLoaded) await iamStore.fetchCurrentUser(userId)
+
+    const user = iamStore.currentUser
+    if (user && !user.isOnboardingComplete() && to.name !== 'onboarding') {
+      return { name: 'onboarding' }
+    }
   }
 })
 

@@ -69,6 +69,14 @@ export function User(props) {
       return `${props.firstName[0]}${props.lastName[0]}`.toUpperCase()
     },
     /**
+     * Returns true when the user has completed the onboarding flow.
+     * A blank dateOfBirth or homeCityId indicates a freshly registered account.
+     * @returns {boolean}
+     */
+    isOnboardingComplete() {
+      return Boolean(props.dateOfBirth && props.homeCityId)
+    },
+    /**
      * @param {import('./plan-tier.record.js').PlanTierValue} minimumPlan
      * @returns {boolean}
      */
