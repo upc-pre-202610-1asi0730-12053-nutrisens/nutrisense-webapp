@@ -724,6 +724,32 @@
     "pro": "Pro",
     "premium": "Premium"
   },
+  "checkout": {
+    "title": "Secure Checkout",
+    "subtitle": "You're one step away from unlocking your plan",
+    "orderSummary": "Order Summary",
+    "billedMonthly": "Billed monthly",
+    "cardDetails": "Card Details",
+    "cardNumber": "Card number",
+    "cardholderName": "Name on card",
+    "expiry": "Expiry (MM/YY)",
+    "cvv": "CVV",
+    "payNow": "Pay ${amount}",
+    "processing": "Processing...",
+    "secureNotice": "256-bit SSL encryption — your data is safe",
+    "backToPlans": "Back to plans",
+    "errorCardNumber": "Enter a valid 16-digit card number",
+    "errorExpiry": "Enter a valid expiry date (MM/YY)",
+    "errorCvv": "Enter a valid CVV",
+    "errorName": "Enter the cardholder name",
+    "errorPayment": "Payment failed. Please check your card details and try again."
+  },
+  "paymentSuccess": {
+    "title": "You're all set!",
+    "subtitle": "Welcome to NutriSense {plan}. Your subscription is now active.",
+    "chargedTo": "Charged to",
+    "goToDashboard": "Go to Dashboard"
+  },
   "rec": {
     "warming_dish": "Warming dish for cool weather",
     "perfect_hot_weather": "Perfect for hot weather",

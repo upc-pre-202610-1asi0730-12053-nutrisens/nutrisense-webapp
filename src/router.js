@@ -8,7 +8,7 @@ import { nutritionTrackingRoutes } from './app/nutrition-tracking/presentation/r
 import { bodyHealthMetricsRoutes } from './app/body-health-metrics/presentation/routes/body-health-metrics.routes.js'
 import { activityWearableRoutes } from './app/activity-wearable/presentation/routes/activity-wearable.routes.js'
 import { smartRecommendationsRoutes } from './app/smart-recommendations/presentation/routes/smart-recommendations.routes.js'
-import { subscriptionsBillingRoutes, planSelectionRoute } from './app/subscriptions-billing/presentation/routes/subscriptions-billing.routes.js'
+import { subscriptionsBillingRoutes, planSelectionRoute, checkoutRoute, paymentSuccessRoute } from './app/subscriptions-billing/presentation/routes/subscriptions-billing.routes.js'
 
 const authRoutes   = iamRoutes.filter(r => r.meta?.requiresGuest)
 const profileRoute = iamRoutes.find(r => r.name === 'profile')
@@ -20,6 +20,8 @@ const router = createRouter({
     ...authRoutes,
     onboardingRoute,
     planSelectionRoute,
+    checkoutRoute,
+    paymentSuccessRoute,
     {
       path: '/app',
       component: () => import('./app/shared/presentation/components/app-layout.component.vue'),
@@ -67,6 +69,18 @@ router.beforeEach(async (to, _from) => {
       const billingStore = useSubscriptionsBillingStore()
       if (!billingStore.subscriptionLoaded) await billingStore.checkSubscription(userId)
       if (billingStore.subscription) return { name: 'dashboard' }
+    }
+
+    if (to.name === 'checkout') {
+      if (!to.query.planId) return { name: 'plan-selection' }
+      const billingStore = useSubscriptionsBillingStore()
+      if (!billingStore.subscriptionLoaded) await billingStore.checkSubscription(userId)
+      if (billingStore.subscription) return { name: 'dashboard' }
+    }
+
+    if (to.name === 'payment-success') {
+      const billingStore = useSubscriptionsBillingStore()
+      if (!billingStore.lastPaymentMethod) return { name: 'dashboard' }
     }
   }
 })

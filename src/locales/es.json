@@ -724,6 +724,32 @@
     "pro": "Pro",
     "premium": "Premium"
   },
+  "checkout": {
+    "title": "Pago Seguro",
+    "subtitle": "Estás a un paso de activar tu plan",
+    "orderSummary": "Resumen del pedido",
+    "billedMonthly": "Facturado mensualmente",
+    "cardDetails": "Datos de la tarjeta",
+    "cardNumber": "Número de tarjeta",
+    "cardholderName": "Nombre en la tarjeta",
+    "expiry": "Vencimiento (MM/AA)",
+    "cvv": "CVV",
+    "payNow": "Pagar ${amount}",
+    "processing": "Procesando...",
+    "secureNotice": "Cifrado SSL de 256 bits — tus datos están protegidos",
+    "backToPlans": "Volver a los planes",
+    "errorCardNumber": "Ingresa un número de tarjeta de 16 dígitos válido",
+    "errorExpiry": "Ingresa una fecha de vencimiento válida (MM/AA)",
+    "errorCvv": "Ingresa un CVV válido",
+    "errorName": "Ingresa el nombre del titular",
+    "errorPayment": "El pago falló. Verifica los datos de tu tarjeta e intenta nuevamente."
+  },
+  "paymentSuccess": {
+    "title": "¡Todo listo!",
+    "subtitle": "Bienvenido a NutriSense {plan}. Tu suscripción ya está activa.",
+    "chargedTo": "Cobrado a",
+    "goToDashboard": "Ir al Dashboard"
+  },
   "rec": {
     "warming_dish": "Plato reconfortante para clima frío",
     "perfect_hot_weather": "Perfecto para clima cálido",

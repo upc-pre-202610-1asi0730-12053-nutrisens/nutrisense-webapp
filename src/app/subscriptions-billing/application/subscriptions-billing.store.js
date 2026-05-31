@@ -5,6 +5,7 @@ import { SubscriptionsBillingApi } from '../infrastructure/subscriptions-billing
 import { UserSubscriptionAssembler } from '../infrastructure/user-subscription.assembler.js'
 import { SubscriptionPlanAssembler } from '../infrastructure/subscription-plan.assembler.js'
 import { PaymentRecordAssembler } from '../infrastructure/payment-record.assembler.js'
+import { PaymentMethodAssembler } from '../infrastructure/payment-method.assembler.js'
 import { PlanTier } from '../domain/model/plan-tier.record.js'
 import { emit } from '../../shared/infrastructure/event-bus.js'
 import { createDomainEvent } from '../../shared/domain/events/domain-event.js'
@@ -27,6 +28,9 @@ export const useSubscriptionsBillingStore = defineStore('subscriptions-billing',
   const paymentHistoryLoaded = ref(false)
   /** @type {import('vue').Ref<string|null>} */
   const changingPlanId = ref(null)
+  const paymentProcessing = ref(false)
+  /** @type {import('vue').Ref<ReturnType<import('../domain/model/payment-method.entity.js').PaymentMethod>|null>} */
+  const lastPaymentMethod = ref(null)
   /** @type {import('vue').Ref<Error[]>} */
   const errors = ref([])
 
@@ -267,6 +271,40 @@ export const useSubscriptionsBillingStore = defineStore('subscriptions-billing',
       .catch(error => errors.value.push(error))
   }
 
+  /**
+   * Processes initial subscription payment in three sequential steps:
+   * saves the card as a payment method, creates a paid payment record,
+   * then activates the subscription via selectInitialPlan.
+   * @param {string} userId
+   * @param {string} planId
+   * @param {{ cardNumber: string, expiryMonth: number, expiryYear: number, cardholderName: string }} cardData
+   * @returns {Promise<void>}
+   * @throws {Error} re-thrown after being pushed to errors, so the view can react
+   */
+  function processPayment(userId, planId, cardData) {
+    paymentProcessing.value = true
+    const plan = plans.value.find(p => p.id === planId)
+    const cardResource = PaymentMethodAssembler.toResource(userId, cardData)
+
+    return subscriptionsBillingApi.createPaymentMethod(cardResource)
+      .then(res => {
+        lastPaymentMethod.value = PaymentMethodAssembler.toEntityFromResponse(res)
+        return subscriptionsBillingApi.createPaymentRecord({
+          userId,
+          planId,
+          amountUsd: plan?.priceMonthly ?? 0,
+          status:    'paid',
+          paidAt:    new Date().toISOString(),
+        })
+      })
+      .then(() => selectInitialPlan(userId, planId))
+      .catch(error => {
+        errors.value.push(error)
+        throw error
+      })
+      .finally(() => { paymentProcessing.value = false })
+  }
+
   /** Clears the errors array. */
   function clearErrors() {
     errors.value = []
@@ -280,6 +318,8 @@ export const useSubscriptionsBillingStore = defineStore('subscriptions-billing',
     plansLoaded,
     paymentHistoryLoaded,
     changingPlanId,
+    paymentProcessing,
+    lastPaymentMethod,
     errors,
     currentPlan,
     currentTier,
@@ -293,6 +333,7 @@ export const useSubscriptionsBillingStore = defineStore('subscriptions-billing',
     fetchPlans,
     fetchPaymentHistory,
     selectInitialPlan,
+    processPayment,
     changePlan,
     cancelSubscription,
     reactivateSubscription,

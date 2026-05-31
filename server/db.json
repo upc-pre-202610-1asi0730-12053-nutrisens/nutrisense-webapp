@@ -10149,7 +10149,57 @@
       "lastLogDate": "2026-05-15",
       "weeklyCompletionRate": 0,
       "id": "uFKh0zLxm68"
+    },
+    {
+      "currentStreak": 0,
+      "longestStreak": 6,
+      "lastLogDate": "2026-05-15",
+      "weeklyCompletionRate": 0,
+      "id": "tcK2ANBNTjo"
+    },
+    {
+      "currentStreak": 0,
+      "longestStreak": 12,
+      "lastLogDate": "2026-05-15",
+      "weeklyCompletionRate": 0,
+      "id": "5LsNWS7RlGc"
+    },
+    {
+      "currentStreak": 0,
+      "longestStreak": 12,
+      "lastLogDate": "2026-05-15",
+      "weeklyCompletionRate": 0,
+      "id": "KuSlanZxqZk"
+    },
+    {
+      "currentStreak": 0,
+      "longestStreak": 12,
+      "lastLogDate": "2026-05-15",
+      "weeklyCompletionRate": 0,
+      "id": "5LIfhNqtw7g"
+    },
+    {
+      "currentStreak": 0,
+      "longestStreak": 12,
+      "lastLogDate": "2026-05-15",
+      "weeklyCompletionRate": 0,
+      "id": "UhGVCL-Qf5c"
+    },
+    {
+      "currentStreak": 0,
+      "longestStreak": 12,
+      "lastLogDate": "2026-05-15",
+      "weeklyCompletionRate": 0,
+      "id": "QDj4iI7IXtg"
+    },
+    {
+      "currentStreak": 0,
+      "longestStreak": 12,
+      "lastLogDate": "2026-05-15",
+      "weeklyCompletionRate": 0,
+      "id": "SBkM5rbOmlY"
     }
   ],
+  "payment_methods": [],
   "$schema": "./node_modules/json-server/schema.json"
 }
