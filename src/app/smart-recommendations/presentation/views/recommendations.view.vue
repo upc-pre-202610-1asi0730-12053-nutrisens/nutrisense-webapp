@@ -31,6 +31,7 @@ const {
   cities,
   activeCity,
   homeCity,
+  homeCityId,
   activeCityName,
   travelModeActive,
   recommendationsLoaded,
@@ -85,15 +86,16 @@ const selectedTravelCityId = ref(null)
 const citySearch = ref('')
 
 /**
- * Cities filtered by the current search query (name or country code).
+ * Travel-eligible cities: excludes the user's home city and filters by search query.
  * @type {import('vue').ComputedRef<ReturnType<import('../../domain/model/city.entity.js').City>[]>}
  */
 const filteredCities = computed(() => {
   const q = citySearch.value.toLowerCase().trim()
-  if (!q) return cities.value
-  return cities.value.filter(c =>
-    t(c.key).toLowerCase().includes(q) || c.country.toLowerCase().includes(q)
-  )
+  return cities.value.filter(c => {
+    if (c.id === homeCityId.value) return false
+    if (!q) return true
+    return t(c.key).toLowerCase().includes(q) || c.country.toLowerCase().includes(q)
+  })
 })
 
 /**
