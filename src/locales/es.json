@@ -626,7 +626,9 @@
     "yes": "Sí",
     "no": "No",
     "of": "de",
-    "upgrade": "Mejorar plan"
+    "upgrade": "Mejorar plan",
+    "unitCm": "cm",
+    "unitKg": "kg"
   },
   "streak": {
     "start_fresh": "¡Registra tu primera comida, tú puedes!",

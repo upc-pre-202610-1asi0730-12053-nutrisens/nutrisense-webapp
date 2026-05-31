@@ -627,7 +627,8 @@
     "no": "No",
     "of": "of",
     "upgrade": "Upgrade",
-    "clear": "Clear"
+    "unitCm": "cm",
+    "unitKg": "kg"
   },
   "streak": {
     "start_fresh": "Log your first meal — you've got this!",
