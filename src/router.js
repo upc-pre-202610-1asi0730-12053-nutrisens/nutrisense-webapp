@@ -58,6 +58,9 @@ router.beforeEach(async (to, _from) => {
     if (user && !user.isOnboardingComplete() && to.name !== 'onboarding') {
       return { name: 'onboarding' }
     }
+    if (user && user.isOnboardingComplete() && to.name === 'onboarding') {
+      return { name: 'dashboard' }
+    }
   }
 })
 
