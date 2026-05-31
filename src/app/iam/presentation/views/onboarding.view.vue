@@ -95,7 +95,8 @@ const citySearch = ref('')
 const cityOpen = ref(false)
 const cityInputRef = ref(/** @type {HTMLInputElement|null} */ (null))
 
-const cityOptions = [
+/** @type {import('vue').ComputedRef<{ label: string, value: string }[]>} */
+const cityOptions = computed(() => [
   { label: t('city.lima'),         value: 'city_lima' },
   { label: t('city.bogota'),       value: 'city_bogota' },
   { label: t('city.cdmx'),         value: 'city_cdmx' },
@@ -104,16 +105,16 @@ const cityOptions = [
   { label: t('city.madrid'),       value: 'city_madrid' },
   { label: t('city.new_york'),     value: 'city_new_york' },
   { label: t('city.barcelona'),    value: 'city_barcelona' },
-]
+])
 
 /** @type {import('vue').ComputedRef<string>} */
-const selectedCityLabel = computed(() => cityOptions.find(c => c.value === form.value.homeCityId)?.label ?? '')
+const selectedCityLabel = computed(() => cityOptions.value.find(c => c.value === form.value.homeCityId)?.label ?? '')
 
-/** @type {import('vue').ComputedRef<typeof cityOptions>} */
+/** @type {import('vue').ComputedRef<{ label: string, value: string }[]>} */
 const filteredCities = computed(() => {
   const q = citySearch.value.toLowerCase().trim()
-  if (!q) return cityOptions
-  return cityOptions.filter(c => c.label.toLowerCase().includes(q))
+  if (!q) return cityOptions.value
+  return cityOptions.value.filter(c => c.label.toLowerCase().includes(q))
 })
 
 /** Opens the city search input. */
@@ -145,38 +146,43 @@ function handleCityBlur() {
 }
 
 // --- Form options ---
-const sexOptions = [
+/** @type {import('vue').ComputedRef<{ label: string, value: string }[]>} */
+const sexOptions = computed(() => [
   { label: t('onboarding.sexMale'),      value: 'male' },
   { label: t('onboarding.sexFemale'),    value: 'female' },
   { label: t('onboarding.sexPreferNot'), value: 'prefer-not-to-say' },
-]
+])
 
-const goalOptions = [
+/** @type {import('vue').ComputedRef<{ label: string, value: string }[]>} */
+const goalOptions = computed(() => [
   { label: t('onboarding.goalWeightLoss'), value: 'weight-loss' },
   { label: t('onboarding.goalMuscleGain'), value: 'muscle-gain' },
-]
+])
 
-const activityOptions = [
+/** @type {import('vue').ComputedRef<{ label: string, value: string }[]>} */
+const activityOptions = computed(() => [
   { label: t('onboarding.activitySedentary'),  value: 'sedentary' },
   { label: t('onboarding.activityLightly'),    value: 'lightly-active' },
   { label: t('onboarding.activityModerately'), value: 'moderately-active' },
   { label: t('onboarding.activityVery'),       value: 'very-active' },
   { label: t('onboarding.activityExtra'),      value: 'extra-active' },
-]
+])
 
-const waistMethodOptions = [
+/** @type {import('vue').ComputedRef<{ label: string, value: string }[]>} */
+const waistMethodOptions = computed(() => [
   { label: t('onboarding.waistMethodExact'),  value: 'exact' },
   { label: t('onboarding.waistMethodPants'),  value: 'pants' },
   { label: t('onboarding.waistMethodVisual'), value: 'visual' },
-]
+])
 
 const pantsSizeOptions = [26, 28, 30, 32, 34, 36].map(n => ({ label: String(n), value: n }))
 
-const visualOptions = [
+/** @type {import('vue').ComputedRef<{ label: string, approx: string, value: string }[]>} */
+const visualOptions = computed(() => [
   { label: t('onboarding.waistSlim'),   approx: t('onboarding.waistSlimApprox'),   value: 'slim' },
   { label: t('onboarding.waistNormal'), approx: t('onboarding.waistNormalApprox'), value: 'normal' },
   { label: t('onboarding.waistWide'),   approx: t('onboarding.waistWideApprox'),   value: 'wide' },
-]
+])
 
 const waistContextKey = computed(() =>
   form.value.goal === 'muscle-gain'
