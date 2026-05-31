@@ -19,9 +19,9 @@ const router = useRouter()
 /** @type {import('vue').ComputedRef<string>} */
 const requiredPlanLabel = computed(() => t(`plan.${props.requiredPlan}`))
 
-/** Navigates to the subscription management page. */
+/** Navigates to the billing page where the plan change modal is available. */
 function goToSubscription() {
-  router.push({ name: 'profile-subscription' })
+  router.push({ name: 'profile-billing' })
 }
 </script>
 
