@@ -25,6 +25,17 @@ function getPlanName(planId) {
   const plan = plans.value.find(p => p.id === planId)
   return plan ? t(plan.key) : planId
 }
+
+/**
+ * Returns the severity for the event type badge.
+ * @param {'payment'|'upgrade'|'downgrade'} type
+ * @returns {string}
+ */
+function typeSeverity(type) {
+  if (type === 'upgrade') return 'success'
+  if (type === 'downgrade') return 'warn'
+  return 'secondary'
+}
 </script>
 
 <template>
@@ -55,9 +66,21 @@ function getPlanName(planId) {
         </template>
       </pv-column>
 
+      <pv-column field="type" :header="t('paymentHistory.type')">
+        <template #body="{ data }">
+          <pv-tag
+            :value="t(`paymentHistory.type${data.type.charAt(0).toUpperCase() + data.type.slice(1)}`)"
+            :severity="typeSeverity(data.type)"
+          />
+        </template>
+      </pv-column>
+
       <pv-column field="planId" :header="t('paymentHistory.plan')">
         <template #body="{ data }">
-          {{ getPlanName(data.planId) }}
+          <span v-if="data.isPlanChange()">
+            {{ t('paymentHistory.planChange', { from: getPlanName(data.fromPlanId), to: getPlanName(data.planId) }) }}
+          </span>
+          <span v-else>{{ getPlanName(data.planId) }}</span>
         </template>
       </pv-column>
 

@@ -8,6 +8,22 @@ export const planSelectionRoute = {
   meta: { requiresAuth: true, title: 'NutriSense — Choose Your Plan' },
 }
 
+/** @type {import('vue-router').RouteRecordRaw} */
+export const checkoutRoute = {
+  path: '/checkout',
+  name: 'checkout',
+  component: () => import('../views/checkout.view.vue'),
+  meta: { requiresAuth: true, title: 'NutriSense — Checkout' },
+}
+
+/** @type {import('vue-router').RouteRecordRaw} */
+export const paymentSuccessRoute = {
+  path: '/payment-success',
+  name: 'payment-success',
+  component: () => import('../views/payment-confirmation.view.vue'),
+  meta: { requiresAuth: true, title: 'NutriSense — Payment Confirmed' },
+}
+
 /** @type {import('vue-router').RouteRecordRaw[]} */
 export const subscriptionsBillingProfileChildren = [
   {

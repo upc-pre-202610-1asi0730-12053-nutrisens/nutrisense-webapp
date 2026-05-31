@@ -1,13 +1,14 @@
 // PATH: src/router.js
 import { createRouter, createWebHistory } from 'vue-router'
 import { useIamStore } from './app/iam/application/iam.store.js'
+import { useSubscriptionsBillingStore } from './app/subscriptions-billing/application/subscriptions-billing.store.js'
 import { iamRoutes, onboardingRoute } from './app/iam/presentation/routes/iam.routes.js'
 import { analyticsReportingRoutes } from './app/analytics-reporting/presentation/routes/analytics-reporting.routes.js'
 import { nutritionTrackingRoutes } from './app/nutrition-tracking/presentation/routes/nutrition-tracking.routes.js'
 import { bodyHealthMetricsRoutes } from './app/body-health-metrics/presentation/routes/body-health-metrics.routes.js'
 import { activityWearableRoutes } from './app/activity-wearable/presentation/routes/activity-wearable.routes.js'
 import { smartRecommendationsRoutes } from './app/smart-recommendations/presentation/routes/smart-recommendations.routes.js'
-import { subscriptionsBillingRoutes, planSelectionRoute } from './app/subscriptions-billing/presentation/routes/subscriptions-billing.routes.js'
+import { subscriptionsBillingRoutes, planSelectionRoute, checkoutRoute, paymentSuccessRoute } from './app/subscriptions-billing/presentation/routes/subscriptions-billing.routes.js'
 
 const authRoutes   = iamRoutes.filter(r => r.meta?.requiresGuest)
 const profileRoute = iamRoutes.find(r => r.name === 'profile')
@@ -19,6 +20,8 @@ const router = createRouter({
     ...authRoutes,
     onboardingRoute,
     planSelectionRoute,
+    checkoutRoute,
+    paymentSuccessRoute,
     {
       path: '/app',
       component: () => import('./app/shared/presentation/components/app-layout.component.vue'),
@@ -53,6 +56,32 @@ router.beforeEach(async (to, _from) => {
   if (userId && to.meta?.requiresAuth) {
     const iamStore = useIamStore()
     if (!iamStore.userLoaded) await iamStore.fetchCurrentUser(userId)
+
+    const user = iamStore.currentUser
+    if (user && !user.isOnboardingComplete() && to.name !== 'onboarding') {
+      return { name: 'onboarding' }
+    }
+    if (user && user.isOnboardingComplete() && to.name === 'onboarding') {
+      return { name: 'dashboard' }
+    }
+
+    if (to.name === 'plan-selection') {
+      const billingStore = useSubscriptionsBillingStore()
+      if (!billingStore.subscriptionLoaded) await billingStore.checkSubscription(userId)
+      if (billingStore.subscription) return { name: 'dashboard' }
+    }
+
+    if (to.name === 'checkout') {
+      if (!to.query.planId) return { name: 'plan-selection' }
+      const billingStore = useSubscriptionsBillingStore()
+      if (!billingStore.subscriptionLoaded) await billingStore.checkSubscription(userId)
+      if (billingStore.subscription) return { name: 'dashboard' }
+    }
+
+    if (to.name === 'payment-success') {
+      const billingStore = useSubscriptionsBillingStore()
+      if (!billingStore.lastPaymentMethod) return { name: 'dashboard' }
+    }
   }
 })
 

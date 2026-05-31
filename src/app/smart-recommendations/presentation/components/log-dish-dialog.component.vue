@@ -29,7 +29,7 @@ const mealTypes = ['breakfast', 'lunch', 'snack', 'dinner']
 const dishName = computed(() => {
   if (!props.recommendation) return ''
   if (props.recommendation.foodId && props.food) return t(props.food.key)
-  return props.recommendation.customFoodName ?? ''
+  return t(props.recommendation.customFoodNameKey ?? '')
 })
 
 /** @type {import('vue').ComputedRef<boolean>} */

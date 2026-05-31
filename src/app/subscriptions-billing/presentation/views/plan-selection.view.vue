@@ -19,6 +19,7 @@ const selectingPlanId = ref('')
 billingStore.fetchPlans()
 iamStore.fetchCurrentUser(userId)
 
+
 /** @type {Record<string, string>} */
 const FEATURE_I18N = {
   'nutrition-log':          'subscription.featureNutritionLog',
@@ -35,34 +36,12 @@ const FEATURE_I18N = {
 }
 
 /**
- * Selects a plan, creates the subscription, syncs user.plan, then navigates to dashboard.
+ * Navigates to the checkout step for the chosen plan.
  * @param {string} planId - e.g. 'plan-pro'
  */
 function handleSelectPlan(planId) {
   selectingPlanId.value = planId
-  const tierKey = planId.replace('plan-', '')
-  const user = iamStore.currentUser
-
-  const syncProfile = user
-    ? iamStore.updateProfile({
-        firstName: user.firstName,
-        lastName: user.lastName,
-        email: user.email.value,
-        biologicalSex: user.biologicalSex.value,
-        dateOfBirth: user.dateOfBirth,
-        heightCm: user.heightCm,
-        goal: user.goal.value,
-        activityLevel: user.activityLevel.value,
-        preferredUnits: user.preferredUnits.value,
-        preferredLanguage: user.preferredLanguage,
-        plan: tierKey,
-        homeCityId: user.homeCityId ?? '',
-        createdAt: user.createdAt,
-      })
-    : Promise.resolve()
-
-  billingStore.selectInitialPlan(userId, planId)
-  Promise.resolve(syncProfile).then(() => router.push({ name: 'dashboard' }))
+  router.push({ name: 'checkout', query: { planId } })
 }
 
 /** Signs out and returns to login. */
@@ -103,7 +82,7 @@ function handleLater() {
             <span class="plan-card__price-period">{{ t('planSelection.perMonth') }}</span>
           </div>
 
-          <ul class="plan-card__features" aria-label="Included features">
+          <ul class="plan-card__features" :aria-label="t('planSelection.includedFeatures')">
             <li
               v-for="feature in plan.features"
               :key="feature"

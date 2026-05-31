@@ -11,8 +11,10 @@ export class PaymentRecordAssembler {
         id: resource.id,
         userId: resource.userId,
         planId: resource.planId,
+        fromPlanId: resource.fromPlanId ?? null,
         amountUsd: resource.amountUsd,
         status: resource.status,
+        type: resource.type ?? 'payment',
         paidAt: resource.paidAt ?? null,
       })
     } catch (e) {

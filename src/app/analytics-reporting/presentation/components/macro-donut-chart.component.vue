@@ -1,6 +1,7 @@
 <!-- PATH: src/app/analytics-reporting/presentation/components/macro-donut-chart.component.vue -->
 <script setup>
 import { ref, onMounted, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { Chart } from 'chart.js/auto'
 import { formatNum } from '../../../shared/infrastructure/format-utils.js'
 
@@ -13,6 +14,8 @@ import { formatNum } from '../../../shared/infrastructure/format-utils.js'
  * @property {string} [carbsLabel]
  * @property {string} [fatLabel]
  */
+
+const { t } = useI18n()
 
 const props = defineProps({
   proteinG: { type: Number, default: 0 },
@@ -75,7 +78,7 @@ watch(() => [props.proteinG, props.carbsG, props.fatG], buildChart)
 </script>
 
 <template>
-  <div class="macro-chart" aria-label="Macro distribution chart">
+  <div class="macro-chart" :aria-label="t('analytics.macroChartLabel')">
     <canvas ref="canvasRef" height="220" />
   </div>
 </template>
