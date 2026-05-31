@@ -42,6 +42,8 @@ onMounted(() => {
   bodyStore.fetchUserGoal(userId)
   activityStore.fetchActivityLogs(userId)
   if (!currentUser.value) iamStore.fetchCurrentUser(userId)
+  subStore.fetchSubscription(userId)
+  subStore.fetchPlans()
 })
 
 const accountCreatedAt = computed(() => {
