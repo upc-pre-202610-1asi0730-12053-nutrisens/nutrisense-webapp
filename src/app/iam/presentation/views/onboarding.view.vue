@@ -227,36 +227,39 @@ function prevStep() {
 }
 
 /** Saves all onboarding data and navigates to plan selection. */
-function handleSubmit() {
+async function handleSubmit() {
   loading.value = true
+  try {
+    const user = iamStore.currentUser
+    await iamStore.updateProfile({
+      firstName: user.firstName,
+      lastName: user.lastName,
+      email: user.email.value,
+      biologicalSex: form.value.biologicalSex,
+      dateOfBirth: form.value.dateOfBirth,
+      heightCm: form.value.heightCm,
+      goal: form.value.goal,
+      activityLevel: form.value.activityLevel,
+      preferredUnits: user.preferredUnits.value,
+      preferredLanguage: user.preferredLanguage,
+      plan: user.plan.value,
+      homeCityId: form.value.homeCityId,
+      createdAt: user.createdAt,
+      medicalConditions: form.value.medicalConditions,
+    })
 
-  const user = iamStore.currentUser
-  iamStore.updateProfile({
-    firstName: user.firstName,
-    lastName: user.lastName,
-    email: user.email.value,
-    biologicalSex: form.value.biologicalSex,
-    dateOfBirth: form.value.dateOfBirth,
-    heightCm: form.value.heightCm,
-    goal: form.value.goal,
-    activityLevel: form.value.activityLevel,
-    preferredUnits: user.preferredUnits.value,
-    preferredLanguage: user.preferredLanguage,
-    plan: user.plan.value,
-    homeCityId: form.value.homeCityId,
-    createdAt: user.createdAt,
-    medicalConditions: form.value.medicalConditions,
-  })
+    if (form.value.dietaryRestrictions.length > 0) {
+      await iamStore.updateDietaryRestrictions(form.value.dietaryRestrictions)
+    }
 
-  if (form.value.dietaryRestrictions.length > 0) {
-    iamStore.updateDietaryRestrictions(form.value.dietaryRestrictions)
+    bodyMetricsStore.setUserHeight(form.value.heightCm)
+    bodyMetricsStore.logWeight(userId, form.value.weightKg, new Date())
+    bodyMetricsStore.createBodyMeasurement(userId, resolvedWaistCm.value)
+
+    router.push({ name: 'plan-selection' })
+  } finally {
+    loading.value = false
   }
-
-  bodyMetricsStore.setUserHeight(form.value.heightCm)
-  bodyMetricsStore.logWeight(userId, form.value.weightKg, new Date())
-  bodyMetricsStore.createBodyMeasurement(userId, resolvedWaistCm.value)
-
-  router.push({ name: 'plan-selection' })
 }
 </script>
 
