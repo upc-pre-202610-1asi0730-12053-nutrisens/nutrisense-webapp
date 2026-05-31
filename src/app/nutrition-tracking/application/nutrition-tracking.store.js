@@ -248,12 +248,15 @@ export const useNutritionTrackingStore = defineStore('nutrition-tracking', () =>
    * @param {string} logId
    */
   function removeFromLog(logId) {
-    nutritionTrackingApi.deleteLog(logId)
+    return nutritionTrackingApi.deleteLog(logId)
       .then(() => {
         logs.value = logs.value.filter(l => l.id !== logId)
         _onConsumptionUpdated()
       })
-      .catch(error => errors.value.push(error))
+      .catch(error => {
+        errors.value.push(error)
+        throw error
+      })
   }
 
   /**

@@ -219,6 +219,7 @@
     "removeEntryConfirm": "Remove this entry? This cannot be undone.",
     "removeEntryHeader": "Remove entry",
     "entryRemoved": "Entry removed",
+    "removeEntryError": "Could not remove entry. Please try again.",
     "unknownFood": "Unknown food",
     "dailySummary": "Daily Summary",
     "carbohydrates": "Carbohydrates",

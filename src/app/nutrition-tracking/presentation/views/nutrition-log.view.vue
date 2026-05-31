@@ -285,6 +285,7 @@ function confirmAdd() {
  * @param {string} logId
  */
 function removeEntry(logId) {
+  document.activeElement?.blur()
   confirm.require({
     message: t('nutrition.removeEntryConfirm'),
     header:  t('nutrition.removeEntryHeader'),
@@ -292,7 +293,8 @@ function removeEntry(logId) {
     acceptClass: 'p-button-danger',
     accept: () => {
       nutritionStore.removeFromLog(logId)
-      toast.add({ severity: 'info', summary: t('nutrition.entryRemoved'), life: 2000 })
+        .then(() => toast.add({ severity: 'info', summary: t('nutrition.entryRemoved'), life: 2000 }))
+        .catch(() => toast.add({ severity: 'error', summary: t('nutrition.removeEntryError'), life: 3000 }))
     },
   })
 }

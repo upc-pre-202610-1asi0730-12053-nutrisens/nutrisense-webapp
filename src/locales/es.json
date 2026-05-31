@@ -219,6 +219,7 @@
     "removeEntryConfirm": "¿Eliminar esta entrada? Esta acción no se puede deshacer.",
     "removeEntryHeader": "Eliminar entrada",
     "entryRemoved": "Entrada eliminada",
+    "removeEntryError": "No se pudo eliminar la entrada. Inténtalo de nuevo.",
     "unknownFood": "Alimento desconocido",
     "dailySummary": "Resumen del día",
     "carbohydrates": "Carbohidratos",
