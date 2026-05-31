@@ -609,7 +609,12 @@
     "status": "Status",
     "paid": "Paid",
     "noPayments": "No payment history",
-    "loading": "Loading payment history..."
+    "loading": "Loading payment history...",
+    "type": "Type",
+    "typePayment": "Payment",
+    "typeUpgrade": "Upgrade",
+    "typeDowngrade": "Downgrade",
+    "planChange": "{from} → {to}"
   },
   "common": {
     "loading": "Loading...",

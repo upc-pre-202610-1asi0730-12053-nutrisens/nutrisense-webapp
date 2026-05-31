@@ -226,6 +226,7 @@ export const useSubscriptionsBillingStore = defineStore('subscriptions-billing',
 
   /**
    * Changes the current subscription to a different plan and billing period.
+   * Records an upgrade or downgrade event in payment history after the change.
    * @param {string} planId
    * @param {'monthly'|'annual'} billingPeriodValue
    */
@@ -233,12 +234,27 @@ export const useSubscriptionsBillingStore = defineStore('subscriptions-billing',
     if (!subscription.value) return Promise.resolve()
     changingPlanId.value = planId
     const userId = subscription.value.userId
-    const resource = { planId, billingPeriod: billingPeriodValue }
-    return subscriptionsBillingApi.updateSubscription(subscription.value.id, resource)
+    const fromPlanId = subscription.value.planId
+    const fromTier = PlanTier(fromPlanId.replace('plan-', ''))
+    const toTierValue = planId.replace('plan-', '')
+    const eventType = !fromTier.isAtLeast(toTierValue) ? 'upgrade' : 'downgrade'
+    const newPlan = plans.value.find(p => p.id === planId)
+
+    return subscriptionsBillingApi.updateSubscription(subscription.value.id, { planId, billingPeriod: billingPeriodValue })
       .then(response => {
         subscription.value = UserSubscriptionAssembler.toEntityFromResponse(response)
         if (userId) emit(createDomainEvent(SUBSCRIPTION_ACTIVATED, { userId }))
+        return subscriptionsBillingApi.createPaymentRecord({
+          userId,
+          planId,
+          fromPlanId,
+          amountUsd: newPlan?.priceMonthly ?? 0,
+          status: 'paid',
+          type: eventType,
+          paidAt: new Date().toISOString(),
+        })
       })
+      .then(() => fetchPaymentHistory(userId))
       .catch(error => errors.value.push(error))
       .finally(() => { changingPlanId.value = null })
   }

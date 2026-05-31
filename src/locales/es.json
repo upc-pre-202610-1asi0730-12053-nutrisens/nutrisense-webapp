@@ -609,7 +609,12 @@
     "status": "Estado",
     "paid": "Pagado",
     "noPayments": "Sin historial de pagos",
-    "loading": "Cargando historial de pagos..."
+    "loading": "Cargando historial de pagos...",
+    "type": "Tipo",
+    "typePayment": "Pago",
+    "typeUpgrade": "Mejora de plan",
+    "typeDowngrade": "Cambio a plan inferior",
+    "planChange": "{from} → {to}"
   },
   "common": {
     "loading": "Cargando...",
