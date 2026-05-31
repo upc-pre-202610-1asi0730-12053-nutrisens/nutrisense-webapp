@@ -727,7 +727,29 @@
   "rec": {
     "warming_dish": "Warming dish for cool weather",
     "perfect_hot_weather": "Perfect for hot weather",
-    "local_high_protein": "Local high-protein option"
+    "local_high_protein": "Local high-protein option",
+    "dish": {
+      "ceviche_de_pescado": "Fish Ceviche",
+      "tacos_pollo_frijoles": "Chicken & Bean Tacos",
+      "grilled_salmon_bowl": "Grilled Salmon Bowl",
+      "bowl_avena_platano": "Oatmeal & Banana Bowl",
+      "ensalada_pollo_pepino": "Chicken & Cucumber Salad",
+      "lomito_saltado_light": "Light Lomito Saltado",
+      "pollo_arroz_integral": "Chicken with Brown Rice",
+      "bowl_proteina_arroz_verduras": "Protein Bowl with Rice & Vegetables",
+      "sopa_lentejas": "Lentil Soup",
+      "ajiaco_pollo": "Chicken Ajiaco",
+      "huevos_espinaca_aceite": "Eggs with Spinach & Olive Oil",
+      "pollo_plancha_verduras": "Grilled Chicken with Vegetables",
+      "batido_proteina_avena": "Protein Oat Shake",
+      "asado_magro_ensalada": "Lean Steak with Salad",
+      "milanesa_pollo_camote": "Chicken Milanese with Sweet Potato",
+      "wraps_lechuga_pollo": "Chicken Lettuce Wraps",
+      "acai_bowl_proteico": "Protein Açaí Bowl",
+      "bocadillo_atun": "Tuna Snack",
+      "ensalada_mediterranea_pollo": "Mediterranean Chicken Salad",
+      "salmon_camote": "Salmon with Sweet Potato"
+    }
   },
   "scan": {
     "upgradeBannerBody": "Analyze dishes and restaurant menus with AI-powered nutrition tracking.",

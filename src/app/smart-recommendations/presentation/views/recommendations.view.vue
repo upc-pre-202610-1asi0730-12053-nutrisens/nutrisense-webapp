@@ -166,7 +166,7 @@ function handleLogDishConfirm({ foodId, grams, mealType, estimatedMacros }) {
     nutritionStore.addEstimatedToLog(
       userId,
       foodId,
-      logDishTarget.value?.customFoodName ?? foodId ?? '',
+      logDishTarget.value?.customFoodNameKey ?? foodId ?? '',
       estimatedMacros,
       mealType,
       'manual',

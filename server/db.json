@@ -4987,23 +4987,6 @@
       "date": "2026-05-15",
       "source": "manual",
       "loggedAt": "2026-05-15T20:00:00Z"
-    },
-    {
-      "userId": "M9o24meONkE",
-      "foodId": "f3",
-      "foodKey": "food.chicken_breast",
-      "mealType": "lunch",
-      "source": "manual",
-      "date": "2026-05-31",
-      "quantityG": 100,
-      "calories": 165,
-      "proteinG": 31,
-      "carbsG": 0,
-      "fatG": 3.6,
-      "fiberG": 0,
-      "sugarG": 0,
-      "loggedAt": "2026-05-31T07:43:11.066Z",
-      "id": "qkLuddCcPl4"
     }
   ],
   "weight_logs": [
@@ -5694,6 +5677,17 @@
       "caloriesBurned": 340,
       "source": "manual",
       "loggedAt": "2026-05-15T17:00:00Z"
+    },
+    {
+      "userId": "u13",
+      "activityType": "walking",
+      "intensity": "low",
+      "durationMinutes": 30,
+      "caloriesBurned": 90,
+      "source": "manual",
+      "date": "2026-05-31",
+      "loggedAt": "2026-05-31T08:00:29.382Z",
+      "id": "dyuysw7Byq0"
     }
   ],
   "pantry": [
@@ -5990,7 +5984,6 @@
       "weatherType": "hot",
       "goalType": "weight-loss",
       "foodId": null,
-      "customFoodName": "Ceviche de pescado",
       "estimatedCalories": 280,
       "estimatedProteinG": 28,
       "estimatedCarbsG": 16,
@@ -5999,7 +5992,8 @@
       "contextLabelKey": "rec.perfect_hot_weather",
       "restrictionsConflict": [
         "seafood"
-      ]
+      ],
+      "customFoodNameKey": "rec.dish.ceviche_de_pescado"
     },
     {
       "id": "rc3",
@@ -6007,14 +6001,14 @@
       "weatherType": "mild",
       "goalType": "muscle-gain",
       "foodId": null,
-      "customFoodName": "Tacos de pollo con frijoles",
       "estimatedCalories": 580,
       "estimatedProteinG": 42,
       "estimatedCarbsG": 55,
       "estimatedFatG": 14,
       "badge": "high-protein",
       "contextLabelKey": "rec.local_high_protein",
-      "restrictionsConflict": []
+      "restrictionsConflict": [],
+      "customFoodNameKey": "rec.dish.tacos_pollo_frijoles"
     },
     {
       "id": "rc4",
@@ -6022,7 +6016,6 @@
       "weatherType": "hot",
       "goalType": "muscle-gain",
       "foodId": null,
-      "customFoodName": "Grilled salmon bowl",
       "estimatedCalories": 620,
       "estimatedProteinG": 48,
       "estimatedCarbsG": 45,
@@ -6031,7 +6024,8 @@
       "contextLabelKey": "rec.perfect_hot_weather",
       "restrictionsConflict": [
         "seafood"
-      ]
+      ],
+      "customFoodNameKey": "rec.dish.grilled_salmon_bowl"
     },
     {
       "id": "rc5",
@@ -6039,7 +6033,6 @@
       "weatherType": "mild",
       "goalType": "weight-loss",
       "foodId": null,
-      "customFoodName": "Bowl de avena con plátano",
       "estimatedCalories": 290,
       "estimatedProteinG": 10,
       "estimatedCarbsG": 48,
@@ -6048,7 +6041,8 @@
       "contextLabelKey": "rec.warming_dish",
       "restrictionsConflict": [
         "lactose"
-      ]
+      ],
+      "customFoodNameKey": "rec.dish.bowl_avena_platano"
     },
     {
       "id": "rc6",
@@ -6056,14 +6050,14 @@
       "weatherType": "mild",
       "goalType": "weight-loss",
       "foodId": null,
-      "customFoodName": "Ensalada de pollo y pepino",
       "estimatedCalories": 320,
       "estimatedProteinG": 38,
       "estimatedCarbsG": 12,
       "estimatedFatG": 11,
       "badge": "high-protein",
       "contextLabelKey": "rec.warming_dish",
-      "restrictionsConflict": []
+      "restrictionsConflict": [],
+      "customFoodNameKey": "rec.dish.ensalada_pollo_pepino"
     },
     {
       "id": "rc7",
@@ -6071,14 +6065,14 @@
       "weatherType": "mild",
       "goalType": "weight-loss",
       "foodId": null,
-      "customFoodName": "Lomito saltado light",
       "estimatedCalories": 310,
       "estimatedProteinG": 26,
       "estimatedCarbsG": 28,
       "estimatedFatG": 9,
       "badge": "local-dish",
       "contextLabelKey": "rec.local_high_protein",
-      "restrictionsConflict": []
+      "restrictionsConflict": [],
+      "customFoodNameKey": "rec.dish.lomito_saltado_light"
     },
     {
       "id": "rc8",
@@ -6086,14 +6080,14 @@
       "weatherType": "mild",
       "goalType": "muscle-gain",
       "foodId": null,
-      "customFoodName": "Pollo con arroz integral",
       "estimatedCalories": 540,
       "estimatedProteinG": 48,
       "estimatedCarbsG": 55,
       "estimatedFatG": 10,
       "badge": "high-protein",
       "contextLabelKey": "rec.local_high_protein",
-      "restrictionsConflict": []
+      "restrictionsConflict": [],
+      "customFoodNameKey": "rec.dish.pollo_arroz_integral"
     },
     {
       "id": "rc9",
@@ -6101,14 +6095,14 @@
       "weatherType": "hot",
       "goalType": "muscle-gain",
       "foodId": null,
-      "customFoodName": "Bowl de proteína con arroz y verduras",
       "estimatedCalories": 500,
       "estimatedProteinG": 40,
       "estimatedCarbsG": 50,
       "estimatedFatG": 12,
       "badge": "bulk",
       "contextLabelKey": "rec.perfect_hot_weather",
-      "restrictionsConflict": []
+      "restrictionsConflict": [],
+      "customFoodNameKey": "rec.dish.bowl_proteina_arroz_verduras"
     },
     {
       "id": "rc10",
@@ -6116,14 +6110,14 @@
       "weatherType": "cold",
       "goalType": "weight-loss",
       "foodId": null,
-      "customFoodName": "Sopa de lentejas",
       "estimatedCalories": 230,
       "estimatedProteinG": 14,
       "estimatedCarbsG": 38,
       "estimatedFatG": 3,
       "badge": "light",
       "contextLabelKey": "rec.warming_dish",
-      "restrictionsConflict": []
+      "restrictionsConflict": [],
+      "customFoodNameKey": "rec.dish.sopa_lentejas"
     },
     {
       "id": "rc11",
@@ -6131,7 +6125,6 @@
       "weatherType": "cold",
       "goalType": "weight-loss",
       "foodId": null,
-      "customFoodName": "Bowl de avena con plátano",
       "estimatedCalories": 290,
       "estimatedProteinG": 10,
       "estimatedCarbsG": 48,
@@ -6140,7 +6133,8 @@
       "contextLabelKey": "rec.warming_dish",
       "restrictionsConflict": [
         "lactose"
-      ]
+      ],
+      "customFoodNameKey": "rec.dish.bowl_avena_platano"
     },
     {
       "id": "rc12",
@@ -6148,14 +6142,14 @@
       "weatherType": "cold",
       "goalType": "muscle-gain",
       "foodId": null,
-      "customFoodName": "Ajiaco de pollo",
       "estimatedCalories": 490,
       "estimatedProteinG": 38,
       "estimatedCarbsG": 45,
       "estimatedFatG": 12,
       "badge": "high-protein",
       "contextLabelKey": "rec.warming_dish",
-      "restrictionsConflict": []
+      "restrictionsConflict": [],
+      "customFoodNameKey": "rec.dish.ajiaco_pollo"
     },
     {
       "id": "rc13",
@@ -6163,14 +6157,14 @@
       "weatherType": "cold",
       "goalType": "muscle-gain",
       "foodId": null,
-      "customFoodName": "Huevos con espinaca y aceite de oliva",
       "estimatedCalories": 280,
       "estimatedProteinG": 22,
       "estimatedCarbsG": 8,
       "estimatedFatG": 18,
       "badge": "high-protein",
       "contextLabelKey": "rec.warming_dish",
-      "restrictionsConflict": []
+      "restrictionsConflict": [],
+      "customFoodNameKey": "rec.dish.huevos_espinaca_aceite"
     },
     {
       "id": "rc14",
@@ -6178,14 +6172,14 @@
       "weatherType": "mild",
       "goalType": "weight-loss",
       "foodId": null,
-      "customFoodName": "Pollo a la plancha con verduras",
       "estimatedCalories": 280,
       "estimatedProteinG": 32,
       "estimatedCarbsG": 14,
       "estimatedFatG": 8,
       "badge": "high-protein",
       "contextLabelKey": "rec.local_high_protein",
-      "restrictionsConflict": []
+      "restrictionsConflict": [],
+      "customFoodNameKey": "rec.dish.pollo_plancha_verduras"
     },
     {
       "id": "rc15",
@@ -6193,14 +6187,14 @@
       "weatherType": "mild",
       "goalType": "muscle-gain",
       "foodId": null,
-      "customFoodName": "Tacos de pollo con frijoles",
       "estimatedCalories": 580,
       "estimatedProteinG": 42,
       "estimatedCarbsG": 55,
       "estimatedFatG": 14,
       "badge": "high-protein",
       "contextLabelKey": "rec.local_high_protein",
-      "restrictionsConflict": []
+      "restrictionsConflict": [],
+      "customFoodNameKey": "rec.dish.tacos_pollo_frijoles"
     },
     {
       "id": "rc16",
@@ -6208,7 +6202,6 @@
       "weatherType": "mild",
       "goalType": "muscle-gain",
       "foodId": null,
-      "customFoodName": "Batido de proteína con avena",
       "estimatedCalories": 420,
       "estimatedProteinG": 36,
       "estimatedCarbsG": 44,
@@ -6217,7 +6210,8 @@
       "contextLabelKey": "rec.local_high_protein",
       "restrictionsConflict": [
         "lactose"
-      ]
+      ],
+      "customFoodNameKey": "rec.dish.batido_proteina_avena"
     },
     {
       "id": "rc17",
@@ -6225,14 +6219,14 @@
       "weatherType": "cold",
       "goalType": "weight-loss",
       "foodId": null,
-      "customFoodName": "Asado magro con ensalada",
       "estimatedCalories": 340,
       "estimatedProteinG": 34,
       "estimatedCarbsG": 10,
       "estimatedFatG": 14,
       "badge": "high-protein",
       "contextLabelKey": "rec.local_high_protein",
-      "restrictionsConflict": []
+      "restrictionsConflict": [],
+      "customFoodNameKey": "rec.dish.asado_magro_ensalada"
     },
     {
       "id": "rc18",
@@ -6240,14 +6234,14 @@
       "weatherType": "cold",
       "goalType": "weight-loss",
       "foodId": null,
-      "customFoodName": "Sopa de lentejas",
       "estimatedCalories": 230,
       "estimatedProteinG": 14,
       "estimatedCarbsG": 38,
       "estimatedFatG": 3,
       "badge": "light",
       "contextLabelKey": "rec.warming_dish",
-      "restrictionsConflict": []
+      "restrictionsConflict": [],
+      "customFoodNameKey": "rec.dish.sopa_lentejas"
     },
     {
       "id": "rc19",
@@ -6255,14 +6249,14 @@
       "weatherType": "cold",
       "goalType": "muscle-gain",
       "foodId": null,
-      "customFoodName": "Milanesa de pollo con camote",
       "estimatedCalories": 560,
       "estimatedProteinG": 44,
       "estimatedCarbsG": 50,
       "estimatedFatG": 13,
       "badge": "bulk",
       "contextLabelKey": "rec.local_high_protein",
-      "restrictionsConflict": []
+      "restrictionsConflict": [],
+      "customFoodNameKey": "rec.dish.milanesa_pollo_camote"
     },
     {
       "id": "rc20",
@@ -6270,14 +6264,14 @@
       "weatherType": "hot",
       "goalType": "weight-loss",
       "foodId": null,
-      "customFoodName": "Wraps de lechuga con pollo",
       "estimatedCalories": 250,
       "estimatedProteinG": 30,
       "estimatedCarbsG": 8,
       "estimatedFatG": 7,
       "badge": "light",
       "contextLabelKey": "rec.perfect_hot_weather",
-      "restrictionsConflict": []
+      "restrictionsConflict": [],
+      "customFoodNameKey": "rec.dish.wraps_lechuga_pollo"
     },
     {
       "id": "rc21",
@@ -6285,14 +6279,14 @@
       "weatherType": "hot",
       "goalType": "muscle-gain",
       "foodId": null,
-      "customFoodName": "Açaí bowl proteico",
       "estimatedCalories": 510,
       "estimatedProteinG": 30,
       "estimatedCarbsG": 60,
       "estimatedFatG": 11,
       "badge": "bulk",
       "contextLabelKey": "rec.perfect_hot_weather",
-      "restrictionsConflict": []
+      "restrictionsConflict": [],
+      "customFoodNameKey": "rec.dish.acai_bowl_proteico"
     },
     {
       "id": "rc22",
@@ -6300,7 +6294,6 @@
       "weatherType": "hot",
       "goalType": "muscle-gain",
       "foodId": null,
-      "customFoodName": "Grilled salmon bowl",
       "estimatedCalories": 620,
       "estimatedProteinG": 48,
       "estimatedCarbsG": 45,
@@ -6309,7 +6302,8 @@
       "contextLabelKey": "rec.perfect_hot_weather",
       "restrictionsConflict": [
         "seafood"
-      ]
+      ],
+      "customFoodNameKey": "rec.dish.grilled_salmon_bowl"
     },
     {
       "id": "rc23",
@@ -6317,7 +6311,6 @@
       "weatherType": "warm",
       "goalType": "weight-loss",
       "foodId": null,
-      "customFoodName": "Bocadillo de atún",
       "estimatedCalories": 260,
       "estimatedProteinG": 28,
       "estimatedCarbsG": 14,
@@ -6326,7 +6319,8 @@
       "contextLabelKey": "rec.local_high_protein",
       "restrictionsConflict": [
         "seafood"
-      ]
+      ],
+      "customFoodNameKey": "rec.dish.bocadillo_atun"
     },
     {
       "id": "rc24",
@@ -6334,14 +6328,14 @@
       "weatherType": "warm",
       "goalType": "weight-loss",
       "foodId": null,
-      "customFoodName": "Ensalada mediterránea con pollo",
       "estimatedCalories": 300,
       "estimatedProteinG": 32,
       "estimatedCarbsG": 16,
       "estimatedFatG": 10,
       "badge": "high-protein",
       "contextLabelKey": "rec.perfect_hot_weather",
-      "restrictionsConflict": []
+      "restrictionsConflict": [],
+      "customFoodNameKey": "rec.dish.ensalada_mediterranea_pollo"
     },
     {
       "id": "rc25",
@@ -6349,14 +6343,14 @@
       "weatherType": "warm",
       "goalType": "muscle-gain",
       "foodId": null,
-      "customFoodName": "Bowl de proteína con arroz y verduras",
       "estimatedCalories": 500,
       "estimatedProteinG": 40,
       "estimatedCarbsG": 50,
       "estimatedFatG": 12,
       "badge": "high-protein",
       "contextLabelKey": "rec.local_high_protein",
-      "restrictionsConflict": []
+      "restrictionsConflict": [],
+      "customFoodNameKey": "rec.dish.bowl_proteina_arroz_verduras"
     },
     {
       "id": "rc26",
@@ -6364,7 +6358,6 @@
       "weatherType": "warm",
       "goalType": "weight-loss",
       "foodId": null,
-      "customFoodName": "Bocadillo de atún",
       "estimatedCalories": 260,
       "estimatedProteinG": 28,
       "estimatedCarbsG": 14,
@@ -6373,7 +6366,8 @@
       "contextLabelKey": "rec.local_high_protein",
       "restrictionsConflict": [
         "seafood"
-      ]
+      ],
+      "customFoodNameKey": "rec.dish.bocadillo_atun"
     },
     {
       "id": "rc27",
@@ -6381,14 +6375,14 @@
       "weatherType": "warm",
       "goalType": "weight-loss",
       "foodId": null,
-      "customFoodName": "Wraps de lechuga con pollo",
       "estimatedCalories": 250,
       "estimatedProteinG": 30,
       "estimatedCarbsG": 8,
       "estimatedFatG": 7,
       "badge": "light",
       "contextLabelKey": "rec.perfect_hot_weather",
-      "restrictionsConflict": []
+      "restrictionsConflict": [],
+      "customFoodNameKey": "rec.dish.wraps_lechuga_pollo"
     },
     {
       "id": "rc28",
@@ -6396,7 +6390,6 @@
       "weatherType": "warm",
       "goalType": "muscle-gain",
       "foodId": null,
-      "customFoodName": "Salmón con camote",
       "estimatedCalories": 480,
       "estimatedProteinG": 42,
       "estimatedCarbsG": 38,
@@ -6405,7 +6398,8 @@
       "contextLabelKey": "rec.local_high_protein",
       "restrictionsConflict": [
         "seafood"
-      ]
+      ],
+      "customFoodNameKey": "rec.dish.salmon_camote"
     },
     {
       "id": "rc29",
@@ -6413,14 +6407,14 @@
       "weatherType": "mild",
       "goalType": "weight-loss",
       "foodId": null,
-      "customFoodName": "Sopa de lentejas",
       "estimatedCalories": 230,
       "estimatedProteinG": 14,
       "estimatedCarbsG": 38,
       "estimatedFatG": 3,
       "badge": "light",
       "contextLabelKey": "rec.warming_dish",
-      "restrictionsConflict": []
+      "restrictionsConflict": [],
+      "customFoodNameKey": "rec.dish.sopa_lentejas"
     },
     {
       "id": "rc30",
@@ -6428,7 +6422,6 @@
       "weatherType": "mild",
       "goalType": "muscle-gain",
       "foodId": null,
-      "customFoodName": "Grilled salmon bowl",
       "estimatedCalories": 620,
       "estimatedProteinG": 48,
       "estimatedCarbsG": 45,
@@ -6437,7 +6430,8 @@
       "contextLabelKey": "rec.local_high_protein",
       "restrictionsConflict": [
         "seafood"
-      ]
+      ],
+      "customFoodNameKey": "rec.dish.grilled_salmon_bowl"
     },
     {
       "id": "rc31",
@@ -6445,14 +6439,14 @@
       "weatherType": "mild",
       "goalType": "muscle-gain",
       "foodId": null,
-      "customFoodName": "Pollo con arroz integral",
       "estimatedCalories": 540,
       "estimatedProteinG": 48,
       "estimatedCarbsG": 55,
       "estimatedFatG": 10,
       "badge": "high-protein",
       "contextLabelKey": "rec.local_high_protein",
-      "restrictionsConflict": []
+      "restrictionsConflict": [],
+      "customFoodNameKey": "rec.dish.pollo_arroz_integral"
     }
   ],
   "wearable_connections": [
@@ -10057,6 +10051,104 @@
       "lastLogDate": null,
       "weeklyCompletionRate": 0,
       "id": "JM1ub1CYFTk"
+    },
+    {
+      "currentStreak": 0,
+      "longestStreak": 0,
+      "lastLogDate": null,
+      "weeklyCompletionRate": 0,
+      "id": "ghr0ifPcQCo"
+    },
+    {
+      "currentStreak": 0,
+      "longestStreak": 0,
+      "lastLogDate": null,
+      "weeklyCompletionRate": 0,
+      "id": "urxYRlJZzCI"
+    },
+    {
+      "currentStreak": 0,
+      "longestStreak": 0,
+      "lastLogDate": null,
+      "weeklyCompletionRate": 0,
+      "id": "QfNU0rwSiFA"
+    },
+    {
+      "currentStreak": 0,
+      "longestStreak": 0,
+      "lastLogDate": null,
+      "weeklyCompletionRate": 0,
+      "id": "de7IOd8KxQc"
+    },
+    {
+      "currentStreak": 0,
+      "longestStreak": 0,
+      "lastLogDate": null,
+      "weeklyCompletionRate": 0,
+      "id": "saBawRHLI-Q"
+    },
+    {
+      "currentStreak": 0,
+      "longestStreak": 0,
+      "lastLogDate": null,
+      "weeklyCompletionRate": 0,
+      "id": "FaZI5sfPMzA"
+    },
+    {
+      "currentStreak": 0,
+      "longestStreak": 6,
+      "lastLogDate": "2026-05-15",
+      "weeklyCompletionRate": 0,
+      "id": "P5QwbTa6UFE"
+    },
+    {
+      "currentStreak": 0,
+      "longestStreak": 6,
+      "lastLogDate": "2026-05-15",
+      "weeklyCompletionRate": 0,
+      "id": "BZa7jSqGjUU"
+    },
+    {
+      "currentStreak": 0,
+      "longestStreak": 6,
+      "lastLogDate": "2026-05-15",
+      "weeklyCompletionRate": 0,
+      "id": "Ju1aTU1yuZA"
+    },
+    {
+      "currentStreak": 0,
+      "longestStreak": 6,
+      "lastLogDate": "2026-05-15",
+      "weeklyCompletionRate": 0,
+      "id": "94Po-ll1X88"
+    },
+    {
+      "currentStreak": 0,
+      "longestStreak": 6,
+      "lastLogDate": "2026-05-15",
+      "weeklyCompletionRate": 0,
+      "id": "E4Qm96toi2k"
+    },
+    {
+      "currentStreak": 0,
+      "longestStreak": 6,
+      "lastLogDate": "2026-05-15",
+      "weeklyCompletionRate": 0,
+      "id": "64eV-mOyHco"
+    },
+    {
+      "currentStreak": 0,
+      "longestStreak": 6,
+      "lastLogDate": "2026-05-15",
+      "weeklyCompletionRate": 0,
+      "id": "6v7c88IKwqk"
+    },
+    {
+      "currentStreak": 0,
+      "longestStreak": 6,
+      "lastLogDate": "2026-05-15",
+      "weeklyCompletionRate": 0,
+      "id": "uFKh0zLxm68"
     }
   ],
   "$schema": "./node_modules/json-server/schema.json"

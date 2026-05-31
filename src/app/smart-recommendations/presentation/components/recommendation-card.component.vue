@@ -38,7 +38,7 @@ const badgeSeverityMap = {
     </div>
     <div class="rec-card__header">
       <div class="rec-card__name">
-        {{ recommendation.foodId ? t(`food.${recommendation.foodId}`) : recommendation.customFoodName }}
+        {{ recommendation.foodId ? t(`food.${recommendation.foodId}`) : t(recommendation.customFoodNameKey) }}
       </div>
       <pv-tag
         v-if="recommendation.badge"

@@ -727,7 +727,29 @@
   "rec": {
     "warming_dish": "Plato reconfortante para clima frío",
     "perfect_hot_weather": "Perfecto para clima cálido",
-    "local_high_protein": "Opción local alta en proteína"
+    "local_high_protein": "Opción local alta en proteína",
+    "dish": {
+      "ceviche_de_pescado": "Ceviche de pescado",
+      "tacos_pollo_frijoles": "Tacos de pollo con frijoles",
+      "grilled_salmon_bowl": "Bowl de salmón a la plancha",
+      "bowl_avena_platano": "Bowl de avena con plátano",
+      "ensalada_pollo_pepino": "Ensalada de pollo y pepino",
+      "lomito_saltado_light": "Lomito saltado light",
+      "pollo_arroz_integral": "Pollo con arroz integral",
+      "bowl_proteina_arroz_verduras": "Bowl de proteína con arroz y verduras",
+      "sopa_lentejas": "Sopa de lentejas",
+      "ajiaco_pollo": "Ajiaco de pollo",
+      "huevos_espinaca_aceite": "Huevos con espinaca y aceite de oliva",
+      "pollo_plancha_verduras": "Pollo a la plancha con verduras",
+      "batido_proteina_avena": "Batido de proteína con avena",
+      "asado_magro_ensalada": "Asado magro con ensalada",
+      "milanesa_pollo_camote": "Milanesa de pollo con camote",
+      "wraps_lechuga_pollo": "Wraps de lechuga con pollo",
+      "acai_bowl_proteico": "Açaí bowl proteico",
+      "bocadillo_atun": "Bocadillo de atún",
+      "ensalada_mediterranea_pollo": "Ensalada mediterránea con pollo",
+      "salmon_camote": "Salmón con camote"
+    }
   },
   "scan": {
     "upgradeBannerBody": "Analiza platos y menús de restaurantes con seguimiento nutricional inteligente.",

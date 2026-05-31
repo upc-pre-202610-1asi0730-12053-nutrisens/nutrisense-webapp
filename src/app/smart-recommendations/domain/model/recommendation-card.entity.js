@@ -8,7 +8,7 @@ import { WeatherType } from './weather-type.record.js'
  * @property {import('./weather-type.record.js').WeatherTypeValue} weatherType
  * @property {import('../../../../shared/domain/model/goal-type.record.js').GoalTypeValue | 'both'} goalType
  * @property {string|null} foodId
- * @property {string} [customFoodName]
+ * @property {string} [customFoodNameKey]
  * @property {number} estimatedCalories
  * @property {number} estimatedProteinG
  * @property {number} estimatedCarbsG
@@ -29,7 +29,7 @@ export function RecommendationCard(props) {
     weatherType,
     goalType: props.goalType,
     foodId: props.foodId,
-    customFoodName: props.customFoodName ?? null,
+    customFoodNameKey: props.customFoodNameKey ?? null,
     estimatedCalories: props.estimatedCalories,
     estimatedProteinG: props.estimatedProteinG,
     estimatedCarbsG: props.estimatedCarbsG,

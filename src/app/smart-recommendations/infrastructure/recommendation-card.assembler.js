@@ -13,7 +13,7 @@ export class RecommendationCardAssembler {
         weatherType: resource.weatherType,
         goalType: resource.goalType,
         foodId: resource.foodId ?? null,
-        customFoodName: resource.customFoodName ?? undefined,
+        customFoodNameKey: resource.customFoodNameKey ?? undefined,
         estimatedCalories: resource.estimatedCalories,
         estimatedProteinG: resource.estimatedProteinG,
         estimatedCarbsG: resource.estimatedCarbsG,
