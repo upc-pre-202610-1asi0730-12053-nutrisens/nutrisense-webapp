@@ -4,6 +4,7 @@ import { ref, computed, toRefs, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useIamStore } from '../../application/iam.store.js'
+import LanguageSwitcher from '../../../shared/presentation/components/language-switcher.component.vue'
 import { useBodyHealthMetricsStore } from '../../../body-health-metrics/application/body-health-metrics.store.js'
 import { Height } from '../../domain/model/height.record.js'
 import { DateOfBirth } from '../../domain/model/date-of-birth.record.js'
@@ -256,6 +257,9 @@ function handleSubmit() {
 <template>
   <div class="onboarding-page" role="main">
     <div class="onboarding-card">
+      <header class="auth-topbar">
+        <LanguageSwitcher variant="light" />
+      </header>
       <div class="onboarding-card__brand">NutriSense</div>
 
       <div class="onboarding-card__progress" role="progressbar" :aria-valuenow="step" :aria-valuemax="TOTAL_STEPS">
@@ -571,6 +575,12 @@ function handleSubmit() {
 </template>
 
 <style scoped>
+.auth-topbar {
+  position: absolute;
+  top: 0.875rem;
+  right: 1rem;
+}
+
 .onboarding-page {
   min-height: 100vh;
   display: flex;
@@ -581,6 +591,7 @@ function handleSubmit() {
 }
 
 .onboarding-card {
+  position: relative;
   background: #ffffff;
   border: 1px solid #e5e7eb;
   border-radius: 8px;
