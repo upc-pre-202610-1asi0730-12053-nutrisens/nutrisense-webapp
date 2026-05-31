@@ -1,6 +1,7 @@
 <!-- PATH: src/app/body-health-metrics/presentation/components/weight-chart.component.vue -->
 <script setup>
 import { ref, onMounted, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { Chart } from 'chart.js/auto'
 import { formatNum } from '../../../shared/infrastructure/format-utils.js'
 
@@ -9,6 +10,8 @@ import { formatNum } from '../../../shared/infrastructure/format-utils.js'
  * @property {{ loggedAt: string, weightKg: number }[]} weightLogs
  * @property {string} [label]
  */
+
+const { t } = useI18n()
 
 const props = defineProps({
   weightLogs: { type: Array, required: true },
@@ -74,7 +77,7 @@ watch(() => props.weightLogs, buildChart, { deep: true })
 </script>
 
 <template>
-  <div class="weight-chart" aria-label="Weight history chart">
+  <div class="weight-chart" :aria-label="t('bodyProgress.weightChartLabel')">
     <canvas ref="canvasRef" height="200" />
   </div>
 </template>

@@ -11,7 +11,7 @@ const props = defineProps({
   },
 })
 
-const { locale } = useI18n({ useScope: 'global' })
+const { t, locale } = useI18n({ useScope: 'global' })
 
 /** @param {'en'|'es'} lang */
 function switchLanguage(lang) {
@@ -25,7 +25,7 @@ function switchLanguage(lang) {
     class="lang-switcher"
     :class="`lang-switcher--${variant}`"
     role="group"
-    aria-label="Language selector"
+    :aria-label="t('nav.languageSelector')"
   >
     <button
       v-for="lang in ['en', 'es']"

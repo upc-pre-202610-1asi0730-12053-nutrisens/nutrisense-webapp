@@ -5,12 +5,14 @@ export class SubscriptionsBillingApi extends BaseApi {
   #userSubscriptions
   #subscriptionPlans
   #paymentHistory
+  #paymentMethods
 
   constructor() {
     super()
     this.#userSubscriptions = new BaseEndpoint(this, import.meta.env.VITE_SUBSCRIPTIONS_ENDPOINT)
     this.#subscriptionPlans = new BaseEndpoint(this, import.meta.env.VITE_SUBSCRIPTION_PLANS_ENDPOINT)
-    this.#paymentHistory = new BaseEndpoint(this, import.meta.env.VITE_PAYMENT_HISTORY_ENDPOINT)
+    this.#paymentHistory    = new BaseEndpoint(this, import.meta.env.VITE_PAYMENT_HISTORY_ENDPOINT)
+    this.#paymentMethods    = new BaseEndpoint(this, import.meta.env.VITE_PAYMENT_METHODS_ENDPOINT)
   }
 
   /** @returns {Promise<import('axios').AxiosResponse>} */
@@ -51,5 +53,21 @@ export class SubscriptionsBillingApi extends BaseApi {
   /** @returns {Promise<import('axios').AxiosResponse>} */
   getPaymentHistory() {
     return this.#paymentHistory.getAll()
+  }
+
+  /**
+   * @param {Object} resource
+   * @returns {Promise<import('axios').AxiosResponse>}
+   */
+  createPaymentRecord(resource) {
+    return this.#paymentHistory.create(resource)
+  }
+
+  /**
+   * @param {Object} resource
+   * @returns {Promise<import('axios').AxiosResponse>}
+   */
+  createPaymentMethod(resource) {
+    return this.#paymentMethods.create(resource)
   }
 }

@@ -10,6 +10,8 @@
     "profile": "Perfil y Ajustes",
     "signOut": "Cerrar sesión",
     "openMenu": "Abrir menú de navegación",
+    "mainNavigation": "Navegación principal",
+    "languageSelector": "Selector de idioma",
     "myAccount": "Mi cuenta",
     "caption": {
       "dashboard": "Resumen de hoy",
@@ -28,7 +30,8 @@
     "perMonth": "/mes",
     "select": "Obtener {plan}",
     "later": "Quizás después — cerrar sesión",
-    "loading": "Cargando planes..."
+    "loading": "Cargando planes...",
+    "includedFeatures": "Funciones incluidas"
   },
   "onboarding": {
     "stepOf": "Paso {current} de {total}",
@@ -219,6 +222,7 @@
     "removeEntryConfirm": "¿Eliminar esta entrada? Esta acción no se puede deshacer.",
     "removeEntryHeader": "Eliminar entrada",
     "entryRemoved": "Entrada eliminada",
+    "removeEntryError": "No se pudo eliminar la entrada. Inténtalo de nuevo.",
     "unknownFood": "Alimento desconocido",
     "dailySummary": "Resumen del día",
     "carbohydrates": "Carbohidratos",
@@ -256,6 +260,7 @@
     "weightKg": "Peso (kg)",
     "logWeight": "Registrar peso de hoy",
     "weightHistory": "Historial de peso",
+    "weightChartLabel": "Gráfico de historial de peso",
     "goal": "Objetivo",
     "startWeight": "Inicio",
     "targetWeight": "Meta",
@@ -440,7 +445,9 @@
     "generate": "Generar PDF",
     "adherence": "Adherencia",
     "calorieHistory": "Historial de calorías",
+    "calorieHistoryChartLabel": "Gráfico de barras del historial de calorías",
     "macroBreakdown": "Desglose de macros",
+    "macroChartLabel": "Gráfico de distribución de macros",
     "streakSection": "Racha",
     "customRangeTitle": "Rango personalizado",
     "apply": "Aplicar",
@@ -602,7 +609,12 @@
     "status": "Estado",
     "paid": "Pagado",
     "noPayments": "Sin historial de pagos",
-    "loading": "Cargando historial de pagos..."
+    "loading": "Cargando historial de pagos...",
+    "type": "Tipo",
+    "typePayment": "Pago",
+    "typeUpgrade": "Mejora de plan",
+    "typeDowngrade": "Cambio a plan inferior",
+    "planChange": "{from} → {to}"
   },
   "common": {
     "loading": "Cargando...",
@@ -626,7 +638,9 @@
     "yes": "Sí",
     "no": "No",
     "of": "de",
-    "upgrade": "Mejorar plan"
+    "upgrade": "Mejorar plan",
+    "unitCm": "cm",
+    "unitKg": "kg"
   },
   "streak": {
     "start_fresh": "¡Registra tu primera comida, tú puedes!",
@@ -721,10 +735,59 @@
     "pro": "Pro",
     "premium": "Premium"
   },
+  "checkout": {
+    "title": "Pago Seguro",
+    "subtitle": "Estás a un paso de activar tu plan",
+    "orderSummary": "Resumen del pedido",
+    "billedMonthly": "Facturado mensualmente",
+    "cardDetails": "Datos de la tarjeta",
+    "cardNumber": "Número de tarjeta",
+    "cardholderName": "Nombre en la tarjeta",
+    "expiry": "Vencimiento (MM/AA)",
+    "cvv": "CVV",
+    "payNow": "Pagar ${amount}",
+    "processing": "Procesando...",
+    "secureNotice": "Cifrado SSL de 256 bits — tus datos están protegidos",
+    "backToPlans": "Volver a los planes",
+    "errorCardNumber": "Ingresa un número de tarjeta de 16 dígitos válido",
+    "errorExpiry": "Ingresa una fecha de vencimiento válida (MM/AA)",
+    "errorCvv": "Ingresa un CVV válido",
+    "errorName": "Ingresa el nombre del titular",
+    "errorPayment": "El pago falló. Verifica los datos de tu tarjeta e intenta nuevamente.",
+    "includedFeatures": "Funciones incluidas"
+  },
+  "paymentSuccess": {
+    "title": "¡Todo listo!",
+    "subtitle": "Bienvenido a NutriSense {plan}. Tu suscripción ya está activa.",
+    "chargedTo": "Cobrado a",
+    "goToDashboard": "Ir al Dashboard"
+  },
   "rec": {
     "warming_dish": "Plato reconfortante para clima frío",
     "perfect_hot_weather": "Perfecto para clima cálido",
-    "local_high_protein": "Opción local alta en proteína"
+    "local_high_protein": "Opción local alta en proteína",
+    "dish": {
+      "ceviche_de_pescado": "Ceviche de pescado",
+      "tacos_pollo_frijoles": "Tacos de pollo con frijoles",
+      "grilled_salmon_bowl": "Bowl de salmón a la plancha",
+      "bowl_avena_platano": "Bowl de avena con plátano",
+      "ensalada_pollo_pepino": "Ensalada de pollo y pepino",
+      "lomito_saltado_light": "Lomito saltado light",
+      "pollo_arroz_integral": "Pollo con arroz integral",
+      "bowl_proteina_arroz_verduras": "Bowl de proteína con arroz y verduras",
+      "sopa_lentejas": "Sopa de lentejas",
+      "ajiaco_pollo": "Ajiaco de pollo",
+      "huevos_espinaca_aceite": "Huevos con espinaca y aceite de oliva",
+      "pollo_plancha_verduras": "Pollo a la plancha con verduras",
+      "batido_proteina_avena": "Batido de proteína con avena",
+      "asado_magro_ensalada": "Asado magro con ensalada",
+      "milanesa_pollo_camote": "Milanesa de pollo con camote",
+      "wraps_lechuga_pollo": "Wraps de lechuga con pollo",
+      "acai_bowl_proteico": "Açaí bowl proteico",
+      "bocadillo_atun": "Bocadillo de atún",
+      "ensalada_mediterranea_pollo": "Ensalada mediterránea con pollo",
+      "salmon_camote": "Salmón con camote"
+    }
   },
   "scan": {
     "upgradeBannerBody": "Analiza platos y menús de restaurantes con seguimiento nutricional inteligente.",

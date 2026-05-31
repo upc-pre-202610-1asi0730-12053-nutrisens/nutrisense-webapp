@@ -83,13 +83,14 @@ export const useSmartRecommendationsStore = defineStore('smart-recommendations',
   })
 
   /**
-   * Active city ID: travel city when in travel mode, otherwise respects citySource filter.
-   * Both 'home' and 'current' resolve to homeCityId in this client (no real geolocation).
+   * Active city ID respecting both travel mode and the citySource filter.
+   * 'home' always resolves to homeCityId; 'current' uses the travel city when travel mode is on.
    * @type {import('vue').ComputedRef<string|null>}
    */
-  const activeCityId = computed(() =>
-    travelModeActive.value ? travelCityId.value : homeCityId.value
-  )
+  const activeCityId = computed(() => {
+    if (activeFilters.value.citySource === 'home') return homeCityId.value
+    return travelModeActive.value ? travelCityId.value : homeCityId.value
+  })
 
   /**
    * Home city entity, resolved from the loaded cities list.
@@ -100,12 +101,13 @@ export const useSmartRecommendationsStore = defineStore('smart-recommendations',
   )
 
   /**
-   * Active city display name.
+   * Active city display name, consistent with activeCityId resolution.
    * @type {import('vue').ComputedRef<string>}
    */
-  const activeCityName = computed(() =>
-    travelModeActive.value ? travelCityName.value : homeCityName.value
-  )
+  const activeCityName = computed(() => {
+    if (activeFilters.value.citySource === 'home') return homeCityName.value
+    return travelModeActive.value ? travelCityName.value : homeCityName.value
+  })
 
   /**
    * Current active city entity, if loaded.

@@ -10,6 +10,8 @@
     "profile": "Profile & Settings",
     "signOut": "Sign Out",
     "openMenu": "Open navigation menu",
+    "mainNavigation": "Main navigation",
+    "languageSelector": "Language selector",
     "myAccount": "My Account",
     "caption": {
       "dashboard": "Today's summary",
@@ -28,7 +30,8 @@
     "perMonth": "/mo",
     "select": "Get {plan}",
     "later": "Maybe later — sign out",
-    "loading": "Loading plans..."
+    "loading": "Loading plans...",
+    "includedFeatures": "Included features"
   },
   "onboarding": {
     "stepOf": "Step {current} of {total}",
@@ -219,6 +222,7 @@
     "removeEntryConfirm": "Remove this entry? This cannot be undone.",
     "removeEntryHeader": "Remove entry",
     "entryRemoved": "Entry removed",
+    "removeEntryError": "Could not remove entry. Please try again.",
     "unknownFood": "Unknown food",
     "dailySummary": "Daily Summary",
     "carbohydrates": "Carbohydrates",
@@ -256,6 +260,7 @@
     "weightKg": "Weight (kg)",
     "logWeight": "Log today's weight",
     "weightHistory": "Weight history",
+    "weightChartLabel": "Weight history chart",
     "goal": "Goal",
     "startWeight": "Start",
     "targetWeight": "Target",
@@ -440,7 +445,9 @@
     "generate": "Generate PDF",
     "adherence": "Adherence",
     "calorieHistory": "Calorie history",
+    "calorieHistoryChartLabel": "Calorie history bar chart",
     "macroBreakdown": "Macro breakdown",
+    "macroChartLabel": "Macro distribution chart",
     "streakSection": "Streak",
     "customRangeTitle": "Custom date range",
     "apply": "Apply",
@@ -602,7 +609,12 @@
     "status": "Status",
     "paid": "Paid",
     "noPayments": "No payment history",
-    "loading": "Loading payment history..."
+    "loading": "Loading payment history...",
+    "type": "Type",
+    "typePayment": "Payment",
+    "typeUpgrade": "Upgrade",
+    "typeDowngrade": "Downgrade",
+    "planChange": "{from} → {to}"
   },
   "common": {
     "loading": "Loading...",
@@ -627,7 +639,8 @@
     "no": "No",
     "of": "of",
     "upgrade": "Upgrade",
-    "clear": "Clear"
+    "unitCm": "cm",
+    "unitKg": "kg"
   },
   "streak": {
     "start_fresh": "Log your first meal — you've got this!",
@@ -722,10 +735,59 @@
     "pro": "Pro",
     "premium": "Premium"
   },
+  "checkout": {
+    "title": "Secure Checkout",
+    "subtitle": "You're one step away from unlocking your plan",
+    "orderSummary": "Order Summary",
+    "billedMonthly": "Billed monthly",
+    "cardDetails": "Card Details",
+    "cardNumber": "Card number",
+    "cardholderName": "Name on card",
+    "expiry": "Expiry (MM/YY)",
+    "cvv": "CVV",
+    "payNow": "Pay ${amount}",
+    "processing": "Processing...",
+    "secureNotice": "256-bit SSL encryption — your data is safe",
+    "backToPlans": "Back to plans",
+    "errorCardNumber": "Enter a valid 16-digit card number",
+    "errorExpiry": "Enter a valid expiry date (MM/YY)",
+    "errorCvv": "Enter a valid CVV",
+    "errorName": "Enter the cardholder name",
+    "errorPayment": "Payment failed. Please check your card details and try again.",
+    "includedFeatures": "Included features"
+  },
+  "paymentSuccess": {
+    "title": "You're all set!",
+    "subtitle": "Welcome to NutriSense {plan}. Your subscription is now active.",
+    "chargedTo": "Charged to",
+    "goToDashboard": "Go to Dashboard"
+  },
   "rec": {
     "warming_dish": "Warming dish for cool weather",
     "perfect_hot_weather": "Perfect for hot weather",
-    "local_high_protein": "Local high-protein option"
+    "local_high_protein": "Local high-protein option",
+    "dish": {
+      "ceviche_de_pescado": "Fish Ceviche",
+      "tacos_pollo_frijoles": "Chicken & Bean Tacos",
+      "grilled_salmon_bowl": "Grilled Salmon Bowl",
+      "bowl_avena_platano": "Oatmeal & Banana Bowl",
+      "ensalada_pollo_pepino": "Chicken & Cucumber Salad",
+      "lomito_saltado_light": "Light Lomito Saltado",
+      "pollo_arroz_integral": "Chicken with Brown Rice",
+      "bowl_proteina_arroz_verduras": "Protein Bowl with Rice & Vegetables",
+      "sopa_lentejas": "Lentil Soup",
+      "ajiaco_pollo": "Chicken Ajiaco",
+      "huevos_espinaca_aceite": "Eggs with Spinach & Olive Oil",
+      "pollo_plancha_verduras": "Grilled Chicken with Vegetables",
+      "batido_proteina_avena": "Protein Oat Shake",
+      "asado_magro_ensalada": "Lean Steak with Salad",
+      "milanesa_pollo_camote": "Chicken Milanese with Sweet Potato",
+      "wraps_lechuga_pollo": "Chicken Lettuce Wraps",
+      "acai_bowl_proteico": "Protein Açaí Bowl",
+      "bocadillo_atun": "Tuna Snack",
+      "ensalada_mediterranea_pollo": "Mediterranean Chicken Salad",
+      "salmon_camote": "Salmon with Sweet Potato"
+    }
   },
   "scan": {
     "upgradeBannerBody": "Analyze dishes and restaurant menus with AI-powered nutrition tracking.",

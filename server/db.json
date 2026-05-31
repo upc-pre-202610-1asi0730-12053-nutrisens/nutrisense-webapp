@@ -670,6 +670,66 @@
       "plan": "premium",
       "homeCityId": "city_lima",
       "createdAt": "2026-05-02T08:00:00Z"
+    },
+    {
+      "firstName": "Angel Martin",
+      "lastName": "Villarreal Bazan",
+      "email": "abcde@gmail.com",
+      "password": "asdasdasd",
+      "biologicalSex": "male",
+      "dateOfBirth": "2005-02-19",
+      "heightCm": 177,
+      "goal": "weight-loss",
+      "activityLevel": "moderately-active",
+      "preferredUnits": "metric",
+      "preferredLanguage": "en",
+      "homeCityId": "city_lima",
+      "plan": "basic",
+      "createdAt": "2026-05-31T06:49:51.537Z",
+      "id": "FRsS6fyOkfI",
+      "medicalConditions": [
+        "type-2-diabetes"
+      ]
+    },
+    {
+      "firstName": "Angel Martin",
+      "lastName": "Villarreal Bazan",
+      "email": "angel_@gmail.com",
+      "password": "asdasdasd",
+      "biologicalSex": "male",
+      "dateOfBirth": "2000-02-19",
+      "heightCm": 167,
+      "goal": "weight-loss",
+      "activityLevel": "sedentary",
+      "preferredUnits": "metric",
+      "preferredLanguage": "en",
+      "homeCityId": "city_lima",
+      "plan": "basic",
+      "createdAt": "2026-05-31T07:15:20.416Z",
+      "id": "8GhXNPnX1f4",
+      "medicalConditions": [
+        "type-2-diabetes"
+      ]
+    },
+    {
+      "firstName": "Angel Martin",
+      "lastName": "Villarreal Bazan",
+      "email": "angel_1@gmail.com",
+      "password": "asdasdasd",
+      "biologicalSex": "male",
+      "dateOfBirth": "2005-02-19",
+      "heightCm": 170,
+      "goal": "weight-loss",
+      "activityLevel": "moderately-active",
+      "preferredUnits": "metric",
+      "preferredLanguage": "en",
+      "homeCityId": "city_lima",
+      "plan": "basic",
+      "createdAt": "2026-05-31T07:20:52.910Z",
+      "id": "M9o24meONkE",
+      "medicalConditions": [
+        "type-2-diabetes"
+      ]
     }
   ],
   "user_goals": [
@@ -1580,16 +1640,6 @@
       "id": "BW1SWoUEGyg"
     },
     {
-      "quantityG": 200,
-      "calories": 142,
-      "proteinG": 5,
-      "carbsG": 24,
-      "fatG": 2.8,
-      "fiberG": 3.4,
-      "sugarG": 0.6,
-      "id": "Pxq-Bmhz3Q0"
-    },
-    {
       "userId": "-p2-y2ANI8U",
       "foodId": "f3",
       "foodKey": "food.chicken_breast",
@@ -1622,16 +1672,6 @@
       "sugarG": 0,
       "loggedAt": "2026-05-15T02:22:03.943Z",
       "id": "7A7mw_nUMxY"
-    },
-    {
-      "quantityG": 100,
-      "calories": 89,
-      "proteinG": 1.1,
-      "carbsG": 23,
-      "fatG": 0.3,
-      "fiberG": 2.6,
-      "sugarG": 12.2,
-      "id": "3-Hx9omgFuE"
     },
     {
       "userId": "-p2-y2ANI8U",
@@ -5172,6 +5212,34 @@
       "weightKg": 57.9,
       "loggedAt": "2026-05-15T07:15:00Z",
       "note": ""
+    },
+    {
+      "userId": "FRsS6fyOkfI",
+      "weightKg": 67,
+      "loggedAt": "2026-05-31T07:10:50.338Z",
+      "note": null,
+      "id": "xY9-SLX0IVs"
+    },
+    {
+      "userId": "FRsS6fyOkfI",
+      "weightKg": 67,
+      "loggedAt": "2026-05-31T07:14:28.873Z",
+      "note": null,
+      "id": "TQ9O4_Rx0KQ"
+    },
+    {
+      "userId": "8GhXNPnX1f4",
+      "weightKg": 60,
+      "loggedAt": "2026-05-31T07:15:59.786Z",
+      "note": null,
+      "id": "zmDJ7LVePCM"
+    },
+    {
+      "userId": "M9o24meONkE",
+      "weightKg": 70,
+      "loggedAt": "2026-05-31T07:21:12.593Z",
+      "note": null,
+      "id": "e-KkPCyCiNw"
     }
   ],
   "body_measurements": [
@@ -5293,6 +5361,34 @@
       "waistCm": 69,
       "neckCm": 32,
       "measuredAt": "2026-05-15T07:20:00Z"
+    },
+    {
+      "userId": "FRsS6fyOkfI",
+      "waistCm": 76,
+      "neckCm": 0,
+      "measuredAt": "2026-05-31T07:10:50.339Z",
+      "id": "qzBBsIgiYk8"
+    },
+    {
+      "userId": "FRsS6fyOkfI",
+      "waistCm": 81,
+      "neckCm": 0,
+      "measuredAt": "2026-05-31T07:14:28.873Z",
+      "id": "PUCG05eQxE0"
+    },
+    {
+      "userId": "8GhXNPnX1f4",
+      "waistCm": 76,
+      "neckCm": 0,
+      "measuredAt": "2026-05-31T07:15:59.787Z",
+      "id": "2fu-gANXH3A"
+    },
+    {
+      "userId": "M9o24meONkE",
+      "waistCm": 81,
+      "neckCm": 0,
+      "measuredAt": "2026-05-31T07:21:12.593Z",
+      "id": "B4ftkKBZAVU"
     }
   ],
   "activity_logs": [
@@ -5581,6 +5677,17 @@
       "caloriesBurned": 340,
       "source": "manual",
       "loggedAt": "2026-05-15T17:00:00Z"
+    },
+    {
+      "userId": "u13",
+      "activityType": "walking",
+      "intensity": "low",
+      "durationMinutes": 30,
+      "caloriesBurned": 90,
+      "source": "manual",
+      "date": "2026-05-31",
+      "loggedAt": "2026-05-31T08:00:29.382Z",
+      "id": "dyuysw7Byq0"
     }
   ],
   "pantry": [
@@ -5877,7 +5984,6 @@
       "weatherType": "hot",
       "goalType": "weight-loss",
       "foodId": null,
-      "customFoodName": "Ceviche de pescado",
       "estimatedCalories": 280,
       "estimatedProteinG": 28,
       "estimatedCarbsG": 16,
@@ -5886,7 +5992,8 @@
       "contextLabelKey": "rec.perfect_hot_weather",
       "restrictionsConflict": [
         "seafood"
-      ]
+      ],
+      "customFoodNameKey": "rec.dish.ceviche_de_pescado"
     },
     {
       "id": "rc3",
@@ -5894,14 +6001,14 @@
       "weatherType": "mild",
       "goalType": "muscle-gain",
       "foodId": null,
-      "customFoodName": "Tacos de pollo con frijoles",
       "estimatedCalories": 580,
       "estimatedProteinG": 42,
       "estimatedCarbsG": 55,
       "estimatedFatG": 14,
       "badge": "high-protein",
       "contextLabelKey": "rec.local_high_protein",
-      "restrictionsConflict": []
+      "restrictionsConflict": [],
+      "customFoodNameKey": "rec.dish.tacos_pollo_frijoles"
     },
     {
       "id": "rc4",
@@ -5909,7 +6016,6 @@
       "weatherType": "hot",
       "goalType": "muscle-gain",
       "foodId": null,
-      "customFoodName": "Grilled salmon bowl",
       "estimatedCalories": 620,
       "estimatedProteinG": 48,
       "estimatedCarbsG": 45,
@@ -5918,7 +6024,8 @@
       "contextLabelKey": "rec.perfect_hot_weather",
       "restrictionsConflict": [
         "seafood"
-      ]
+      ],
+      "customFoodNameKey": "rec.dish.grilled_salmon_bowl"
     },
     {
       "id": "rc5",
@@ -5926,7 +6033,6 @@
       "weatherType": "mild",
       "goalType": "weight-loss",
       "foodId": null,
-      "customFoodName": "Bowl de avena con plátano",
       "estimatedCalories": 290,
       "estimatedProteinG": 10,
       "estimatedCarbsG": 48,
@@ -5935,7 +6041,8 @@
       "contextLabelKey": "rec.warming_dish",
       "restrictionsConflict": [
         "lactose"
-      ]
+      ],
+      "customFoodNameKey": "rec.dish.bowl_avena_platano"
     },
     {
       "id": "rc6",
@@ -5943,14 +6050,14 @@
       "weatherType": "mild",
       "goalType": "weight-loss",
       "foodId": null,
-      "customFoodName": "Ensalada de pollo y pepino",
       "estimatedCalories": 320,
       "estimatedProteinG": 38,
       "estimatedCarbsG": 12,
       "estimatedFatG": 11,
       "badge": "high-protein",
       "contextLabelKey": "rec.warming_dish",
-      "restrictionsConflict": []
+      "restrictionsConflict": [],
+      "customFoodNameKey": "rec.dish.ensalada_pollo_pepino"
     },
     {
       "id": "rc7",
@@ -5958,14 +6065,14 @@
       "weatherType": "mild",
       "goalType": "weight-loss",
       "foodId": null,
-      "customFoodName": "Lomito saltado light",
       "estimatedCalories": 310,
       "estimatedProteinG": 26,
       "estimatedCarbsG": 28,
       "estimatedFatG": 9,
-      "badge": "local",
+      "badge": "local-dish",
       "contextLabelKey": "rec.local_high_protein",
-      "restrictionsConflict": []
+      "restrictionsConflict": [],
+      "customFoodNameKey": "rec.dish.lomito_saltado_light"
     },
     {
       "id": "rc8",
@@ -5973,14 +6080,14 @@
       "weatherType": "mild",
       "goalType": "muscle-gain",
       "foodId": null,
-      "customFoodName": "Pollo con arroz integral",
       "estimatedCalories": 540,
       "estimatedProteinG": 48,
       "estimatedCarbsG": 55,
       "estimatedFatG": 10,
       "badge": "high-protein",
       "contextLabelKey": "rec.local_high_protein",
-      "restrictionsConflict": []
+      "restrictionsConflict": [],
+      "customFoodNameKey": "rec.dish.pollo_arroz_integral"
     },
     {
       "id": "rc9",
@@ -5988,14 +6095,14 @@
       "weatherType": "hot",
       "goalType": "muscle-gain",
       "foodId": null,
-      "customFoodName": "Bowl de proteína con arroz y verduras",
       "estimatedCalories": 500,
       "estimatedProteinG": 40,
       "estimatedCarbsG": 50,
       "estimatedFatG": 12,
       "badge": "bulk",
       "contextLabelKey": "rec.perfect_hot_weather",
-      "restrictionsConflict": []
+      "restrictionsConflict": [],
+      "customFoodNameKey": "rec.dish.bowl_proteina_arroz_verduras"
     },
     {
       "id": "rc10",
@@ -6003,14 +6110,14 @@
       "weatherType": "cold",
       "goalType": "weight-loss",
       "foodId": null,
-      "customFoodName": "Sopa de lentejas",
       "estimatedCalories": 230,
       "estimatedProteinG": 14,
       "estimatedCarbsG": 38,
       "estimatedFatG": 3,
       "badge": "light",
       "contextLabelKey": "rec.warming_dish",
-      "restrictionsConflict": []
+      "restrictionsConflict": [],
+      "customFoodNameKey": "rec.dish.sopa_lentejas"
     },
     {
       "id": "rc11",
@@ -6018,7 +6125,6 @@
       "weatherType": "cold",
       "goalType": "weight-loss",
       "foodId": null,
-      "customFoodName": "Bowl de avena con plátano",
       "estimatedCalories": 290,
       "estimatedProteinG": 10,
       "estimatedCarbsG": 48,
@@ -6027,7 +6133,8 @@
       "contextLabelKey": "rec.warming_dish",
       "restrictionsConflict": [
         "lactose"
-      ]
+      ],
+      "customFoodNameKey": "rec.dish.bowl_avena_platano"
     },
     {
       "id": "rc12",
@@ -6035,14 +6142,14 @@
       "weatherType": "cold",
       "goalType": "muscle-gain",
       "foodId": null,
-      "customFoodName": "Ajiaco de pollo",
       "estimatedCalories": 490,
       "estimatedProteinG": 38,
       "estimatedCarbsG": 45,
       "estimatedFatG": 12,
       "badge": "high-protein",
       "contextLabelKey": "rec.warming_dish",
-      "restrictionsConflict": []
+      "restrictionsConflict": [],
+      "customFoodNameKey": "rec.dish.ajiaco_pollo"
     },
     {
       "id": "rc13",
@@ -6050,14 +6157,14 @@
       "weatherType": "cold",
       "goalType": "muscle-gain",
       "foodId": null,
-      "customFoodName": "Huevos con espinaca y aceite de oliva",
       "estimatedCalories": 280,
       "estimatedProteinG": 22,
       "estimatedCarbsG": 8,
       "estimatedFatG": 18,
       "badge": "high-protein",
       "contextLabelKey": "rec.warming_dish",
-      "restrictionsConflict": []
+      "restrictionsConflict": [],
+      "customFoodNameKey": "rec.dish.huevos_espinaca_aceite"
     },
     {
       "id": "rc14",
@@ -6065,14 +6172,14 @@
       "weatherType": "mild",
       "goalType": "weight-loss",
       "foodId": null,
-      "customFoodName": "Pollo a la plancha con verduras",
       "estimatedCalories": 280,
       "estimatedProteinG": 32,
       "estimatedCarbsG": 14,
       "estimatedFatG": 8,
       "badge": "high-protein",
       "contextLabelKey": "rec.local_high_protein",
-      "restrictionsConflict": []
+      "restrictionsConflict": [],
+      "customFoodNameKey": "rec.dish.pollo_plancha_verduras"
     },
     {
       "id": "rc15",
@@ -6080,14 +6187,14 @@
       "weatherType": "mild",
       "goalType": "muscle-gain",
       "foodId": null,
-      "customFoodName": "Tacos de pollo con frijoles",
       "estimatedCalories": 580,
       "estimatedProteinG": 42,
       "estimatedCarbsG": 55,
       "estimatedFatG": 14,
       "badge": "high-protein",
       "contextLabelKey": "rec.local_high_protein",
-      "restrictionsConflict": []
+      "restrictionsConflict": [],
+      "customFoodNameKey": "rec.dish.tacos_pollo_frijoles"
     },
     {
       "id": "rc16",
@@ -6095,7 +6202,6 @@
       "weatherType": "mild",
       "goalType": "muscle-gain",
       "foodId": null,
-      "customFoodName": "Batido de proteína con avena",
       "estimatedCalories": 420,
       "estimatedProteinG": 36,
       "estimatedCarbsG": 44,
@@ -6104,7 +6210,8 @@
       "contextLabelKey": "rec.local_high_protein",
       "restrictionsConflict": [
         "lactose"
-      ]
+      ],
+      "customFoodNameKey": "rec.dish.batido_proteina_avena"
     },
     {
       "id": "rc17",
@@ -6112,14 +6219,14 @@
       "weatherType": "cold",
       "goalType": "weight-loss",
       "foodId": null,
-      "customFoodName": "Asado magro con ensalada",
       "estimatedCalories": 340,
       "estimatedProteinG": 34,
       "estimatedCarbsG": 10,
       "estimatedFatG": 14,
       "badge": "high-protein",
       "contextLabelKey": "rec.local_high_protein",
-      "restrictionsConflict": []
+      "restrictionsConflict": [],
+      "customFoodNameKey": "rec.dish.asado_magro_ensalada"
     },
     {
       "id": "rc18",
@@ -6127,14 +6234,14 @@
       "weatherType": "cold",
       "goalType": "weight-loss",
       "foodId": null,
-      "customFoodName": "Sopa de lentejas",
       "estimatedCalories": 230,
       "estimatedProteinG": 14,
       "estimatedCarbsG": 38,
       "estimatedFatG": 3,
       "badge": "light",
       "contextLabelKey": "rec.warming_dish",
-      "restrictionsConflict": []
+      "restrictionsConflict": [],
+      "customFoodNameKey": "rec.dish.sopa_lentejas"
     },
     {
       "id": "rc19",
@@ -6142,14 +6249,14 @@
       "weatherType": "cold",
       "goalType": "muscle-gain",
       "foodId": null,
-      "customFoodName": "Milanesa de pollo con camote",
       "estimatedCalories": 560,
       "estimatedProteinG": 44,
       "estimatedCarbsG": 50,
       "estimatedFatG": 13,
       "badge": "bulk",
       "contextLabelKey": "rec.local_high_protein",
-      "restrictionsConflict": []
+      "restrictionsConflict": [],
+      "customFoodNameKey": "rec.dish.milanesa_pollo_camote"
     },
     {
       "id": "rc20",
@@ -6157,14 +6264,14 @@
       "weatherType": "hot",
       "goalType": "weight-loss",
       "foodId": null,
-      "customFoodName": "Wraps de lechuga con pollo",
       "estimatedCalories": 250,
       "estimatedProteinG": 30,
       "estimatedCarbsG": 8,
       "estimatedFatG": 7,
       "badge": "light",
       "contextLabelKey": "rec.perfect_hot_weather",
-      "restrictionsConflict": []
+      "restrictionsConflict": [],
+      "customFoodNameKey": "rec.dish.wraps_lechuga_pollo"
     },
     {
       "id": "rc21",
@@ -6172,14 +6279,14 @@
       "weatherType": "hot",
       "goalType": "muscle-gain",
       "foodId": null,
-      "customFoodName": "Açaí bowl proteico",
       "estimatedCalories": 510,
       "estimatedProteinG": 30,
       "estimatedCarbsG": 60,
       "estimatedFatG": 11,
       "badge": "bulk",
       "contextLabelKey": "rec.perfect_hot_weather",
-      "restrictionsConflict": []
+      "restrictionsConflict": [],
+      "customFoodNameKey": "rec.dish.acai_bowl_proteico"
     },
     {
       "id": "rc22",
@@ -6187,7 +6294,6 @@
       "weatherType": "hot",
       "goalType": "muscle-gain",
       "foodId": null,
-      "customFoodName": "Grilled salmon bowl",
       "estimatedCalories": 620,
       "estimatedProteinG": 48,
       "estimatedCarbsG": 45,
@@ -6196,7 +6302,8 @@
       "contextLabelKey": "rec.perfect_hot_weather",
       "restrictionsConflict": [
         "seafood"
-      ]
+      ],
+      "customFoodNameKey": "rec.dish.grilled_salmon_bowl"
     },
     {
       "id": "rc23",
@@ -6204,7 +6311,6 @@
       "weatherType": "warm",
       "goalType": "weight-loss",
       "foodId": null,
-      "customFoodName": "Bocadillo de atún",
       "estimatedCalories": 260,
       "estimatedProteinG": 28,
       "estimatedCarbsG": 14,
@@ -6213,7 +6319,8 @@
       "contextLabelKey": "rec.local_high_protein",
       "restrictionsConflict": [
         "seafood"
-      ]
+      ],
+      "customFoodNameKey": "rec.dish.bocadillo_atun"
     },
     {
       "id": "rc24",
@@ -6221,14 +6328,14 @@
       "weatherType": "warm",
       "goalType": "weight-loss",
       "foodId": null,
-      "customFoodName": "Ensalada mediterránea con pollo",
       "estimatedCalories": 300,
       "estimatedProteinG": 32,
       "estimatedCarbsG": 16,
       "estimatedFatG": 10,
       "badge": "high-protein",
       "contextLabelKey": "rec.perfect_hot_weather",
-      "restrictionsConflict": []
+      "restrictionsConflict": [],
+      "customFoodNameKey": "rec.dish.ensalada_mediterranea_pollo"
     },
     {
       "id": "rc25",
@@ -6236,14 +6343,14 @@
       "weatherType": "warm",
       "goalType": "muscle-gain",
       "foodId": null,
-      "customFoodName": "Bowl de proteína con arroz y verduras",
       "estimatedCalories": 500,
       "estimatedProteinG": 40,
       "estimatedCarbsG": 50,
       "estimatedFatG": 12,
       "badge": "high-protein",
       "contextLabelKey": "rec.local_high_protein",
-      "restrictionsConflict": []
+      "restrictionsConflict": [],
+      "customFoodNameKey": "rec.dish.bowl_proteina_arroz_verduras"
     },
     {
       "id": "rc26",
@@ -6251,7 +6358,6 @@
       "weatherType": "warm",
       "goalType": "weight-loss",
       "foodId": null,
-      "customFoodName": "Bocadillo de atún",
       "estimatedCalories": 260,
       "estimatedProteinG": 28,
       "estimatedCarbsG": 14,
@@ -6260,7 +6366,8 @@
       "contextLabelKey": "rec.local_high_protein",
       "restrictionsConflict": [
         "seafood"
-      ]
+      ],
+      "customFoodNameKey": "rec.dish.bocadillo_atun"
     },
     {
       "id": "rc27",
@@ -6268,14 +6375,14 @@
       "weatherType": "warm",
       "goalType": "weight-loss",
       "foodId": null,
-      "customFoodName": "Wraps de lechuga con pollo",
       "estimatedCalories": 250,
       "estimatedProteinG": 30,
       "estimatedCarbsG": 8,
       "estimatedFatG": 7,
       "badge": "light",
       "contextLabelKey": "rec.perfect_hot_weather",
-      "restrictionsConflict": []
+      "restrictionsConflict": [],
+      "customFoodNameKey": "rec.dish.wraps_lechuga_pollo"
     },
     {
       "id": "rc28",
@@ -6283,7 +6390,6 @@
       "weatherType": "warm",
       "goalType": "muscle-gain",
       "foodId": null,
-      "customFoodName": "Salmón con camote",
       "estimatedCalories": 480,
       "estimatedProteinG": 42,
       "estimatedCarbsG": 38,
@@ -6292,7 +6398,8 @@
       "contextLabelKey": "rec.local_high_protein",
       "restrictionsConflict": [
         "seafood"
-      ]
+      ],
+      "customFoodNameKey": "rec.dish.salmon_camote"
     },
     {
       "id": "rc29",
@@ -6300,14 +6407,14 @@
       "weatherType": "mild",
       "goalType": "weight-loss",
       "foodId": null,
-      "customFoodName": "Sopa de lentejas",
       "estimatedCalories": 230,
       "estimatedProteinG": 14,
       "estimatedCarbsG": 38,
       "estimatedFatG": 3,
       "badge": "light",
       "contextLabelKey": "rec.warming_dish",
-      "restrictionsConflict": []
+      "restrictionsConflict": [],
+      "customFoodNameKey": "rec.dish.sopa_lentejas"
     },
     {
       "id": "rc30",
@@ -6315,7 +6422,6 @@
       "weatherType": "mild",
       "goalType": "muscle-gain",
       "foodId": null,
-      "customFoodName": "Grilled salmon bowl",
       "estimatedCalories": 620,
       "estimatedProteinG": 48,
       "estimatedCarbsG": 45,
@@ -6324,7 +6430,8 @@
       "contextLabelKey": "rec.local_high_protein",
       "restrictionsConflict": [
         "seafood"
-      ]
+      ],
+      "customFoodNameKey": "rec.dish.grilled_salmon_bowl"
     },
     {
       "id": "rc31",
@@ -6332,14 +6439,14 @@
       "weatherType": "mild",
       "goalType": "muscle-gain",
       "foodId": null,
-      "customFoodName": "Pollo con arroz integral",
       "estimatedCalories": 540,
       "estimatedProteinG": 48,
       "estimatedCarbsG": 55,
       "estimatedFatG": 10,
       "badge": "high-protein",
       "contextLabelKey": "rec.local_high_protein",
-      "restrictionsConflict": []
+      "restrictionsConflict": [],
+      "customFoodNameKey": "rec.dish.pollo_arroz_integral"
     }
   ],
   "wearable_connections": [
@@ -6548,6 +6655,61 @@
       "periodEnd": "2026-06-02T00:00:00Z",
       "cancelAtPeriodEnd": false,
       "stripeSubscriptionId": "sub_MOCK_u13"
+    },
+    {
+      "userId": "FRsS6fyOkfI",
+      "planId": "plan-basic",
+      "status": "active",
+      "billingPeriod": "monthly",
+      "periodStart": "2026-05-31T06:53:04.307Z",
+      "periodEnd": "2026-06-30T06:53:04.307Z",
+      "cancelAtPeriodEnd": false,
+      "stripeSubscriptionId": null,
+      "id": "TYUronKbZDk"
+    },
+    {
+      "userId": "8GhXNPnX1f4",
+      "planId": "plan-premium",
+      "status": "active",
+      "billingPeriod": "monthly",
+      "periodStart": "2026-05-31T07:16:16.897Z",
+      "periodEnd": "2026-06-30T07:16:16.897Z",
+      "cancelAtPeriodEnd": false,
+      "stripeSubscriptionId": null,
+      "id": "gylVQn02Ag0"
+    },
+    {
+      "userId": "M9o24meONkE",
+      "planId": "plan-pro",
+      "status": "active",
+      "billingPeriod": "monthly",
+      "periodStart": "2026-05-31T07:21:17.980Z",
+      "periodEnd": "2026-06-30T07:21:17.980Z",
+      "cancelAtPeriodEnd": false,
+      "stripeSubscriptionId": null,
+      "id": "GW3yjTWA8pM"
+    },
+    {
+      "userId": "M9o24meONkE",
+      "planId": "plan-basic",
+      "status": "active",
+      "billingPeriod": "monthly",
+      "periodStart": "2026-05-31T07:21:24.286Z",
+      "periodEnd": "2026-06-30T07:21:24.286Z",
+      "cancelAtPeriodEnd": false,
+      "stripeSubscriptionId": null,
+      "id": "FOtoCs8iioI"
+    },
+    {
+      "userId": "M9o24meONkE",
+      "planId": "plan-basic",
+      "status": "active",
+      "billingPeriod": "monthly",
+      "periodStart": "2026-05-31T07:22:20.604Z",
+      "periodEnd": "2026-06-30T07:22:20.604Z",
+      "cancelAtPeriodEnd": false,
+      "stripeSubscriptionId": null,
+      "id": "0haAuWxU5z8"
     }
   ],
   "payment_history": [
@@ -9707,7 +9869,337 @@
       "lastLogDate": "2026-05-15",
       "weeklyCompletionRate": 0.8571428571428571,
       "id": "VUS6i78lkQM"
+    },
+    {
+      "currentStreak": 0,
+      "longestStreak": 0,
+      "lastLogDate": null,
+      "weeklyCompletionRate": 0,
+      "id": "SKWMw4tubO0"
+    },
+    {
+      "currentStreak": 0,
+      "longestStreak": 0,
+      "lastLogDate": null,
+      "weeklyCompletionRate": 0,
+      "id": "rGgpaIJDl6U"
+    },
+    {
+      "currentStreak": 0,
+      "longestStreak": 0,
+      "lastLogDate": null,
+      "weeklyCompletionRate": 0,
+      "id": "aeqM-NPfpwA"
+    },
+    {
+      "currentStreak": 0,
+      "longestStreak": 0,
+      "lastLogDate": null,
+      "weeklyCompletionRate": 0,
+      "id": "30nD0AzPUUc"
+    },
+    {
+      "currentStreak": 0,
+      "longestStreak": 0,
+      "lastLogDate": null,
+      "weeklyCompletionRate": 0,
+      "id": "ByPwbc5sGPU"
+    },
+    {
+      "currentStreak": 0,
+      "longestStreak": 0,
+      "lastLogDate": null,
+      "weeklyCompletionRate": 0,
+      "id": "ZSFJ-_vhNwM"
+    },
+    {
+      "currentStreak": 0,
+      "longestStreak": 0,
+      "lastLogDate": null,
+      "weeklyCompletionRate": 0,
+      "id": "Pet4u1jCsGk"
+    },
+    {
+      "currentStreak": 0,
+      "longestStreak": 0,
+      "lastLogDate": null,
+      "weeklyCompletionRate": 0,
+      "id": "sTKqFX6Go5Q"
+    },
+    {
+      "currentStreak": 0,
+      "longestStreak": 0,
+      "lastLogDate": null,
+      "weeklyCompletionRate": 0,
+      "id": "y1IS-dwP81s"
+    },
+    {
+      "currentStreak": 0,
+      "longestStreak": 0,
+      "lastLogDate": null,
+      "weeklyCompletionRate": 0,
+      "id": "ptRfPWusdO0"
+    },
+    {
+      "currentStreak": 0,
+      "longestStreak": 0,
+      "lastLogDate": null,
+      "weeklyCompletionRate": 0,
+      "id": "vY438OqgHb8"
+    },
+    {
+      "currentStreak": 0,
+      "longestStreak": 0,
+      "lastLogDate": null,
+      "weeklyCompletionRate": 0,
+      "id": "Cick-RoiQHA"
+    },
+    {
+      "currentStreak": 0,
+      "longestStreak": 0,
+      "lastLogDate": null,
+      "weeklyCompletionRate": 0,
+      "id": "ia87B3DRvK4"
+    },
+    {
+      "currentStreak": 0,
+      "longestStreak": 0,
+      "lastLogDate": null,
+      "weeklyCompletionRate": 0,
+      "id": "5PTnqacaZd0"
+    },
+    {
+      "currentStreak": 0,
+      "longestStreak": 0,
+      "lastLogDate": null,
+      "weeklyCompletionRate": 0,
+      "id": "7lB9iFoS8yE"
+    },
+    {
+      "currentStreak": 0,
+      "longestStreak": 0,
+      "lastLogDate": null,
+      "weeklyCompletionRate": 0,
+      "id": "N5N4QjaJUkA"
+    },
+    {
+      "currentStreak": 0,
+      "longestStreak": 0,
+      "lastLogDate": null,
+      "weeklyCompletionRate": 0,
+      "id": "ywgQ6ej8mX0"
+    },
+    {
+      "currentStreak": 0,
+      "longestStreak": 0,
+      "lastLogDate": null,
+      "weeklyCompletionRate": 0,
+      "id": "vHLuf3TcTeU"
+    },
+    {
+      "currentStreak": 0,
+      "longestStreak": 0,
+      "lastLogDate": null,
+      "weeklyCompletionRate": 0,
+      "id": "TMGbpqjIpAU"
+    },
+    {
+      "currentStreak": 0,
+      "longestStreak": 0,
+      "lastLogDate": null,
+      "weeklyCompletionRate": 0,
+      "id": "i9_Df2c3EHo"
+    },
+    {
+      "currentStreak": 0,
+      "longestStreak": 0,
+      "lastLogDate": null,
+      "weeklyCompletionRate": 0,
+      "id": "xeYtWC1Mevw"
+    },
+    {
+      "currentStreak": 0,
+      "longestStreak": 0,
+      "lastLogDate": null,
+      "weeklyCompletionRate": 0,
+      "id": "a8dO0F3JvzU"
+    },
+    {
+      "currentStreak": 0,
+      "longestStreak": 0,
+      "lastLogDate": null,
+      "weeklyCompletionRate": 0,
+      "id": "D8VQcxxfcU8"
+    },
+    {
+      "currentStreak": 0,
+      "longestStreak": 0,
+      "lastLogDate": null,
+      "weeklyCompletionRate": 0,
+      "id": "rK29ybiJf5Y"
+    },
+    {
+      "currentStreak": 0,
+      "longestStreak": 0,
+      "lastLogDate": null,
+      "weeklyCompletionRate": 0,
+      "id": "JjG--dXsSpk"
+    },
+    {
+      "currentStreak": 0,
+      "longestStreak": 0,
+      "lastLogDate": null,
+      "weeklyCompletionRate": 0,
+      "id": "JM1ub1CYFTk"
+    },
+    {
+      "currentStreak": 0,
+      "longestStreak": 0,
+      "lastLogDate": null,
+      "weeklyCompletionRate": 0,
+      "id": "ghr0ifPcQCo"
+    },
+    {
+      "currentStreak": 0,
+      "longestStreak": 0,
+      "lastLogDate": null,
+      "weeklyCompletionRate": 0,
+      "id": "urxYRlJZzCI"
+    },
+    {
+      "currentStreak": 0,
+      "longestStreak": 0,
+      "lastLogDate": null,
+      "weeklyCompletionRate": 0,
+      "id": "QfNU0rwSiFA"
+    },
+    {
+      "currentStreak": 0,
+      "longestStreak": 0,
+      "lastLogDate": null,
+      "weeklyCompletionRate": 0,
+      "id": "de7IOd8KxQc"
+    },
+    {
+      "currentStreak": 0,
+      "longestStreak": 0,
+      "lastLogDate": null,
+      "weeklyCompletionRate": 0,
+      "id": "saBawRHLI-Q"
+    },
+    {
+      "currentStreak": 0,
+      "longestStreak": 0,
+      "lastLogDate": null,
+      "weeklyCompletionRate": 0,
+      "id": "FaZI5sfPMzA"
+    },
+    {
+      "currentStreak": 0,
+      "longestStreak": 6,
+      "lastLogDate": "2026-05-15",
+      "weeklyCompletionRate": 0,
+      "id": "P5QwbTa6UFE"
+    },
+    {
+      "currentStreak": 0,
+      "longestStreak": 6,
+      "lastLogDate": "2026-05-15",
+      "weeklyCompletionRate": 0,
+      "id": "BZa7jSqGjUU"
+    },
+    {
+      "currentStreak": 0,
+      "longestStreak": 6,
+      "lastLogDate": "2026-05-15",
+      "weeklyCompletionRate": 0,
+      "id": "Ju1aTU1yuZA"
+    },
+    {
+      "currentStreak": 0,
+      "longestStreak": 6,
+      "lastLogDate": "2026-05-15",
+      "weeklyCompletionRate": 0,
+      "id": "94Po-ll1X88"
+    },
+    {
+      "currentStreak": 0,
+      "longestStreak": 6,
+      "lastLogDate": "2026-05-15",
+      "weeklyCompletionRate": 0,
+      "id": "E4Qm96toi2k"
+    },
+    {
+      "currentStreak": 0,
+      "longestStreak": 6,
+      "lastLogDate": "2026-05-15",
+      "weeklyCompletionRate": 0,
+      "id": "64eV-mOyHco"
+    },
+    {
+      "currentStreak": 0,
+      "longestStreak": 6,
+      "lastLogDate": "2026-05-15",
+      "weeklyCompletionRate": 0,
+      "id": "6v7c88IKwqk"
+    },
+    {
+      "currentStreak": 0,
+      "longestStreak": 6,
+      "lastLogDate": "2026-05-15",
+      "weeklyCompletionRate": 0,
+      "id": "uFKh0zLxm68"
+    },
+    {
+      "currentStreak": 0,
+      "longestStreak": 6,
+      "lastLogDate": "2026-05-15",
+      "weeklyCompletionRate": 0,
+      "id": "tcK2ANBNTjo"
+    },
+    {
+      "currentStreak": 0,
+      "longestStreak": 12,
+      "lastLogDate": "2026-05-15",
+      "weeklyCompletionRate": 0,
+      "id": "5LsNWS7RlGc"
+    },
+    {
+      "currentStreak": 0,
+      "longestStreak": 12,
+      "lastLogDate": "2026-05-15",
+      "weeklyCompletionRate": 0,
+      "id": "KuSlanZxqZk"
+    },
+    {
+      "currentStreak": 0,
+      "longestStreak": 12,
+      "lastLogDate": "2026-05-15",
+      "weeklyCompletionRate": 0,
+      "id": "5LIfhNqtw7g"
+    },
+    {
+      "currentStreak": 0,
+      "longestStreak": 12,
+      "lastLogDate": "2026-05-15",
+      "weeklyCompletionRate": 0,
+      "id": "UhGVCL-Qf5c"
+    },
+    {
+      "currentStreak": 0,
+      "longestStreak": 12,
+      "lastLogDate": "2026-05-15",
+      "weeklyCompletionRate": 0,
+      "id": "QDj4iI7IXtg"
+    },
+    {
+      "currentStreak": 0,
+      "longestStreak": 12,
+      "lastLogDate": "2026-05-15",
+      "weeklyCompletionRate": 0,
+      "id": "SBkM5rbOmlY"
     }
   ],
+  "payment_methods": [],
   "$schema": "./node_modules/json-server/schema.json"
 }
