@@ -160,7 +160,7 @@ async function handlePay() {
       <div class="checkout-layout">
 
         <!-- Order Summary -->
-        <aside class="checkout-summary" aria-label="t('checkout.orderSummary')">
+        <aside class="checkout-summary" :aria-label="t('checkout.orderSummary')">
           <h2 class="checkout-summary__heading">{{ t('checkout.orderSummary') }}</h2>
           <template v-if="selectedPlan">
             <div class="checkout-summary__plan-name">{{ t(selectedPlan.key) }}</div>
@@ -168,7 +168,7 @@ async function handlePay() {
               <span class="checkout-summary__amount">${{ formatNum(selectedPlan.priceMonthly) }}</span>
               <span class="checkout-summary__period">{{ t('checkout.billedMonthly') }}</span>
             </div>
-            <ul class="checkout-summary__features" aria-label="Included features">
+            <ul class="checkout-summary__features" :aria-label="t('checkout.includedFeatures')">
               <li
                 v-for="feature in selectedPlan.features.slice(0, 5)"
                 :key="feature"
@@ -188,7 +188,7 @@ async function handlePay() {
         </aside>
 
         <!-- Card Form -->
-        <section class="checkout-form" aria-label="t('checkout.cardDetails')">
+        <section class="checkout-form" :aria-label="t('checkout.cardDetails')">
           <h2 class="checkout-form__heading">{{ t('checkout.cardDetails') }}</h2>
 
           <!-- Card number -->

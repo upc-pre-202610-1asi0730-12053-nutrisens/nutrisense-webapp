@@ -134,7 +134,7 @@ onUnmounted(() => {
       class="sidebar"
       :class="sidebarClasses"
       :style="sidebarStyle"
-      aria-label="Main navigation"
+      :aria-label="t('nav.mainNavigation')"
     >
       <!-- Header -->
       <div class="sidebar-header">

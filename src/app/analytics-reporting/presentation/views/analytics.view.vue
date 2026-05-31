@@ -320,7 +320,7 @@ function handleExportPdf() {
           <span class="ns-panel__title">{{ t('analytics.calorieHistory') }}</span>
         </div>
         <div class="analytics-chart-wrap">
-          <canvas ref="calorieCanvasRef" aria-label="Calorie history bar chart" />
+          <canvas ref="calorieCanvasRef" :aria-label="t('analytics.calorieHistoryChartLabel')" />
         </div>
       </div>
 

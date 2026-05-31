@@ -10,6 +10,8 @@
     "profile": "Profile & Settings",
     "signOut": "Sign Out",
     "openMenu": "Open navigation menu",
+    "mainNavigation": "Main navigation",
+    "languageSelector": "Language selector",
     "myAccount": "My Account",
     "caption": {
       "dashboard": "Today's summary",
@@ -28,7 +30,8 @@
     "perMonth": "/mo",
     "select": "Get {plan}",
     "later": "Maybe later — sign out",
-    "loading": "Loading plans..."
+    "loading": "Loading plans...",
+    "includedFeatures": "Included features"
   },
   "onboarding": {
     "stepOf": "Step {current} of {total}",
@@ -257,6 +260,7 @@
     "weightKg": "Weight (kg)",
     "logWeight": "Log today's weight",
     "weightHistory": "Weight history",
+    "weightChartLabel": "Weight history chart",
     "goal": "Goal",
     "startWeight": "Start",
     "targetWeight": "Target",
@@ -441,7 +445,9 @@
     "generate": "Generate PDF",
     "adherence": "Adherence",
     "calorieHistory": "Calorie history",
+    "calorieHistoryChartLabel": "Calorie history bar chart",
     "macroBreakdown": "Macro breakdown",
+    "macroChartLabel": "Macro distribution chart",
     "streakSection": "Streak",
     "customRangeTitle": "Custom date range",
     "apply": "Apply",
@@ -742,7 +748,8 @@
     "errorExpiry": "Enter a valid expiry date (MM/YY)",
     "errorCvv": "Enter a valid CVV",
     "errorName": "Enter the cardholder name",
-    "errorPayment": "Payment failed. Please check your card details and try again."
+    "errorPayment": "Payment failed. Please check your card details and try again.",
+    "includedFeatures": "Included features"
   },
   "paymentSuccess": {
     "title": "You're all set!",

@@ -10,6 +10,8 @@
     "profile": "Perfil y Ajustes",
     "signOut": "Cerrar sesión",
     "openMenu": "Abrir menú de navegación",
+    "mainNavigation": "Navegación principal",
+    "languageSelector": "Selector de idioma",
     "myAccount": "Mi cuenta",
     "caption": {
       "dashboard": "Resumen de hoy",
@@ -28,7 +30,8 @@
     "perMonth": "/mes",
     "select": "Obtener {plan}",
     "later": "Quizás después — cerrar sesión",
-    "loading": "Cargando planes..."
+    "loading": "Cargando planes...",
+    "includedFeatures": "Funciones incluidas"
   },
   "onboarding": {
     "stepOf": "Paso {current} de {total}",
@@ -257,6 +260,7 @@
     "weightKg": "Peso (kg)",
     "logWeight": "Registrar peso de hoy",
     "weightHistory": "Historial de peso",
+    "weightChartLabel": "Gráfico de historial de peso",
     "goal": "Objetivo",
     "startWeight": "Inicio",
     "targetWeight": "Meta",
@@ -441,7 +445,9 @@
     "generate": "Generar PDF",
     "adherence": "Adherencia",
     "calorieHistory": "Historial de calorías",
+    "calorieHistoryChartLabel": "Gráfico de barras del historial de calorías",
     "macroBreakdown": "Desglose de macros",
+    "macroChartLabel": "Gráfico de distribución de macros",
     "streakSection": "Racha",
     "customRangeTitle": "Rango personalizado",
     "apply": "Aplicar",
@@ -742,7 +748,8 @@
     "errorExpiry": "Ingresa una fecha de vencimiento válida (MM/AA)",
     "errorCvv": "Ingresa un CVV válido",
     "errorName": "Ingresa el nombre del titular",
-    "errorPayment": "El pago falló. Verifica los datos de tu tarjeta e intenta nuevamente."
+    "errorPayment": "El pago falló. Verifica los datos de tu tarjeta e intenta nuevamente.",
+    "includedFeatures": "Funciones incluidas"
   },
   "paymentSuccess": {
     "title": "¡Todo listo!",

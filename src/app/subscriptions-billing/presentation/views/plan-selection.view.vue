@@ -82,7 +82,7 @@ function handleLater() {
             <span class="plan-card__price-period">{{ t('planSelection.perMonth') }}</span>
           </div>
 
-          <ul class="plan-card__features" aria-label="Included features">
+          <ul class="plan-card__features" :aria-label="t('planSelection.includedFeatures')">
             <li
               v-for="feature in plan.features"
               :key="feature"
