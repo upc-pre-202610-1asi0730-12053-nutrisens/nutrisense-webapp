@@ -16,6 +16,7 @@ const BILLING_MONTH_DAYS = 30
  * @property {boolean} cancelAtPeriodEnd
  * @property {string|null} stripeSubscriptionId
  * @property {string|null} [lastPlanChangeAt] - ISO date string of the last plan change, used to enforce the daily change limit.
+ * @property {string|null} [paymentMethodId] - ID of the payment method linked to this subscription.
  */
 
 /** @param {UserSubscriptionProps} props */
@@ -34,6 +35,7 @@ export function UserSubscription(props) {
     cancelAtPeriodEnd: props.cancelAtPeriodEnd,
     stripeSubscriptionId: props.stripeSubscriptionId,
     lastPlanChangeAt: props.lastPlanChangeAt ?? null,
+    paymentMethodId: props.paymentMethodId ?? null,
 
     /** @returns {boolean} */
     isActive() { return status.isActive() },

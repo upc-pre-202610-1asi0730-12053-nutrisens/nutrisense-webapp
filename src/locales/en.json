@@ -511,6 +511,10 @@
     "planCancelled": "Plan cancelled. Access continues until {date}.",
     "changePlanTitle": "Change plan",
     "billedMonthly": "Billed monthly. Cancel anytime.",
+    "paymentMethod": "Payment method",
+    "updateCard": "Update card",
+    "cardUpdatedSuccess": "Payment method updated successfully.",
+    "noCardOnFile": "No payment method on file.",
     "changePassword": "Change password",
     "currentPassword": "Current password",
     "newPassword": "New password",
@@ -598,6 +602,13 @@
     "downgrade": "Downgrade",
     "confirmChangePlanTitle": "Change plan",
     "confirmChangePlanMessage": "You are switching to the {plan} plan. Your billing will update at the next cycle.",
+    "confirmChangePlanProrated": "Switching to {plan}. You'll be charged ${amount} now (prorated for {days} remaining days).",
+    "confirmDowngradeProrated": "Switching to {plan}. A credit of ${amount} will be applied to your next billing cycle ({days} remaining days).",
+    "creditApplied": "Credit of ${amount} applied to next cycle.",
+    "upgradeChargeNote": "You'll be charged the prorated difference immediately.",
+    "downgradeChargeNote": "A credit for the prorated difference will be applied to your next billing cycle.",
+    "errorChangeLimitReached": "You can only change your plan once per day. Try again tomorrow.",
+    "changeLimitTooltip": "You can change your plan once per day. Available again tomorrow.",
     "confirm": "Confirm",
     "planChangeSuccess": "Your plan has been updated successfully."
   },
@@ -754,7 +765,8 @@
     "errorCvv": "Enter a valid CVV",
     "errorName": "Enter the cardholder name",
     "errorPayment": "Payment failed. Please check your card details and try again.",
-    "includedFeatures": "Included features"
+    "includedFeatures": "Included features",
+    "cardSaved": "Your card will be saved for future billing."
   },
   "paymentSuccess": {
     "title": "You're all set!",

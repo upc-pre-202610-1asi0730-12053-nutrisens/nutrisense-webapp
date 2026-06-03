@@ -31,6 +31,9 @@ export const useSubscriptionsBillingStore = defineStore('subscriptions-billing',
   const paymentProcessing = ref(false)
   /** @type {import('vue').Ref<ReturnType<import('../domain/model/payment-method.entity.js').PaymentMethod>|null>} */
   const lastPaymentMethod = ref(null)
+  /** @type {import('vue').Ref<ReturnType<import('../domain/model/payment-method.entity.js').PaymentMethod>|null>} */
+  const paymentMethod = ref(null)
+  const paymentMethodLoaded = ref(false)
   /** @type {import('vue').Ref<Error[]>} */
   const errors = ref([])
 
@@ -122,6 +125,7 @@ export const useSubscriptionsBillingStore = defineStore('subscriptions-billing',
   /**
    * Loads the subscription for a given user.
    * If none exists, provisions a basic subscription automatically.
+   * Also loads the active payment method in parallel.
    * @param {string} userId
    */
   function fetchSubscription(userId) {
@@ -137,6 +141,51 @@ export const useSubscriptionsBillingStore = defineStore('subscriptions-billing',
         }
       })
       .catch(error => errors.value.push(error))
+
+    fetchPaymentMethod(userId)
+  }
+
+  /**
+   * Loads the most recent payment method for the given user.
+   * @param {string} userId
+   */
+  function fetchPaymentMethod(userId) {
+    subscriptionsBillingApi.getPaymentMethods()
+      .then(response => {
+        const all = PaymentMethodAssembler.toEntitiesFromResponse(response)
+        const forUser = all.filter(m => m.userId === userId)
+        paymentMethod.value = forUser.length
+          ? forUser.reduce((latest, m) => m.createdAt > latest.createdAt ? m : latest)
+          : null
+        paymentMethodLoaded.value = true
+      })
+      .catch(error => errors.value.push(error))
+  }
+
+  /**
+   * Saves a new payment method for the user. The previous card is kept in the
+   * API but this one becomes the active method for the subscription.
+   * @param {string} userId
+   * @param {{ cardNumber: string, expiryMonth: number, expiryYear: number, cardholderName: string }} cardData
+   * @returns {Promise<void>}
+   */
+  function updatePaymentMethod(userId, cardData) {
+    const cardResource = PaymentMethodAssembler.toResource(userId, cardData)
+    return subscriptionsBillingApi.createPaymentMethod(cardResource)
+      .then(res => {
+        const updated = PaymentMethodAssembler.toEntityFromResponse(res)
+        paymentMethod.value = updated
+        lastPaymentMethod.value = updated
+        if (subscription.value) {
+          return subscriptionsBillingApi.updateSubscription(subscription.value.id, {
+            paymentMethodId: updated.id,
+          })
+        }
+      })
+      .catch(error => {
+        errors.value.push(error)
+        throw error
+      })
   }
 
   /**
@@ -351,6 +400,8 @@ export const useSubscriptionsBillingStore = defineStore('subscriptions-billing',
     changingPlanId,
     paymentProcessing,
     lastPaymentMethod,
+    paymentMethod,
+    paymentMethodLoaded,
     errors,
     currentPlan,
     currentTier,
@@ -363,9 +414,11 @@ export const useSubscriptionsBillingStore = defineStore('subscriptions-billing',
     fetchSubscription,
     fetchPlans,
     fetchPaymentHistory,
+    fetchPaymentMethod,
     selectInitialPlan,
     processPayment,
     changePlan,
+    updatePaymentMethod,
     cancelSubscription,
     reactivateSubscription,
     clearErrors,
