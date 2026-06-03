@@ -206,7 +206,7 @@ function handleClose() {
 
 .card-form__row {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr 100px;
   gap: 1rem;
 }
 
