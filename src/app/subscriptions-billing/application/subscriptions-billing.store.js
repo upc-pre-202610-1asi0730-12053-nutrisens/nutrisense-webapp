@@ -226,21 +226,36 @@ export const useSubscriptionsBillingStore = defineStore('subscriptions-billing',
 
   /**
    * Changes the current subscription to a different plan and billing period.
-   * Records an upgrade or downgrade event in payment history after the change.
+   * Enforces the one-change-per-day rule and records a prorated charge or
+   * credit as an upgrade/downgrade entry in payment history.
    * @param {string} planId
    * @param {'monthly'|'annual'} billingPeriodValue
+   * @returns {Promise<void>}
+   * @throws {Error} if the daily change limit has already been reached
    */
   function changePlan(planId, billingPeriodValue) {
     if (!subscription.value) return Promise.resolve()
+
+    if (!subscription.value.canChangePlanToday()) {
+      const error = new Error('subscription.errorChangeLimitReached')
+      errors.value.push(error)
+      return Promise.reject(error)
+    }
+
     changingPlanId.value = planId
     const userId = subscription.value.userId
     const fromPlanId = subscription.value.planId
-    const fromTier = PlanTier(fromPlanId.replace('plan-', ''))
-    const toTierValue = planId.replace('plan-', '')
-    const eventType = !fromTier.isAtLeast(toTierValue) ? 'upgrade' : 'downgrade'
-    const newPlan = plans.value.find(p => p.id === planId)
+    const fromPlan = plans.value.find(p => p.id === fromPlanId)
+    const toPlan = plans.value.find(p => p.id === planId)
+    const eventType = toPlan?.planChangeType(fromPlan) ?? 'upgrade'
+    const proratedAmount = subscription.value.proratedChangeAmount(fromPlan, toPlan)
+    const now = new Date()
 
-    return subscriptionsBillingApi.updateSubscription(subscription.value.id, { planId, billingPeriod: billingPeriodValue })
+    return subscriptionsBillingApi.updateSubscription(subscription.value.id, {
+      planId,
+      billingPeriod: billingPeriodValue,
+      lastPlanChangeAt: now.toISOString(),
+    })
       .then(response => {
         subscription.value = UserSubscriptionAssembler.toEntityFromResponse(response)
         if (userId) emit(createDomainEvent(SUBSCRIPTION_ACTIVATED, { userId }))
@@ -248,10 +263,10 @@ export const useSubscriptionsBillingStore = defineStore('subscriptions-billing',
           userId,
           planId,
           fromPlanId,
-          amountUsd: newPlan?.priceMonthly ?? 0,
+          amountUsd: proratedAmount,
           status: 'paid',
           type: eventType,
-          paidAt: new Date().toISOString(),
+          paidAt: now.toISOString(),
         })
       })
       .then(() => fetchPaymentHistory(userId))
