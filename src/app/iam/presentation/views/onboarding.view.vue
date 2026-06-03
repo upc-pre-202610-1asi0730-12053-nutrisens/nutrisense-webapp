@@ -18,6 +18,7 @@ const { userLoaded, errors } = toRefs(iamStore)
 
 const userId = localStorage.getItem('ns_user_id') ?? ''
 
+iamStore.clearErrors()
 iamStore.fetchCurrentUser(userId)
 
 const TOTAL_STEPS = 4
