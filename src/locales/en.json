@@ -111,7 +111,10 @@
       "metric": "Metric (kg / cm)",
       "imperial": "Imperial (lb / ft)",
       "preferredUnits": "Preferred units",
-      "passwordMismatch": "Passwords do not match"
+      "passwordMismatch": "Passwords do not match",
+      "emailAlreadyRegistered": "This email is already registered. Try signing in instead.",
+      "errorEmailInvalid": "Enter a valid email address",
+      "errorPasswordTooShort": "Password must be at least 6 characters"
     },
     "recoverPassword": {
       "title": "Recover password",
