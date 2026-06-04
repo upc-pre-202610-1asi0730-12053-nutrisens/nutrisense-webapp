@@ -19,6 +19,8 @@ export class UserSubscriptionAssembler {
         periodEnd: resource.periodEnd ?? null,
         cancelAtPeriodEnd: resource.cancelAtPeriodEnd ?? false,
         stripeSubscriptionId: resource.stripeSubscriptionId ?? null,
+        lastPlanChangeAt: resource.lastPlanChangeAt ?? null,
+        paymentMethodId: resource.paymentMethodId ?? null,
       })
     } catch (e) {
       console.error('[UserSubscriptionAssembler] failed to map resource', e)

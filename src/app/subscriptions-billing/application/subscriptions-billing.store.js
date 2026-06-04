@@ -31,6 +31,9 @@ export const useSubscriptionsBillingStore = defineStore('subscriptions-billing',
   const paymentProcessing = ref(false)
   /** @type {import('vue').Ref<ReturnType<import('../domain/model/payment-method.entity.js').PaymentMethod>|null>} */
   const lastPaymentMethod = ref(null)
+  /** @type {import('vue').Ref<ReturnType<import('../domain/model/payment-method.entity.js').PaymentMethod>|null>} */
+  const paymentMethod = ref(null)
+  const paymentMethodLoaded = ref(false)
   /** @type {import('vue').Ref<Error[]>} */
   const errors = ref([])
 
@@ -122,6 +125,7 @@ export const useSubscriptionsBillingStore = defineStore('subscriptions-billing',
   /**
    * Loads the subscription for a given user.
    * If none exists, provisions a basic subscription automatically.
+   * Also loads the active payment method in parallel.
    * @param {string} userId
    */
   function fetchSubscription(userId) {
@@ -137,6 +141,51 @@ export const useSubscriptionsBillingStore = defineStore('subscriptions-billing',
         }
       })
       .catch(error => errors.value.push(error))
+
+    fetchPaymentMethod(userId)
+  }
+
+  /**
+   * Loads the most recent payment method for the given user.
+   * @param {string} userId
+   */
+  function fetchPaymentMethod(userId) {
+    subscriptionsBillingApi.getPaymentMethods()
+      .then(response => {
+        const all = PaymentMethodAssembler.toEntitiesFromResponse(response)
+        const forUser = all.filter(m => m.userId === userId)
+        paymentMethod.value = forUser.length
+          ? forUser.reduce((latest, m) => m.createdAt > latest.createdAt ? m : latest)
+          : null
+        paymentMethodLoaded.value = true
+      })
+      .catch(error => errors.value.push(error))
+  }
+
+  /**
+   * Saves a new payment method for the user. The previous card is kept in the
+   * API but this one becomes the active method for the subscription.
+   * @param {string} userId
+   * @param {{ cardNumber: string, expiryMonth: number, expiryYear: number, cardholderName: string }} cardData
+   * @returns {Promise<void>}
+   */
+  function updatePaymentMethod(userId, cardData) {
+    const cardResource = PaymentMethodAssembler.toResource(userId, cardData)
+    return subscriptionsBillingApi.createPaymentMethod(cardResource)
+      .then(res => {
+        const updated = PaymentMethodAssembler.toEntityFromResponse(res)
+        paymentMethod.value = updated
+        lastPaymentMethod.value = updated
+        if (subscription.value) {
+          return subscriptionsBillingApi.updateSubscription(subscription.value.id, {
+            paymentMethodId: updated.id,
+          })
+        }
+      })
+      .catch(error => {
+        errors.value.push(error)
+        throw error
+      })
   }
 
   /**
@@ -226,21 +275,36 @@ export const useSubscriptionsBillingStore = defineStore('subscriptions-billing',
 
   /**
    * Changes the current subscription to a different plan and billing period.
-   * Records an upgrade or downgrade event in payment history after the change.
+   * Enforces the one-change-per-day rule and records a prorated charge or
+   * credit as an upgrade/downgrade entry in payment history.
    * @param {string} planId
    * @param {'monthly'|'annual'} billingPeriodValue
+   * @returns {Promise<void>}
+   * @throws {Error} if the daily change limit has already been reached
    */
   function changePlan(planId, billingPeriodValue) {
     if (!subscription.value) return Promise.resolve()
+
+    if (!subscription.value.canChangePlanToday()) {
+      const error = new Error('subscription.errorChangeLimitReached')
+      errors.value.push(error)
+      return Promise.reject(error)
+    }
+
     changingPlanId.value = planId
     const userId = subscription.value.userId
     const fromPlanId = subscription.value.planId
-    const fromTier = PlanTier(fromPlanId.replace('plan-', ''))
-    const toTierValue = planId.replace('plan-', '')
-    const eventType = !fromTier.isAtLeast(toTierValue) ? 'upgrade' : 'downgrade'
-    const newPlan = plans.value.find(p => p.id === planId)
+    const fromPlan = plans.value.find(p => p.id === fromPlanId)
+    const toPlan = plans.value.find(p => p.id === planId)
+    const eventType = toPlan?.planChangeType(fromPlan) ?? 'upgrade'
+    const proratedAmount = subscription.value.proratedChangeAmount(fromPlan, toPlan)
+    const now = new Date()
 
-    return subscriptionsBillingApi.updateSubscription(subscription.value.id, { planId, billingPeriod: billingPeriodValue })
+    return subscriptionsBillingApi.updateSubscription(subscription.value.id, {
+      planId,
+      billingPeriod: billingPeriodValue,
+      lastPlanChangeAt: now.toISOString(),
+    })
       .then(response => {
         subscription.value = UserSubscriptionAssembler.toEntityFromResponse(response)
         if (userId) emit(createDomainEvent(SUBSCRIPTION_ACTIVATED, { userId }))
@@ -248,10 +312,10 @@ export const useSubscriptionsBillingStore = defineStore('subscriptions-billing',
           userId,
           planId,
           fromPlanId,
-          amountUsd: newPlan?.priceMonthly ?? 0,
+          amountUsd: proratedAmount,
           status: 'paid',
           type: eventType,
-          paidAt: new Date().toISOString(),
+          paidAt: now.toISOString(),
         })
       })
       .then(() => fetchPaymentHistory(userId))
@@ -336,6 +400,8 @@ export const useSubscriptionsBillingStore = defineStore('subscriptions-billing',
     changingPlanId,
     paymentProcessing,
     lastPaymentMethod,
+    paymentMethod,
+    paymentMethodLoaded,
     errors,
     currentPlan,
     currentTier,
@@ -348,9 +414,11 @@ export const useSubscriptionsBillingStore = defineStore('subscriptions-billing',
     fetchSubscription,
     fetchPlans,
     fetchPaymentHistory,
+    fetchPaymentMethod,
     selectInitialPlan,
     processPayment,
     changePlan,
+    updatePaymentMethod,
     cancelSubscription,
     reactivateSubscription,
     clearErrors,

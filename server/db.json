@@ -6533,7 +6533,9 @@
       "periodStart": "2026-05-13T00:00:00Z",
       "periodEnd": "2026-06-13T00:00:00Z",
       "cancelAtPeriodEnd": false,
-      "stripeSubscriptionId": "sub_MOCK_u1"
+      "stripeSubscriptionId": "sub_MOCK_u1",
+      "lastPlanChangeAt": null,
+      "paymentMethodId": "pm1"
     },
     {
       "id": "us2",
@@ -6544,7 +6546,9 @@
       "periodStart": "2026-02-01T00:00:00Z",
       "periodEnd": "2026-06-01T00:00:00Z",
       "cancelAtPeriodEnd": false,
-      "stripeSubscriptionId": null
+      "stripeSubscriptionId": null,
+      "lastPlanChangeAt": null,
+      "paymentMethodId": "pm2"
     },
     {
       "id": "us3",
@@ -6555,7 +6559,9 @@
       "periodStart": "2026-05-05T00:00:00Z",
       "periodEnd": "2026-06-05T00:00:00Z",
       "cancelAtPeriodEnd": false,
-      "stripeSubscriptionId": "sub_MOCK_u3"
+      "stripeSubscriptionId": "sub_MOCK_u3",
+      "lastPlanChangeAt": null,
+      "paymentMethodId": null
     },
     {
       "id": "us4",
@@ -6566,7 +6572,9 @@
       "periodStart": "2026-05-13T00:00:00Z",
       "periodEnd": "2026-06-13T00:00:00Z",
       "cancelAtPeriodEnd": false,
-      "stripeSubscriptionId": null
+      "stripeSubscriptionId": null,
+      "lastPlanChangeAt": null,
+      "paymentMethodId": "pm3"
     },
     {
       "id": "us5",
@@ -6577,7 +6585,9 @@
       "periodStart": "2026-05-13T00:00:00Z",
       "periodEnd": "2026-06-13T00:00:00Z",
       "cancelAtPeriodEnd": false,
-      "stripeSubscriptionId": null
+      "stripeSubscriptionId": null,
+      "lastPlanChangeAt": null,
+      "paymentMethodId": null
     },
     {
       "userId": "ZKMCWEtjhK8",
@@ -6588,7 +6598,9 @@
       "periodEnd": "2026-06-13T05:56:37.390Z",
       "cancelAtPeriodEnd": false,
       "stripeSubscriptionId": null,
-      "id": "qHECrCIFlzM"
+      "id": "qHECrCIFlzM",
+      "lastPlanChangeAt": null,
+      "paymentMethodId": null
     },
     {
       "userId": "6PiSK5hagoc",
@@ -6599,7 +6611,9 @@
       "periodEnd": "2026-06-13T06:05:53.906Z",
       "cancelAtPeriodEnd": false,
       "stripeSubscriptionId": null,
-      "id": "GVhdYJKLuz8"
+      "id": "GVhdYJKLuz8",
+      "lastPlanChangeAt": null,
+      "paymentMethodId": null
     },
     {
       "userId": "-p2-y2ANI8U",
@@ -6610,7 +6624,9 @@
       "periodEnd": "2026-06-13T20:08:38.952Z",
       "cancelAtPeriodEnd": false,
       "stripeSubscriptionId": null,
-      "id": "DO997X0EKVM"
+      "id": "DO997X0EKVM",
+      "lastPlanChangeAt": null,
+      "paymentMethodId": null
     },
     {
       "userId": "S0Rz33iJJLM",
@@ -6621,7 +6637,9 @@
       "periodEnd": "2026-06-13T21:22:02.079Z",
       "cancelAtPeriodEnd": false,
       "stripeSubscriptionId": null,
-      "id": "Mo2WTc34DaM"
+      "id": "Mo2WTc34DaM",
+      "lastPlanChangeAt": null,
+      "paymentMethodId": null
     },
     {
       "userId": "wU2X0-H9a2U",
@@ -6632,7 +6650,9 @@
       "periodEnd": "2026-06-13T22:42:39.997Z",
       "cancelAtPeriodEnd": false,
       "stripeSubscriptionId": null,
-      "id": "kKRE5rzWnww"
+      "id": "kKRE5rzWnww",
+      "lastPlanChangeAt": null,
+      "paymentMethodId": null
     },
     {
       "userId": "XYW8XXgPFTQ",
@@ -6643,7 +6663,9 @@
       "periodEnd": "2026-06-14T03:31:55.117Z",
       "cancelAtPeriodEnd": false,
       "stripeSubscriptionId": null,
-      "id": "WTq4BsXitH0"
+      "id": "WTq4BsXitH0",
+      "lastPlanChangeAt": null,
+      "paymentMethodId": null
     },
     {
       "id": "us_l1",
@@ -6654,7 +6676,9 @@
       "periodStart": "2026-05-02T00:00:00Z",
       "periodEnd": "2026-06-02T00:00:00Z",
       "cancelAtPeriodEnd": false,
-      "stripeSubscriptionId": "sub_MOCK_u13"
+      "stripeSubscriptionId": "sub_MOCK_u13",
+      "lastPlanChangeAt": null,
+      "paymentMethodId": null
     },
     {
       "userId": "FRsS6fyOkfI",
@@ -6665,7 +6689,9 @@
       "periodEnd": "2026-06-30T06:53:04.307Z",
       "cancelAtPeriodEnd": false,
       "stripeSubscriptionId": null,
-      "id": "TYUronKbZDk"
+      "id": "TYUronKbZDk",
+      "lastPlanChangeAt": null,
+      "paymentMethodId": null
     },
     {
       "userId": "8GhXNPnX1f4",
@@ -6676,7 +6702,9 @@
       "periodEnd": "2026-06-30T07:16:16.897Z",
       "cancelAtPeriodEnd": false,
       "stripeSubscriptionId": null,
-      "id": "gylVQn02Ag0"
+      "id": "gylVQn02Ag0",
+      "lastPlanChangeAt": null,
+      "paymentMethodId": null
     },
     {
       "userId": "M9o24meONkE",
@@ -6687,7 +6715,9 @@
       "periodEnd": "2026-06-30T07:21:17.980Z",
       "cancelAtPeriodEnd": false,
       "stripeSubscriptionId": null,
-      "id": "GW3yjTWA8pM"
+      "id": "GW3yjTWA8pM",
+      "lastPlanChangeAt": null,
+      "paymentMethodId": null
     },
     {
       "userId": "M9o24meONkE",
@@ -6698,7 +6728,9 @@
       "periodEnd": "2026-06-30T07:21:24.286Z",
       "cancelAtPeriodEnd": false,
       "stripeSubscriptionId": null,
-      "id": "FOtoCs8iioI"
+      "id": "FOtoCs8iioI",
+      "lastPlanChangeAt": null,
+      "paymentMethodId": null
     },
     {
       "userId": "M9o24meONkE",
@@ -6709,7 +6741,22 @@
       "periodEnd": "2026-06-30T07:22:20.604Z",
       "cancelAtPeriodEnd": false,
       "stripeSubscriptionId": null,
-      "id": "0haAuWxU5z8"
+      "id": "0haAuWxU5z8",
+      "lastPlanChangeAt": null,
+      "paymentMethodId": null
+    },
+    {
+      "userId": "aIihIL4Twzw",
+      "planId": "plan-basic",
+      "status": "active",
+      "billingPeriod": "monthly",
+      "periodStart": "2026-06-03T18:57:12.072Z",
+      "periodEnd": "2026-07-03T18:57:12.072Z",
+      "cancelAtPeriodEnd": false,
+      "stripeSubscriptionId": null,
+      "id": "Iyp7Y2pWJEU",
+      "lastPlanChangeAt": null,
+      "paymentMethodId": null
     }
   ],
   "payment_history": [
@@ -10200,6 +10247,37 @@
       "id": "SBkM5rbOmlY"
     }
   ],
-  "payment_methods": [],
+  "payment_methods": [
+    {
+      "id": "pm1",
+      "userId": "u1",
+      "lastFour": "4242",
+      "brand": "visa",
+      "expiryMonth": 12,
+      "expiryYear": 2027,
+      "cardholderName": "Test User",
+      "createdAt": "2026-05-13T00:00:00Z"
+    },
+    {
+      "id": "pm2",
+      "userId": "u2",
+      "lastFour": "5555",
+      "brand": "mastercard",
+      "expiryMonth": 8,
+      "expiryYear": 2026,
+      "cardholderName": "Test User 2",
+      "createdAt": "2026-05-13T00:00:00Z"
+    },
+    {
+      "id": "pm3",
+      "userId": "cj01s9Kicc8",
+      "lastFour": "1234",
+      "brand": "visa",
+      "expiryMonth": 3,
+      "expiryYear": 2028,
+      "cardholderName": "Test User 4",
+      "createdAt": "2026-05-13T00:00:00Z"
+    }
+  ],
   "$schema": "./node_modules/json-server/schema.json"
 }

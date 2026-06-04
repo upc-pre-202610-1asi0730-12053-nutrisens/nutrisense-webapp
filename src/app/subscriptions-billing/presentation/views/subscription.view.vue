@@ -37,6 +37,11 @@ const pendingPlan = computed(() =>
   plans.value.find(p => p.id === pendingPlanId.value) ?? null
 )
 
+/** Whether the user has already changed their plan today. */
+const planChangeLimitReached = computed(() =>
+  subscription.value ? !subscription.value.canChangePlanToday() : false
+)
+
 /**
  * @param {string} planId
  * @returns {boolean}
@@ -46,6 +51,17 @@ function isPlanUpgrade(planId) {
   const target = plans.value.find(p => p.id === planId)
   return target ? target.isUpgradeFrom(currentPlan.value) : true
 }
+
+/** Prorated amount and remaining days for the pending plan change. */
+const proratedInfo = computed(() => {
+  if (!pendingPlan.value || !subscription.value || !currentPlan.value) return { amount: 0, days: 0 }
+  const raw = subscription.value.proratedChangeAmount(currentPlan.value, pendingPlan.value)
+  return {
+    amount: Math.abs(raw),
+    days: subscription.value.daysUntilRenewal() ?? 0,
+    isUpgrade: raw > 0,
+  }
+})
 
 onMounted(() => {
   store.fetchSubscription(userId)
@@ -57,6 +73,7 @@ onMounted(() => {
  * @param {string} planId
  */
 function handleSelectPlan(planId) {
+  if (planChangeLimitReached.value) return
   pendingPlanId.value = planId
   showConfirmDialog.value = true
   planChangeSuccess.value = false
@@ -68,6 +85,7 @@ function handleConfirmChange() {
   showConfirmDialog.value = false
   store.changePlan(pendingPlanId.value, billingPeriod.value)
     .then(() => { planChangeSuccess.value = true })
+    .catch(() => {})
   pendingPlanId.value = null
 }
 
@@ -98,6 +116,10 @@ function handleReactivate() {
 
     <pv-message v-if="planChangeSuccess" severity="success" :closable="true" @close="planChangeSuccess = false">
       {{ t('subscription.planChangeSuccess') }}
+    </pv-message>
+
+    <pv-message v-if="planChangeLimitReached" severity="warn" :closable="false">
+      {{ t('subscription.changeLimitTooltip') }}
     </pv-message>
 
     <pv-skeleton v-if="!subscriptionLoaded || !plansLoaded" height="300px" border-radius="12px" />
@@ -164,6 +186,7 @@ function handleReactivate() {
               :billing-period="billingPeriod"
               :is-changing="changingPlanId === plan.id"
               :is-upgrade="isPlanUpgrade(plan.id)"
+              :disabled="planChangeLimitReached && currentPlan?.id !== plan.id"
               @select="handleSelectPlan"
             />
           </div>
@@ -176,12 +199,27 @@ function handleReactivate() {
       :header="t('subscription.confirmChangePlanTitle')"
       :modal="true"
       :draggable="false"
-      style="width:420px;max-width:95vw"
+      style="width:440px;max-width:95vw"
       @update:visible="val => !val && handleCancelDialog()"
     >
-      <p class="confirm-dialog__body">
-        {{ t('subscription.confirmChangePlanMessage', { plan: pendingPlan ? t(pendingPlan.key) : '' }) }}
-      </p>
+      <div class="confirm-dialog__body">
+        <p class="confirm-dialog__message">
+          <template v-if="proratedInfo.isUpgrade">
+            {{ t('subscription.confirmChangePlanProrated', {
+              plan: pendingPlan ? t(pendingPlan.key) : '',
+              amount: proratedInfo.amount.toFixed(2),
+              days: proratedInfo.days,
+            }) }}
+          </template>
+          <template v-else>
+            {{ t('subscription.confirmDowngradeProrated', {
+              plan: pendingPlan ? t(pendingPlan.key) : '',
+              amount: proratedInfo.amount.toFixed(2),
+              days: proratedInfo.days,
+            }) }}
+          </template>
+        </p>
+      </div>
       <template #footer>
         <pv-button
           :label="t('common.cancel')"
@@ -251,6 +289,10 @@ function handleReactivate() {
 }
 
 .confirm-dialog__body {
+  padding: 0.25rem 0;
+}
+
+.confirm-dialog__message {
   font-size: 0.9375rem;
   color: var(--ns-text-secondary);
   line-height: 1.55;
