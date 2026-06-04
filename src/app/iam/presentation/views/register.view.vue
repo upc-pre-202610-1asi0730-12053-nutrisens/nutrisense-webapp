@@ -17,12 +17,36 @@ const password = ref('')
 const loading = ref(false)
 const errorMsg = ref('')
 
+/** @type {import('vue').Ref<Record<string, string>>} */
+const fieldErrors = ref({})
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+/**
+ * Validates all fields and populates fieldErrors.
+ * @returns {boolean} true when all fields pass validation
+ */
+function validate() {
+  const errors = {}
+  if (!EMAIL_REGEX.test(email.value.trim())) {
+    errors.email = t('auth.register.errorEmailInvalid')
+  }
+  if (password.value.length < 6) {
+    errors.password = t('auth.register.errorPasswordTooShort')
+  }
+  fieldErrors.value = errors
+  return Object.keys(errors).length === 0
+}
+
 /**
  * Submits the registration form.
- * Creates a new user record and navigates to login on success.
+ * Runs client-side validation first, then delegates to the store.
+ * Shows a specific message when the email is already registered.
  */
 function handleRegister() {
   if (!firstName.value || !lastName.value || !email.value || !password.value) return
+  if (!validate()) return
+
   loading.value = true
   errorMsg.value = ''
 
@@ -48,8 +72,10 @@ function handleRegister() {
         router.push({ name: 'onboarding' })
       }
     })
-    .catch(() => {
-      errorMsg.value = t('common.error')
+    .catch(error => {
+      errorMsg.value = error?.message === 'email_already_registered'
+        ? t('auth.register.emailAlreadyRegistered')
+        : t('common.error')
     })
     .finally(() => {
       loading.value = false
@@ -101,9 +127,13 @@ function handleRegister() {
             type="email"
             :placeholder="t('auth.register.email')"
             :aria-label="t('auth.register.email')"
+            :invalid="!!fieldErrors.email"
             class="w-full"
             autocomplete="email"
           />
+          <small v-if="fieldErrors.email" class="auth-form__field-error" role="alert">
+            {{ fieldErrors.email }}
+          </small>
         </div>
 
         <div class="auth-form__field">
@@ -113,11 +143,16 @@ function handleRegister() {
             v-model="password"
             :placeholder="t('auth.register.password')"
             :aria-label="t('auth.register.password')"
+            :invalid="!!fieldErrors.password"
+            :feedback="false"
             toggle-mask
             class="w-full"
             input-class="w-full"
             autocomplete="new-password"
           />
+          <small v-if="fieldErrors.password" class="auth-form__field-error" role="alert">
+            {{ fieldErrors.password }}
+          </small>
         </div>
 
         <pv-message v-if="errorMsg" severity="error" :closable="false">
@@ -239,5 +274,10 @@ function handleRegister() {
 
 .auth-link--strong {
   font-weight: 600;
+}
+
+.auth-form__field-error {
+  color: var(--ns-danger);
+  font-size: 0.75rem;
 }
 </style>

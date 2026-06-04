@@ -31,6 +31,16 @@ export function SubscriptionPlan(props) {
       return (PLAN_RANK[props.id] ?? -1) > (PLAN_RANK[lowerPlan.id] ?? -1)
     },
     /**
+     * Resolves the direction of a plan change relative to another plan.
+     * @param {SubscriptionPlanProps} fromPlan - The plan being left.
+     * @returns {'upgrade' | 'downgrade'}
+     */
+    planChangeType(fromPlan) {
+      return (PLAN_RANK[props.id] ?? -1) > (PLAN_RANK[fromPlan.id] ?? -1)
+        ? 'upgrade'
+        : 'downgrade'
+    },
+    /**
      * @param {SubscriptionPlanProps} lowerPlan
      * @returns {string[]} feature IDs gained when upgrading to this plan
      */

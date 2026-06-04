@@ -53,4 +53,13 @@ export class PaymentMethodAssembler {
   static toEntityFromResponse(response) {
     return PaymentMethodAssembler.toEntityFromResource(response.data)
   }
+
+  /**
+   * @param {import('axios').AxiosResponse} response
+   * @returns {ReturnType<typeof PaymentMethod>[]}
+   */
+  static toEntitiesFromResponse(response) {
+    const data = Array.isArray(response.data) ? response.data : []
+    return data.map(r => PaymentMethodAssembler.toEntityFromResource(r)).filter(Boolean)
+  }
 }

@@ -6,6 +6,7 @@ import { useToast } from 'primevue/usetoast'
 import { useConfirm } from 'primevue/useconfirm'
 import { useSubscriptionsBillingStore } from '../../application/subscriptions-billing.store.js'
 import PlanCard from '../components/plan-card.component.vue'
+import UpdatePaymentMethodDialog from '../components/update-payment-method-dialog.component.vue'
 
 const { t } = useI18n()
 const toast = useToast()
@@ -13,8 +14,11 @@ const confirm = useConfirm()
 
 const store = useSubscriptionsBillingStore()
 const {
+  subscription,
   plans,
   paymentHistory,
+  paymentMethod,
+  paymentMethodLoaded,
   currentPlan,
   willCancelAtPeriodEnd,
   renewalDateLabel,
@@ -28,6 +32,8 @@ const {
 const userId = localStorage.getItem('ns_user_id') ?? ''
 
 const showUpgradeDialog = ref(false)
+const showUpdateCardDialog = ref(false)
+const cardUpdating = ref(false)
 const billingPeriod = ref('monthly')
 
 /** @type {import('vue').ComputedRef<import('../../domain/model/subscription-plan.entity.js').SubscriptionPlan[]>} */
@@ -39,6 +45,11 @@ const selectablePlans = computed(() =>
 
 const isLoading = computed(() => !subscriptionLoaded.value || !plansLoaded.value)
 
+/** Whether the user has already changed their plan today. */
+const planChangeLimitReached = computed(() =>
+  subscription.value ? !subscription.value.canChangePlanToday() : false
+)
+
 /**
  * @param {string} planId
  * @returns {boolean}
@@ -49,6 +60,19 @@ function isPlanUpgrade(planId) {
   return target ? target.isUpgradeFrom(currentPlan.value) : true
 }
 
+/**
+ * Returns the prorated amount string for the plan change confirmation.
+ * @param {string} planId
+ * @returns {{ amount: number, days: number }}
+ */
+function getProratedInfo(planId) {
+  const toPlan = plans.value.find(p => p.id === planId)
+  if (!subscription.value || !currentPlan.value || !toPlan) return { amount: 0, days: 0 }
+  const amount = subscription.value.proratedChangeAmount(currentPlan.value, toPlan)
+  const days = subscription.value.daysUntilRenewal() ?? 0
+  return { amount: Math.abs(amount), days }
+}
+
 onMounted(() => {
   store.fetchSubscription(userId)
   store.fetchPlans()
@@ -57,13 +81,25 @@ onMounted(() => {
 
 /**
  * Opens a confirmation dialog and changes the subscription plan on confirm.
+ * Shows the prorated amount and the card that will be charged/credited.
  * @param {string} planId
  */
 function handleSelectPlan(planId) {
   const target = plans.value.find(p => p.id === planId)
   const planName = target ? t(target.key) : ''
+  const isUpgrade = isPlanUpgrade(planId)
+  const { amount, days } = getProratedInfo(planId)
+  const cardInfo = paymentMethod.value ? `**** ${paymentMethod.value.lastFour}` : ''
+
+  const messageKey = isUpgrade
+    ? 'subscription.confirmChangePlanProrated'
+    : 'subscription.confirmDowngradeProrated'
+
+  const fullMessage = t(messageKey, { plan: planName, amount: amount.toFixed(2), days })
+  const cardNote = cardInfo ? ` · ${cardInfo}` : ''
+
   confirm.require({
-    message: t('subscription.confirmChangePlanMessage', { plan: planName }),
+    message: fullMessage + cardNote,
     header: t('profile.changePlanTitle'),
     acceptLabel: t('subscription.confirm'),
     rejectLabel: t('common.cancel'),
@@ -71,6 +107,7 @@ function handleSelectPlan(planId) {
       showUpgradeDialog.value = false
       store.changePlan(planId, billingPeriod.value)
         .then(() => toast.add({ severity: 'success', summary: t('subscription.planChangeSuccess'), life: 3000 }))
+        .catch(() => toast.add({ severity: 'error', summary: t('subscription.errorChangeLimitReached'), life: 4000 }))
     },
   })
 }
@@ -95,6 +132,21 @@ function handleCancel() {
 function handleReactivate() {
   store.reactivateSubscription()
   toast.add({ severity: 'success', summary: t('subscription.reactivate'), life: 3000 })
+}
+
+/**
+ * Saves a new payment method via the store, then shows success/error feedback.
+ * @param {{ cardNumber: string, expiryMonth: number, expiryYear: number, cardholderName: string }} cardData
+ */
+function handleUpdateCard(cardData) {
+  cardUpdating.value = true
+  store.updatePaymentMethod(userId, cardData)
+    .then(() => {
+      showUpdateCardDialog.value = false
+      toast.add({ severity: 'success', summary: t('profile.cardUpdatedSuccess'), life: 3000 })
+    })
+    .catch(() => toast.add({ severity: 'error', summary: t('common.error'), life: 4000 }))
+    .finally(() => { cardUpdating.value = false })
 }
 
 /**
@@ -151,7 +203,9 @@ function getPlanName(planId) {
                 :label="t('subscription.changePlan')"
                 icon="pi pi-sync"
                 icon-pos="right"
-                :aria-label="t('subscription.changePlan')"
+                :disabled="planChangeLimitReached"
+                :aria-label="planChangeLimitReached ? t('subscription.changeLimitTooltip') : t('subscription.changePlan')"
+                v-tooltip.top="planChangeLimitReached ? t('subscription.changeLimitTooltip') : undefined"
                 @click="showUpgradeDialog = true"
               />
               <pv-button
@@ -164,6 +218,39 @@ function getPlanName(planId) {
               />
             </template>
           </div>
+        </div>
+      </template>
+    </pv-card>
+
+    <!-- Payment method -->
+    <pv-card class="mb-3">
+      <template #title>{{ t('profile.paymentMethod') }}</template>
+      <template #content>
+        <pv-skeleton v-if="!paymentMethodLoaded" height="56px" border-radius="8px" />
+
+        <div v-else class="payment-method-row">
+          <div v-if="paymentMethod" class="payment-method-card">
+            <i class="pi pi-credit-card payment-method-card__icon" aria-hidden="true" />
+            <span class="payment-method-card__number">{{ paymentMethod.maskedNumber() }}</span>
+            <span class="payment-method-card__sep">&middot;</span>
+            <span class="payment-method-card__expiry">{{ t('checkout.expiry').split(' ')[0] }} {{ paymentMethod.expiryLabel() }}</span>
+            <pv-tag
+              :value="paymentMethod.brand.toUpperCase()"
+              severity="secondary"
+              class="payment-method-card__brand"
+            />
+          </div>
+          <p v-else class="text-secondary">{{ t('profile.noCardOnFile') }}</p>
+
+          <pv-button
+            :label="t('profile.updateCard')"
+            icon="pi pi-pencil"
+            icon-pos="right"
+            severity="secondary"
+            outlined
+            :aria-label="t('profile.updateCard')"
+            @click="showUpdateCardDialog = true"
+          />
         </div>
       </template>
     </pv-card>
@@ -193,13 +280,27 @@ function getPlanName(planId) {
 
           <pv-column field="planId" :header="t('paymentHistory.plan')">
             <template #body="{ data }">
-              {{ getPlanName(data.planId) }}
+              <span v-if="data.isPlanChange()">
+                {{ t('paymentHistory.planChange', { from: getPlanName(data.fromPlanId), to: getPlanName(data.planId) }) }}
+              </span>
+              <span v-else>{{ getPlanName(data.planId) }}</span>
             </template>
           </pv-column>
 
           <pv-column field="amountUsd" :header="t('paymentHistory.amount')">
             <template #body="{ data }">
-              ${{ data.amountUsd.toFixed(2) }}
+              <span :class="{ 'amount--credit': data.amountUsd < 0 }">
+                {{ data.amountUsd < 0 ? `-$${Math.abs(data.amountUsd).toFixed(2)}` : `$${data.amountUsd.toFixed(2)}` }}
+              </span>
+            </template>
+          </pv-column>
+
+          <pv-column field="type" :header="t('paymentHistory.type')">
+            <template #body="{ data }">
+              <pv-tag
+                :value="t(`paymentHistory.type${data.type.charAt(0).toUpperCase() + data.type.slice(1)}`)"
+                :severity="data.type === 'upgrade' ? 'success' : data.type === 'downgrade' ? 'warn' : 'secondary'"
+              />
             </template>
           </pv-column>
 
@@ -247,6 +348,13 @@ function getPlanName(planId) {
         />
       </template>
     </pv-dialog>
+
+    <!-- Update card dialog -->
+    <update-payment-method-dialog
+      v-model:visible="showUpdateCardDialog"
+      :loading="cardUpdating"
+      @submit="handleUpdateCard"
+    />
   </div>
 </template>
 
@@ -296,9 +404,46 @@ function getPlanName(planId) {
   flex-wrap: wrap;
 }
 
+.payment-method-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.payment-method-card {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--ns-text);
+}
+
+.payment-method-card__icon {
+  color: var(--color-primary);
+  font-size: 1.125rem;
+}
+
+.payment-method-card__sep {
+  color: var(--ns-text-muted);
+}
+
+.payment-method-card__expiry {
+  color: var(--ns-text-muted);
+  font-weight: 400;
+  font-size: 0.875rem;
+}
+
 .text-secondary {
   color: var(--ns-text-secondary);
   font-size: 0.875rem;
+  margin: 0;
+}
+
+.amount--credit {
+  color: var(--ns-success, #16a34a);
 }
 
 .upgrade-dialog__plans {

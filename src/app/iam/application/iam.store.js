@@ -61,6 +61,7 @@ export const useIamStore = defineStore('iam', () => {
    * @returns {Promise<void>}
    */
   function fetchCurrentUser(userId) {
+    errors.value = []
     return iamApi.getMe()
       .then(response => {
         const users = UserAssembler.toEntitiesFromResponse(response)
@@ -75,6 +76,7 @@ export const useIamStore = defineStore('iam', () => {
    * @param {Object} profileData
    */
   function updateProfile(profileData) {
+    errors.value = []
     if (!currentUser.value) return Promise.resolve(null)
     return iamApi.updateProfile(currentUser.value.id, profileData)
       .then(response => {
@@ -91,6 +93,7 @@ export const useIamStore = defineStore('iam', () => {
    * Loads all active sessions for the current user.
    */
   function fetchSessions() {
+    errors.value = []
     iamApi.getSessions()
       .then(response => {
         sessions.value = UserSessionAssembler.toEntitiesFromResponse(response)
@@ -104,6 +107,7 @@ export const useIamStore = defineStore('iam', () => {
    * @param {string} sessionId
    */
   function revokeSession(sessionId) {
+    errors.value = []
     iamApi.revokeSession(sessionId)
       .then(() => {
         sessions.value = sessions.value.filter(s => s.id !== sessionId)
@@ -141,6 +145,7 @@ export const useIamStore = defineStore('iam', () => {
    * @returns {Promise<ReturnType<import('../domain/model/user.entity.js').User>|null>}
    */
   function signIn(email, _password) {
+    errors.value = []
     return iamApi.getMe()
       .then(response => {
         const users = UserAssembler.toEntitiesFromResponse(response)
@@ -173,6 +178,7 @@ export const useIamStore = defineStore('iam', () => {
    * @returns {Promise<Object>}
    */
   function signUp(formData) {
+    errors.value = []
     return iamApi.getMe()
       .then(response => {
         const users = UserAssembler.toEntitiesFromResponse(response)
@@ -190,6 +196,7 @@ export const useIamStore = defineStore('iam', () => {
    * Permanently deletes the current user account and clears all state.
    */
   function deleteAccount() {
+    errors.value = []
     if (!currentUser.value) return
     iamApi.deleteAccount(currentUser.value.id)
       .then(() => {

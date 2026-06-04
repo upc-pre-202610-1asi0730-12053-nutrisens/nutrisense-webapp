@@ -111,7 +111,10 @@
       "metric": "Métrico (kg / cm)",
       "imperial": "Imperial (lb / ft)",
       "preferredUnits": "Unidades preferidas",
-      "passwordMismatch": "Las contraseñas no coinciden"
+      "passwordMismatch": "Las contraseñas no coinciden",
+      "emailAlreadyRegistered": "Este correo ya está registrado. Intenta iniciar sesión.",
+      "errorEmailInvalid": "Ingresa un correo electrónico válido",
+      "errorPasswordTooShort": "La contraseña debe tener al menos 6 caracteres"
     },
     "recoverPassword": {
       "title": "Recuperar contraseña",
@@ -511,6 +514,10 @@
     "planCancelled": "Plan cancelado. El acceso continúa hasta {date}.",
     "changePlanTitle": "Cambiar plan",
     "billedMonthly": "Facturación mensual. Cancela en cualquier momento.",
+    "paymentMethod": "Método de pago",
+    "updateCard": "Actualizar tarjeta",
+    "cardUpdatedSuccess": "Método de pago actualizado correctamente.",
+    "noCardOnFile": "No hay método de pago registrado.",
     "changePassword": "Cambiar contraseña",
     "currentPassword": "Contraseña actual",
     "newPassword": "Nueva contraseña",
@@ -598,6 +605,13 @@
     "downgrade": "Cambiar a plan inferior",
     "confirmChangePlanTitle": "Cambiar plan",
     "confirmChangePlanMessage": "Estás cambiando al plan {plan}. Tu facturación se actualizará en el próximo ciclo.",
+    "confirmChangePlanProrated": "Cambias a {plan}. Se te cobrará ${amount} ahora (prorateado por {days} días restantes).",
+    "confirmDowngradeProrated": "Cambias a {plan}. Se aplicará un crédito de ${amount} a tu próximo ciclo de facturación ({days} días restantes).",
+    "creditApplied": "Crédito de ${amount} aplicado al próximo ciclo.",
+    "upgradeChargeNote": "Se te cobrará la diferencia prorrateada de inmediato.",
+    "downgradeChargeNote": "Se aplicará un crédito prorrateado a tu próximo ciclo de facturación.",
+    "errorChangeLimitReached": "Solo puedes cambiar tu plan una vez al día. Intenta mañana.",
+    "changeLimitTooltip": "Puedes cambiar tu plan una vez al día. Disponible de nuevo mañana.",
     "confirm": "Confirmar",
     "planChangeSuccess": "Tu plan ha sido actualizado correctamente."
   },
@@ -754,7 +768,8 @@
     "errorCvv": "Ingresa un CVV válido",
     "errorName": "Ingresa el nombre del titular",
     "errorPayment": "El pago falló. Verifica los datos de tu tarjeta e intenta nuevamente.",
-    "includedFeatures": "Funciones incluidas"
+    "includedFeatures": "Funciones incluidas",
+    "cardSaved": "Tu tarjeta se guardará para futuros cobros."
   },
   "paymentSuccess": {
     "title": "¡Todo listo!",

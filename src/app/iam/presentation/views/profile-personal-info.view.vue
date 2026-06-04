@@ -1,6 +1,6 @@
 <!-- PATH: src/app/iam/presentation/views/profile-personal-info.view.vue -->
 <script setup>
-import { ref, computed, watch, toRefs, nextTick } from 'vue'
+import { ref, computed, watch, toRefs, nextTick, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useToast } from 'primevue/usetoast'
 import { useIamStore } from '../../application/iam.store.js'
@@ -9,6 +9,8 @@ const { t } = useI18n()
 const toast = useToast()
 const iamStore = useIamStore()
 const { currentUser, userLoaded, errors } = toRefs(iamStore)
+
+onMounted(() => iamStore.clearErrors())
 
 const form = ref({
   firstName:     '',

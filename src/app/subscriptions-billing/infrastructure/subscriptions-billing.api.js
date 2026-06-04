@@ -63,6 +63,11 @@ export class SubscriptionsBillingApi extends BaseApi {
     return this.#paymentHistory.create(resource)
   }
 
+  /** @returns {Promise<import('axios').AxiosResponse>} */
+  getPaymentMethods() {
+    return this.#paymentMethods.getAll()
+  }
+
   /**
    * @param {Object} resource
    * @returns {Promise<import('axios').AxiosResponse>}

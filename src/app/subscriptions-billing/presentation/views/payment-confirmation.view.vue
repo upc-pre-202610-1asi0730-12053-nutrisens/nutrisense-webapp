@@ -9,7 +9,7 @@ const { t } = useI18n()
 const router = useRouter()
 const billingStore = useSubscriptionsBillingStore()
 
-const paymentMethod  = computed(() => billingStore.lastPaymentMethod)
+const paymentMethod  = computed(() => billingStore.paymentMethod ?? billingStore.lastPaymentMethod)
 const currentPlan    = computed(() => billingStore.currentPlan)
 const planName       = computed(() => currentPlan.value ? t(currentPlan.value.key) : '')
 </script>
