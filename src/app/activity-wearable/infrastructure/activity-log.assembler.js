@@ -3,8 +3,8 @@ import { toLocalDateString } from '../../shared/infrastructure/date-utils.js'
 
 export class ActivityLogAssembler {
   /**
-   * Builds the API request body for a manually logged activity.
-   * Normalises the loggedAt field whether a Date object or ISO string is provided.
+   * Builds the API request body for LogManualActivityResource.
+   * loggedAt is normalised to yyyy-MM-dd for the backend Date field.
    * @param {string} userId
    * @param {{ activityType: string, intensity: string, durationMinutes: number, caloriesBurned?: number, loggedAt?: Date|string }} activityData
    * @returns {Object}
@@ -14,33 +14,31 @@ export class ActivityLogAssembler {
       ? activityData.loggedAt
       : new Date(activityData.loggedAt ?? Date.now())
     return {
-      userId,
-      activityType:    activityData.activityType,
-      intensity:       activityData.intensity,
-      durationMinutes: activityData.durationMinutes,
-      caloriesBurned:  activityData.caloriesBurned ?? 0,
-      source:          'manual',
+      userId:          Number(userId),
       date:            toLocalDateString(loggedAtDate),
-      loggedAt:        loggedAtDate.toISOString(),
+      activityType:    activityData.activityType,
+      durationMinutes: activityData.durationMinutes,
+      intensity:       activityData.intensity,
+      caloriesBurned:  activityData.caloriesBurned ?? 0,
     }
   }
 
   /**
-   * @param {Object} resource
+   * @param {Object} resource - camelCase response from backend (ActivityLogResource)
    * @returns {ReturnType<typeof ActivityLog>|null}
    */
   static toEntityFromResource(resource) {
     try {
       return ActivityLog({
-        id: resource.id,
-        userId: resource.userId,
-        date: resource.date,
-        activityType: resource.activityType,
+        id:              String(resource.id),
+        userId:          String(resource.userId),
+        date:            resource.date,
+        activityType:    resource.activityType,
         durationMinutes: resource.durationMinutes,
-        intensity: resource.intensity,
-        caloriesBurned: resource.caloriesBurned,
-        source: resource.source,
-        loggedAt: resource.loggedAt,
+        intensity:       resource.intensity,
+        caloriesBurned:  resource.caloriesBurned,
+        source:          resource.source,
+        loggedAt:        resource.loggedAt,
       })
     } catch (e) {
       console.error('[ActivityLogAssembler] failed to map resource', e)

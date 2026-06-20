@@ -1,19 +1,17 @@
 import { BaseApi } from '../../shared/infrastructure/base-api.js'
-import { BaseEndpoint } from '../../shared/infrastructure/base-endpoint.js'
 
 export class ActivityWearableApi extends BaseApi {
-  #activityLogs
-  #wearableConnections
-
-  constructor() {
-    super()
-    this.#activityLogs = new BaseEndpoint(this, import.meta.env.VITE_ACTIVITY_LOGS_ENDPOINT)
-    this.#wearableConnections = new BaseEndpoint(this, import.meta.env.VITE_WEARABLE_CONNECTIONS_ENDPOINT)
-  }
-
-  /** @returns {Promise<import('axios').AxiosResponse>} */
-  getLogs() {
-    return this.#activityLogs.getAll()
+  /**
+   * @param {number} userId
+   * @param {string} [from] - yyyy-MM-dd
+   * @param {string} [to] - yyyy-MM-dd
+   * @returns {Promise<import('axios').AxiosResponse>}
+   */
+  getLogsByUser(userId, from, to) {
+    const params = {}
+    if (from) params.from = from
+    if (to)   params.to   = to
+    return this.http.get(`/activity-logs/by-user/${userId}`, { params })
   }
 
   /**
@@ -21,20 +19,24 @@ export class ActivityWearableApi extends BaseApi {
    * @returns {Promise<import('axios').AxiosResponse>}
    */
   createLog(resource) {
-    return this.#activityLogs.create(resource)
+    return this.http.post('/activity-logs', resource)
   }
 
   /**
-   * @param {string} id
+   * @param {number} id
+   * @param {number} userId
    * @returns {Promise<import('axios').AxiosResponse>}
    */
-  deleteLog(id) {
-    return this.#activityLogs.delete(id)
+  deleteLog(id, userId) {
+    return this.http.delete(`/activity-logs/${id}`, { params: { userId } })
   }
 
-  /** @returns {Promise<import('axios').AxiosResponse>} */
-  getConnections() {
-    return this.#wearableConnections.getAll()
+  /**
+   * @param {number} userId
+   * @returns {Promise<import('axios').AxiosResponse>}
+   */
+  getConnectionsByUser(userId) {
+    return this.http.get(`/wearable-connections/by-user/${userId}`)
   }
 
   /**
@@ -42,15 +44,14 @@ export class ActivityWearableApi extends BaseApi {
    * @returns {Promise<import('axios').AxiosResponse>}
    */
   createConnection(resource) {
-    return this.#wearableConnections.create(resource)
+    return this.http.post('/wearable-connections', resource)
   }
 
   /**
-   * @param {string} id
-   * @param {Object} resource
+   * @param {number} id
    * @returns {Promise<import('axios').AxiosResponse>}
    */
-  updateConnection(id, resource) {
-    return this.#wearableConnections.update(id, resource)
+  deleteConnection(id) {
+    return this.http.delete(`/wearable-connections/${id}`)
   }
 }
