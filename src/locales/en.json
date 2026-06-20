@@ -31,7 +31,11 @@
     "select": "Get {plan}",
     "later": "Maybe later — sign out",
     "loading": "Loading plans...",
-    "includedFeatures": "Included features"
+    "includedFeatures": "Included features",
+    "monthly": "Monthly",
+    "annual": "Annual",
+    "annualSavings": "Save 20%",
+    "billedAnnually": "Billed ${total}/yr"
   },
   "onboarding": {
     "stepOf": "Step {current} of {total}",
@@ -252,6 +256,7 @@
     "streakCaloriesLow": "Reach at least 80% of your calorie goal.",
     "streakCaloriesOver": "You're over 105% — reduce intake to protect your streak.",
     "streakProtein": "Reach at least 50% of your protein goal.",
+    "streakNoGoal": "Set your nutrition goal to start a streak.",
     "restrictionWarning": "This food may not match your dietary restrictions or health conditions."
   },
   "bodyProgress": {
@@ -338,6 +343,14 @@
     "filterCalories": "Max calories",
     "clearFilters": "Clear filters",
     "travelMode": "Travel mode",
+    "weather": {
+      "sunny": "Sunny",
+      "partly-cloudy": "Partly cloudy",
+      "cloudy": "Cloudy",
+      "rainy": "Rainy",
+      "stormy": "Stormy",
+      "snowy": "Snowy"
+    },
     "enableTravel": "Enable travel mode",
     "disableTravel": "Disable travel mode",
     "selectCity": "Select travel city",
@@ -386,6 +399,8 @@
     "locationCurrent": "Current location",
     "searchCity": "Search city...",
     "noCity": "No cities match your search",
+    "searchingCity": "Searching…",
+    "newCity": "New city — will be added",
     "searchIngredient": "Search ingredient...",
     "noIngredient": "No ingredients match your search",
     "pantryEmpty": "Your pantry is empty",
@@ -446,6 +461,8 @@
     "sectionWeight": "Weight chart",
     "sectionStreak": "Streak & adherence",
     "generate": "Generate PDF",
+    "exportSuccess": "PDF report downloaded",
+    "exportError": "Could not generate the PDF",
     "adherence": "Adherence",
     "calorieHistory": "Calorie history",
     "calorieHistoryChartLabel": "Calorie history bar chart",
@@ -518,6 +535,10 @@
     "updateCard": "Update card",
     "cardUpdatedSuccess": "Payment method updated successfully.",
     "noCardOnFile": "No payment method on file.",
+    "deleteCard": "Remove card",
+    "deleteCardTitle": "Remove payment method",
+    "deleteCardConfirm": "Are you sure you want to remove this card?",
+    "cardDeleted": "Payment method removed.",
     "changePassword": "Change password",
     "currentPassword": "Current password",
     "newPassword": "New password",
@@ -596,8 +617,12 @@
     "featurePantry": "Pantry & recipe suggestions",
     "featureGoogleFit": "Google Fit sync",
     "featureMenuScan": "Restaurant menu analysis",
+    "featureHistory30d": "30-day history",
+    "featureHistory90d": "90-day history",
     "featureUnlimitedHistory": "Unlimited history",
     "featurePdfReports": "PDF reports",
+    "featureEverythingBasic": "Everything included in Basic",
+    "featureEverythingPro": "Everything included in Pro",
     "upgradeRequiresPro": "This feature requires Pro",
     "upgradeRequiresPremium": "This feature requires Premium",
     "maybeLater": "Maybe later",
@@ -622,6 +647,7 @@
     "amount": "Amount",
     "status": "Status",
     "paid": "Paid",
+    "succeeded": "Succeeded",
     "noPayments": "No payment history",
     "loading": "Loading payment history...",
     "type": "Type",
@@ -666,11 +692,6 @@
     "title": "Page not found",
     "message": "The page you're looking for doesn't exist.",
     "back": "Go back to dashboard"
-  },
-  "plan": {
-    "basic": "Basic",
-    "pro": "Pro",
-    "premium": "Premium"
   },
   "featureGate": {
     "title": "Premium feature",
@@ -851,7 +872,14 @@
     "menuWillExceed110": "Adding this item will put you over 110% of your daily goal.",
     "menuWillExceed130": "Adding this item will significantly exceed your daily goal.",
     "menuWillReach80": "This item fits within your daily calorie goal.",
-    "calorieStatus": "{pct}% of daily goal"
+    "calorieStatus": "{pct}% of daily goal",
+    "scanError": "We couldn't analyze the image. Please try again.",
+    "nothingToLog": "These items couldn't be saved to the catalog, so they can't be logged. Please try scanning again.",
+    "noDishesTitle": "No dishes detected",
+    "noDishesDesc": "We couldn't recognize any food in this photo. Try a clearer, well-lit image of your plate.",
+    "noMenuTitle": "No menu detected",
+    "noMenuDesc": "We couldn't read any dishes from this photo. Try a clearer image of the menu.",
+    "estimated": "Estimated"
   },
   "activityType": {
     "walking": "Walking",
