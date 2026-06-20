@@ -8,6 +8,7 @@ import { UserSessionAssembler } from '../infrastructure/user-session.assembler.j
 
 import { on } from '../../shared/infrastructure/event-bus.js'
 import { SUBSCRIPTION_ACTIVATED } from '../../shared/domain/events/event-types.js'
+import { useSubscriptionsBillingStore } from '../../subscriptions-billing/application/subscriptions-billing.store.js'
 
 const iamApi = new IamApi()
 
@@ -18,6 +19,12 @@ const iamApi = new IamApi()
 export const useIamStore = defineStore('iam', () => {
   /** @type {import('vue').Ref<ReturnType<import('../domain/model/user.entity.js').User>|null>} */
   const currentUser = ref(null)
+  /** @type {import('vue').Ref<string|null>} */
+  const token = ref(localStorage.getItem('ns_token') ?? null)
+  /** @type {import('vue').Ref<number|null>} */
+  const sessionId = ref(
+    localStorage.getItem('ns_session_id') ? parseInt(localStorage.getItem('ns_session_id'), 10) : null
+  )
   /** @type {import('vue').Ref<ReturnType<import('../domain/model/user-session.entity.js').UserSession>[]>} */
   const sessions = ref([])
   /** @type {import('vue').Ref<ReturnType<import('../domain/model/dietary-restriction.entity.js').DietaryRestriction>[]>} */
@@ -33,6 +40,17 @@ export const useIamStore = defineStore('iam', () => {
    * @type {import('vue').ComputedRef<boolean>}
    */
   const isAuthenticated = computed(() => currentUser.value !== null)
+
+  /**
+   * ID (int) of the current user, or null.
+   * @type {import('vue').ComputedRef<number|null>}
+   */
+  const currentUserId = computed(() => {
+    const id = currentUser.value?.id
+    if (id == null) return null
+    const parsed = parseInt(id, 10)
+    return Number.isNaN(parsed) ? null : parsed
+  })
 
   /**
    * First name of the current user, or empty string.
@@ -56,33 +74,118 @@ export const useIamStore = defineStore('iam', () => {
   }
 
   /**
-   * Loads the current user by ID from the user list.
-   * @param {string} userId
+   * Persists auth credentials to localStorage and reactive state.
+   * @param {number} uid
+   * @param {string|null} tok
+   * @param {number|null} sid
+   */
+  function _persistAuth(uid, tok, sid) {
+    localStorage.setItem('ns_user_id', String(uid))
+    if (tok != null) localStorage.setItem('ns_token', tok)
+    if (sid != null) localStorage.setItem('ns_session_id', String(sid))
+    token.value = tok ?? token.value
+    sessionId.value = sid ?? sessionId.value
+  }
+
+  /** Removes all auth credentials from localStorage and reactive state. */
+  function _clearAuth() {
+    localStorage.removeItem('ns_user_id')
+    localStorage.removeItem('ns_token')
+    localStorage.removeItem('ns_session_id')
+    token.value = null
+    sessionId.value = null
+  }
+
+  /**
+   * Loads the current user by ID via GET /users/{id}.
+   * Also fetches goal, plan and homeCityId from their respective endpoints in parallel.
+   * @param {number} userId
    * @returns {Promise<void>}
    */
   function fetchCurrentUser(userId) {
     errors.value = []
-    return iamApi.getMe()
-      .then(response => {
-        const users = UserAssembler.toEntitiesFromResponse(response)
-        currentUser.value = users.find(u => u.id === userId) ?? null
+    return iamApi.getMe(userId)
+      .then(merged => {
+        currentUser.value = UserAssembler.toEntityFromResource(merged)
         userLoaded.value = true
       })
       .catch(error => errors.value.push(error))
   }
 
   /**
-   * Updates profile data for the current user.
-   * @param {Object} profileData
+   * Decomposes a profile update into up to 4 targeted PUT requests,
+   * firing only the ones whose fields changed relative to the current user.
+   *
+   * Decomposition:
+   *   PUT /users/{id}/profile            → base identity/physical fields
+   *   PUT /users/{id}/health-goal        → goal string
+   *   PUT /users/{id}/dietary-restrictions → restrictions array
+   *   PUT /location-preferences/{id}/home-city → homeCityId (int)
+   *
+   * @param {Object} profileData - flat update object from the UI
+   * @returns {Promise<ReturnType<import('../domain/model/user.entity.js').User>|null>}
    */
   function updateProfile(profileData) {
     errors.value = []
     if (!currentUser.value) return Promise.resolve(null)
-    return iamApi.updateProfile(currentUser.value.id, profileData)
-      .then(response => {
-        currentUser.value = UserAssembler.toEntityFromResponse(response)
-        return currentUser.value
-      })
+
+    const user = currentUser.value
+    const uid = parseInt(user.id, 10)
+    const calls = []
+
+    // ── 1. Base profile fields ───────────────────────────────────────────────
+    const profileChanged =
+      ('firstName'         in profileData && profileData.firstName        !== user.firstName) ||
+      ('lastName'          in profileData && profileData.lastName         !== user.lastName) ||
+      ('dateOfBirth'       in profileData && profileData.dateOfBirth      !== user.dateOfBirth) ||
+      ('biologicalSex'     in profileData && profileData.biologicalSex    !== user.biologicalSex?.value) ||
+      ('heightCm'          in profileData && profileData.heightCm         !== user.heightCm) ||
+      ('activityLevel'     in profileData && profileData.activityLevel    !== user.activityLevel?.value) ||
+      ('preferredUnits'    in profileData && profileData.preferredUnits   !== user.preferredUnits?.value) ||
+      ('preferredLanguage' in profileData && profileData.preferredLanguage !== user.preferredLanguage) ||
+      ('medicalConditions' in profileData)
+
+    if (profileChanged) {
+      const payload = {}
+      if ('firstName'         in profileData) payload.firstName         = profileData.firstName
+      if ('lastName'          in profileData) payload.lastName          = profileData.lastName
+      if ('dateOfBirth'       in profileData) payload.dateOfBirth       = profileData.dateOfBirth || null
+      if ('biologicalSex'     in profileData) payload.biologicalSex     = profileData.biologicalSex
+      if ('heightCm'          in profileData) payload.heightCm          = profileData.heightCm
+      if ('activityLevel'     in profileData) payload.activityLevel     = profileData.activityLevel
+      if ('preferredUnits'    in profileData) payload.preferredUnits    = profileData.preferredUnits
+      if ('preferredLanguage' in profileData) payload.preferredLanguage = profileData.preferredLanguage
+      if ('medicalConditions' in profileData) payload.medicalConditions = profileData.medicalConditions
+      calls.push(iamApi.updateUserProfile(uid, payload))
+    }
+
+    // ── 2. Health goal ───────────────────────────────────────────────────────
+    if ('goal' in profileData && profileData.goal !== user.goal?.value) {
+      calls.push(iamApi.setHealthGoal(uid, profileData.goal))
+    }
+
+    // ── 3. Dietary restrictions ──────────────────────────────────────────────
+    if ('dietaryRestrictions' in profileData) {
+      const prev = (user.dietaryRestrictions ?? []).slice().sort().join(',')
+      const next = (profileData.dietaryRestrictions ?? []).slice().sort().join(',')
+      if (prev !== next) {
+        calls.push(iamApi.setDietaryRestrictions(uid, profileData.dietaryRestrictions))
+      }
+    }
+
+    // ── 4. Home city (int ID) ────────────────────────────────────────────────
+    if ('homeCityId' in profileData) {
+      const newId = profileData.homeCityId
+      const prevId = user.homeCityId
+      if (newId !== prevId && newId != null && Number.isInteger(Number(newId))) {
+        calls.push(iamApi.setHomeCity(uid, Number(newId)))
+      }
+    }
+
+    if (calls.length === 0) return Promise.resolve(user)
+
+    return Promise.all(calls)
+      .then(() => fetchCurrentUser(uid).then(() => currentUser.value))
       .catch(error => {
         errors.value.push(error)
         throw error
@@ -93,8 +196,10 @@ export const useIamStore = defineStore('iam', () => {
    * Loads all active sessions for the current user.
    */
   function fetchSessions() {
+    const uid = currentUserId.value
+    if (uid == null) return
     errors.value = []
-    iamApi.getSessions()
+    iamApi.getSessions(uid)
       .then(response => {
         sessions.value = UserSessionAssembler.toEntitiesFromResponse(response)
         sessionsLoaded.value = true
@@ -104,20 +209,21 @@ export const useIamStore = defineStore('iam', () => {
 
   /**
    * Revokes a specific session by ID.
-   * @param {string} sessionId
+   * @param {number} sid - sessionId to revoke
    */
-  function revokeSession(sessionId) {
+  function revokeSession(sid) {
+    const uid = currentUserId.value
+    if (uid == null) return
     errors.value = []
-    iamApi.revokeSession(sessionId)
+    iamApi.revokeSession(uid, sid)
       .then(() => {
-        sessions.value = sessions.value.filter(s => s.id !== sessionId)
+        sessions.value = sessions.value.filter(s => s.id !== sid)
       })
       .catch(error => errors.value.push(error))
   }
 
   /**
    * Loads dietary restrictions for the current user.
-   * Requires a dietary restrictions endpoint in the API (not yet implemented).
    */
   function fetchDietaryRestrictions() {
     restrictionsLoaded.value = true
@@ -131,86 +237,84 @@ export const useIamStore = defineStore('iam', () => {
     dietaryRestrictions.value = restrictionsList.map(r =>
       DietaryRestrictionAssembler.toEntityFromResource({
         id: `dr_${r}`,
-        userId: currentUser.value?.id ?? '',
+        userId: parseInt(currentUser.value?.id, 10) || 0,
         restriction: r,
       })
     ).filter(Boolean)
   }
 
   /**
-   * Authenticates the user by finding a matching email in the user list (mock).
-   * Returns the matched User entity, or null if not found.
+   * Authenticates the user via POST /authentication/sign-in.
    * @param {string} email
-   * @param {string} _password
-   * @returns {Promise<ReturnType<import('../domain/model/user.entity.js').User>|null>}
+   * @param {string} password
+   * @returns {Promise<{ userId: number, token: string, sessionId: number }|null>}
    */
-  function signIn(email, _password) {
+  function signIn(email, password) {
     errors.value = []
-    return iamApi.getMe()
-      .then(response => {
-        const users = UserAssembler.toEntitiesFromResponse(response)
-        const normalizedEmail = email.toLowerCase().trim()
-        const user = users.find(u => u.email.value === normalizedEmail) ?? null
-        if (user) {
-          currentUser.value = user
-          userLoaded.value = true
-        }
-        return user
+    return iamApi.signIn({ email, password })
+      .then(async ({ userId, token: tok, sessionId: sid }) => {
+        _persistAuth(userId, tok, sid)
+        await fetchCurrentUser(userId)
+        return { userId, token: tok, sessionId: sid }
       })
       .catch(error => { errors.value.push(error); return null })
   }
 
   /**
-   * Clears all auth state and removes the stored token.
+   * Clears all auth state and removes all stored credentials.
    */
   function signOut() {
     currentUser.value = null
     sessions.value = []
     dietaryRestrictions.value = []
     userLoaded.value = false
-    localStorage.removeItem('ns_user_id')
+    useSubscriptionsBillingStore().reset()
+    _clearAuth()
   }
 
   /**
-   * Registers a new user account. Returns response data for the component to handle.
-   * Rejects with Error('email_already_registered') if the email is already in use.
+   * Registers a new user account via POST /authentication/sign-up.
    * @param {Object} formData
-   * @returns {Promise<Object>}
+   * @returns {Promise<{ userId: number, token: string, sessionId: number }>}
    */
   function signUp(formData) {
     errors.value = []
-    return iamApi.getMe()
-      .then(response => {
-        const users = UserAssembler.toEntitiesFromResponse(response)
-        const normalized = formData.email?.toLowerCase().trim()
-        if (users.some(u => u.email.value === normalized)) {
-          throw new Error('email_already_registered')
-        }
-        return iamApi.signUp(formData)
+    return iamApi.signUp(formData)
+      .then(({ userId, token: tok, sessionId: sid }) => {
+        // New account starts with a clean billing slate — drop any state left
+        // over from a previously authenticated user in this SPA session.
+        useSubscriptionsBillingStore().reset()
+        _persistAuth(userId, tok, sid)
+        return { userId, token: tok, sessionId: sid }
       })
-      .then(response => response.data)
       .catch(error => { errors.value.push(error); throw error })
   }
 
   /**
    * Permanently deletes the current user account and clears all state.
+   * Returns a Promise so callers can chain navigation after completion.
+   * @returns {Promise<void>}
    */
   function deleteAccount() {
     errors.value = []
-    if (!currentUser.value) return
-    iamApi.deleteAccount(currentUser.value.id)
+    if (!currentUser.value) return Promise.resolve()
+    return iamApi.deleteAccount(currentUser.value.id)
       .then(() => {
         currentUser.value = null
         sessions.value = []
         dietaryRestrictions.value = []
         userLoaded.value = false
-        localStorage.removeItem('ns_user_id')
+        useSubscriptionsBillingStore().reset()
+        _clearAuth()
       })
-      .catch(error => errors.value.push(error))
+      .catch(error => {
+        errors.value.push(error)
+        throw error
+      })
   }
 
   on(SUBSCRIPTION_ACTIVATED, ({ userId }) => {
-    fetchCurrentUser(userId)
+    fetchCurrentUser(parseInt(userId, 10))
   })
 
   /** Clears the errors array. */
@@ -220,6 +324,8 @@ export const useIamStore = defineStore('iam', () => {
 
   return {
     currentUser,
+    token,
+    sessionId,
     sessions,
     dietaryRestrictions,
     userLoaded,
@@ -227,6 +333,7 @@ export const useIamStore = defineStore('iam', () => {
     restrictionsLoaded,
     errors,
     isAuthenticated,
+    currentUserId,
     firstName,
     currentPlanTier,
     hasFeature,

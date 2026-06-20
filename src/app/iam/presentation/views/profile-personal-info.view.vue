@@ -4,8 +4,10 @@ import { ref, computed, watch, toRefs, nextTick, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useToast } from 'primevue/usetoast'
 import { useIamStore } from '../../application/iam.store.js'
+import { SmartRecommendationsApi } from '../../../smart-recommendations/infrastructure/smart-recommendations.api.js'
+import { CityAssembler } from '../../../smart-recommendations/infrastructure/city.assembler.js'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const toast = useToast()
 const iamStore = useIamStore()
 const { currentUser, userLoaded, errors } = toRefs(iamStore)
@@ -20,7 +22,7 @@ const form = ref({
   biologicalSex: 'male',
   heightCm:      170,
   activityLevel: 'moderately-active',
-  homeCityId:    '',
+  homeCityId:    /** @type {number|''} */ (''),
 })
 
 const sexOptions = [
@@ -53,30 +55,73 @@ watch(currentUser, user => {
 
 // ── City picker ──────────────────────────────────────────────────────────────
 
-const cityOptions = [
-  { label: t('city.lima'),         value: 'city_lima' },
-  { label: t('city.bogota'),       value: 'city_bogota' },
-  { label: t('city.cdmx'),         value: 'city_cdmx' },
-  { label: t('city.buenos_aires'), value: 'city_buenos_aires' },
-  { label: t('city.miami'),        value: 'city_miami' },
-  { label: t('city.madrid'),       value: 'city_madrid' },
-  { label: t('city.new_york'),     value: 'city_new_york' },
-  { label: t('city.barcelona'),    value: 'city_barcelona' },
-]
+const _smartRecsApi = new SmartRecommendationsApi()
+/** @type {import('vue').Ref<ReturnType<import('../../../smart-recommendations/domain/model/city.entity.js').City>[]>} */
+const _availableCities = ref([])
+
+onMounted(() => {
+  _smartRecsApi.getCities()
+    .then(res => { _availableCities.value = CityAssembler.toEntitiesFromResponse(res) })
+    .catch(() => {})
+})
 
 const citySearch   = ref('')
 const cityOpen     = ref(false)
 const cityInputRef = ref(/** @type {HTMLInputElement|null} */ (null))
+/** @type {import('vue').Ref<Object[]>} Backend search hits (local catalog + geocoding candidates). */
+const citySearchResults = ref([])
+const citySearchLoading = ref(false)
+/** @type {ReturnType<typeof setTimeout>|null} */
+let citySearchTimer = null
+
+/** Debounced backend city search; <2 chars falls back to the locally loaded catalog. */
+watch(citySearch, q => {
+  const term = q.trim()
+  if (citySearchTimer) clearTimeout(citySearchTimer)
+  if (term.length < 2) {
+    citySearchResults.value = []
+    citySearchLoading.value = false
+    return
+  }
+  citySearchLoading.value = true
+  citySearchTimer = setTimeout(() => {
+    _smartRecsApi.searchCities(term, 5)
+      .then(res => { citySearchResults.value = Array.isArray(res.data) ? res.data : [] })
+      .catch(() => { citySearchResults.value = [] })
+      .finally(() => { citySearchLoading.value = false })
+  }, 350)
+})
+
+/** @type {import('vue').ComputedRef<{ key: string, label: string, sub: string, value: number|null, raw: Object }[]>} */
+const cityOptions = computed(() =>
+  _availableCities.value.map(c => ({
+    key: String(c.id),
+    label: locale.value.startsWith('es') ? c.nameEs : c.nameEn,
+    sub: c.country,
+    value: c.id,
+    raw: { id: c.id, nameEn: c.nameEn, nameEs: c.nameEs, country: c.country, lat: c.lat, lng: c.lng },
+  }))
+)
 
 /** @type {import('vue').ComputedRef<string>} */
 const selectedCityLabel = computed(() =>
-  cityOptions.find(c => c.value === form.value.homeCityId)?.label ?? ''
+  cityOptions.value.find(c => c.value === form.value.homeCityId)?.label ?? ''
 )
 
-/** @type {import('vue').ComputedRef<typeof cityOptions>} */
+/** @type {import('vue').ComputedRef<{ key: string, label: string, sub: string, value: number|null, raw: Object }[]>} */
 const filteredCities = computed(() => {
-  const q = citySearch.value.toLowerCase().trim()
-  return q ? cityOptions.filter(c => c.label.toLowerCase().includes(q)) : cityOptions
+  const term = citySearch.value.trim()
+  if (term.length < 2) {
+    const q = term.toLowerCase()
+    return q ? cityOptions.value.filter(c => c.label.toLowerCase().includes(q)) : cityOptions.value
+  }
+  return citySearchResults.value.map(r => ({
+    key: String(r.id ?? `${r.lat},${r.lng}`),
+    label: locale.value.startsWith('es') ? r.nameEs : r.nameEn,
+    sub: r.state ? `${r.country}, ${r.state}` : r.country,
+    value: r.id ?? null,
+    raw: r,
+  }))
 })
 
 /** Opens the city search dropdown. */
@@ -89,9 +134,28 @@ function openCityPicker() {
  * Selects a city and closes the dropdown.
  * @param {{ label: string, value: string }} city
  */
-function selectCity(city) {
-  form.value.homeCityId = city.value
+async function selectCity(city) {
+  let id = city.value
+  if (id == null) {
+    // Geocoding candidate not yet in the catalog: import it to obtain a real id.
+    const res = await _smartRecsApi.importCity({
+      name: city.raw.nameEn ?? city.raw.nameEs,
+      nameEn: city.raw.nameEn,
+      nameEs: city.raw.nameEs,
+      country: city.raw.country,
+      lat: city.raw.lat,
+      lng: city.raw.lng,
+    }).catch(() => null)
+    const entity = res ? CityAssembler.toEntityFromResponse(res) : null
+    if (!entity) return
+    if (!_availableCities.value.some(c => c.id === entity.id)) {
+      _availableCities.value = [..._availableCities.value, entity]
+    }
+    id = entity.id
+  }
+  form.value.homeCityId = id
   citySearch.value = ''
+  citySearchResults.value = []
   cityOpen.value = false
 }
 
@@ -307,18 +371,24 @@ function handleSave() {
               <ul class="city-dropdown__list" role="listbox">
                 <li
                   v-for="city in filteredCities"
-                  :key="city.value"
+                  :key="city.key"
                   class="city-dropdown__item"
                   role="option"
-                  :aria-selected="form.homeCityId === city.value"
+                  :aria-selected="form.homeCityId === city.value && city.value != null"
                   tabindex="0"
                   @mousedown.prevent="selectCity(city)"
                   @keydown.enter="selectCity(city)"
                 >
                   <i class="pi pi-map-marker city-dropdown__item-icon" aria-hidden="true" />
-                  {{ city.label }}
+                  <span class="city-dropdown__item-label">{{ city.label }}</span>
+                  <span class="city-dropdown__item-sub">{{ city.sub }}</span>
+                  <i v-if="city.value == null" class="pi pi-globe city-dropdown__item-new" :title="t('recommendations.newCity')" aria-hidden="true" />
                 </li>
-                <li v-if="!filteredCities.length" class="city-dropdown__empty">
+                <li v-if="citySearchLoading" class="city-dropdown__empty">
+                  <i class="pi pi-spin pi-spinner" aria-hidden="true" />
+                  {{ t('recommendations.searchingCity') }}
+                </li>
+                <li v-else-if="!filteredCities.length" class="city-dropdown__empty">
                   <i class="pi pi-search" aria-hidden="true" />
                   {{ t('onboarding.noCity') }}
                 </li>
@@ -587,6 +657,15 @@ function handleSave() {
 }
 
 .city-dropdown__item-icon { font-size: 0.8125rem; color: var(--ns-text-secondary); flex-shrink: 0; }
+.city-dropdown__item-label { flex: 0 0 auto; }
+.city-dropdown__item-sub {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: var(--ns-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.city-dropdown__item-new { margin-left: auto; font-size: 0.8125rem; color: var(--ns-primary); opacity: 0.7; }
 
 .city-dropdown__empty {
   display: flex;

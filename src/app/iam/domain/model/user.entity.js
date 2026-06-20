@@ -28,10 +28,10 @@ import { PreferredUnits } from './preferred-units.record.js'
 /** @param {UserProps} props */
 export function User(props) {
   const email = Email(props.email)
-  const goal = GoalType(props.goal)
-  const activityLevel = ActivityLevel(props.activityLevel)
-  const plan = PlanTier(props.plan)
-  const biologicalSex = BiologicalSex(props.biologicalSex)
+  const goal = props.goal != null ? GoalType(props.goal) : null
+  const activityLevel = props.activityLevel != null ? ActivityLevel(props.activityLevel) : null
+  const plan = props.plan != null ? PlanTier(props.plan) : null
+  const biologicalSex = props.biologicalSex != null ? BiologicalSex(props.biologicalSex) : null
   const preferredUnits = PreferredUnits(props.preferredUnits)
 
   return Object.freeze({

@@ -1,6 +1,6 @@
 <!-- PATH: src/app/iam/presentation/views/onboarding.view.vue -->
 <script setup>
-import { ref, computed, toRefs, nextTick } from 'vue'
+import { ref, computed, toRefs, nextTick, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useIamStore } from '../../application/iam.store.js'
@@ -9,8 +9,10 @@ import { useBodyHealthMetricsStore } from '../../../body-health-metrics/applicat
 import { Height } from '../../domain/model/height.record.js'
 import { DateOfBirth } from '../../domain/model/date-of-birth.record.js'
 import { WaistMeasurement } from '../../domain/model/waist-measurement.record.js'
+import { SmartRecommendationsApi } from '../../../smart-recommendations/infrastructure/smart-recommendations.api.js'
+import { CityAssembler } from '../../../smart-recommendations/infrastructure/city.assembler.js'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const router = useRouter()
 const iamStore = useIamStore()
 const bodyMetricsStore = useBodyHealthMetricsStore()
@@ -19,7 +21,7 @@ const { userLoaded, errors } = toRefs(iamStore)
 const userId = localStorage.getItem('ns_user_id') ?? ''
 
 iamStore.clearErrors()
-iamStore.fetchCurrentUser(userId)
+if (!iamStore.userLoaded) iamStore.fetchCurrentUser(userId)
 
 const TOTAL_STEPS = 4
 const step = ref(1)
@@ -39,7 +41,7 @@ const form = ref({
   waistExactCm: 80,
   waistPantsSize: 32,
   waistVisual: 'normal',
-  homeCityId: '',
+  homeCityId: /** @type {number|''} */ (''),
   dietaryRestrictions: /** @type {string[]} */ ([]),
   medicalConditions: /** @type {string[]} */ ([]),
 })
@@ -96,26 +98,68 @@ const citySearch = ref('')
 const cityOpen = ref(false)
 const cityInputRef = ref(/** @type {HTMLInputElement|null} */ (null))
 
-/** @type {import('vue').ComputedRef<{ label: string, value: string }[]>} */
-const cityOptions = computed(() => [
-  { label: t('city.lima'),         value: 'city_lima' },
-  { label: t('city.bogota'),       value: 'city_bogota' },
-  { label: t('city.cdmx'),         value: 'city_cdmx' },
-  { label: t('city.buenos_aires'), value: 'city_buenos_aires' },
-  { label: t('city.miami'),        value: 'city_miami' },
-  { label: t('city.madrid'),       value: 'city_madrid' },
-  { label: t('city.new_york'),     value: 'city_new_york' },
-  { label: t('city.barcelona'),    value: 'city_barcelona' },
-])
+const _smartRecsApi = new SmartRecommendationsApi()
+/** @type {import('vue').Ref<ReturnType<import('../../../smart-recommendations/domain/model/city.entity.js').City>[]>} */
+const _availableCities = ref([])
+
+onMounted(() => {
+  _smartRecsApi.getCities()
+    .then(res => { _availableCities.value = CityAssembler.toEntitiesFromResponse(res) })
+    .catch(() => {})
+})
+
+/** @type {import('vue').Ref<Object[]>} Backend search hits (local catalog + geocoding candidates). */
+const citySearchResults = ref([])
+const citySearchLoading = ref(false)
+/** @type {ReturnType<typeof setTimeout>|null} */
+let citySearchTimer = null
+
+/** Debounced backend city search; <2 chars falls back to the locally loaded catalog. */
+watch(citySearch, q => {
+  const term = q.trim()
+  if (citySearchTimer) clearTimeout(citySearchTimer)
+  if (term.length < 2) {
+    citySearchResults.value = []
+    citySearchLoading.value = false
+    return
+  }
+  citySearchLoading.value = true
+  citySearchTimer = setTimeout(() => {
+    _smartRecsApi.searchCities(term, 5)
+      .then(res => { citySearchResults.value = Array.isArray(res.data) ? res.data : [] })
+      .catch(() => { citySearchResults.value = [] })
+      .finally(() => { citySearchLoading.value = false })
+  }, 350)
+})
+
+/** @type {import('vue').ComputedRef<{ key: string, label: string, sub: string, value: number|null, raw: Object }[]>} */
+const cityOptions = computed(() =>
+  _availableCities.value.map(c => ({
+    key: String(c.id),
+    label: locale.value.startsWith('es') ? c.nameEs : c.nameEn,
+    sub: c.country,
+    value: c.id,
+    raw: { id: c.id, nameEn: c.nameEn, nameEs: c.nameEs, country: c.country, lat: c.lat, lng: c.lng },
+  }))
+)
 
 /** @type {import('vue').ComputedRef<string>} */
 const selectedCityLabel = computed(() => cityOptions.value.find(c => c.value === form.value.homeCityId)?.label ?? '')
 
-/** @type {import('vue').ComputedRef<{ label: string, value: string }[]>} */
+/** @type {import('vue').ComputedRef<{ key: string, label: string, sub: string, value: number|null, raw: Object }[]>} */
 const filteredCities = computed(() => {
-  const q = citySearch.value.toLowerCase().trim()
-  if (!q) return cityOptions.value
-  return cityOptions.value.filter(c => c.label.toLowerCase().includes(q))
+  const term = citySearch.value.trim()
+  if (term.length < 2) {
+    const q = term.toLowerCase()
+    return q ? cityOptions.value.filter(c => c.label.toLowerCase().includes(q)) : cityOptions.value
+  }
+  return citySearchResults.value.map(r => ({
+    key: String(r.id ?? `${r.lat},${r.lng}`),
+    label: locale.value.startsWith('es') ? r.nameEs : r.nameEn,
+    sub: r.state ? `${r.country}, ${r.state}` : r.country,
+    value: r.id ?? null,
+    raw: r,
+  }))
 })
 
 /** Opens the city search input. */
@@ -128,9 +172,28 @@ function openCityPicker() {
  * Selects a city and closes the dropdown.
  * @param {{ label: string, value: string }} city
  */
-function selectCity(city) {
-  form.value.homeCityId = city.value
+async function selectCity(city) {
+  let id = city.value
+  if (id == null) {
+    // Geocoding candidate not yet in the catalog: import it to obtain a real id.
+    const res = await _smartRecsApi.importCity({
+      name: city.raw.nameEn ?? city.raw.nameEs,
+      nameEn: city.raw.nameEn,
+      nameEs: city.raw.nameEs,
+      country: city.raw.country,
+      lat: city.raw.lat,
+      lng: city.raw.lng,
+    }).catch(() => null)
+    const entity = res ? CityAssembler.toEntityFromResponse(res) : null
+    if (!entity) return
+    if (!_availableCities.value.some(c => c.id === entity.id)) {
+      _availableCities.value = [..._availableCities.value, entity]
+    }
+    id = entity.id
+  }
+  form.value.homeCityId = id
   citySearch.value = ''
+  citySearchResults.value = []
   cityOpen.value = false
 }
 
@@ -243,7 +306,6 @@ async function handleSubmit() {
       activityLevel: form.value.activityLevel,
       preferredUnits: user.preferredUnits.value,
       preferredLanguage: user.preferredLanguage,
-      plan: user.plan.value,
       homeCityId: form.value.homeCityId,
       createdAt: user.createdAt,
       medicalConditions: form.value.medicalConditions,
@@ -254,7 +316,17 @@ async function handleSubmit() {
     }
 
     bodyMetricsStore.setUserHeight(form.value.heightCm)
-    bodyMetricsStore.logWeight(userId, form.value.weightKg, new Date())
+    await bodyMetricsStore.registerBodyMetrics({
+      userId: parseInt(userId),
+      heightCm: form.value.heightCm,
+      weightKg: form.value.weightKg,
+      dateOfBirth: form.value.dateOfBirth,
+      biologicalSex: form.value.biologicalSex,
+      activityLevel: form.value.activityLevel,
+      // Seed the goal at registration so daily caloric/macro targets (and the streak)
+      // are available immediately — the backend derives the weekly pace by default.
+      goal: form.value.goal,
+    })
     bodyMetricsStore.createBodyMeasurement(userId, resolvedWaistCm.value)
 
     router.push({ name: 'plan-selection' })
@@ -487,24 +559,29 @@ async function handleSubmit() {
                 />
               </div>
               <ul v-if="cityOpen" class="city-picker__list" role="listbox">
-                <li v-if="!filteredCities.length" class="city-picker__empty">
+                <li v-if="citySearchLoading" class="city-picker__empty">
+                  {{ t('recommendations.searchingCity') }}
+                </li>
+                <li v-else-if="!filteredCities.length" class="city-picker__empty">
                   {{ t('onboarding.noCity') }}
                 </li>
                 <li
                   v-for="city in filteredCities"
-                  :key="city.value"
+                  :key="city.key"
                   class="city-picker__item"
-                  :class="{ 'city-picker__item--selected': form.homeCityId === city.value }"
+                  :class="{ 'city-picker__item--selected': form.homeCityId === city.value && city.value != null }"
                   role="option"
-                  :aria-selected="form.homeCityId === city.value"
+                  :aria-selected="form.homeCityId === city.value && city.value != null"
                   @mousedown.prevent="selectCity(city)"
                 >
                   <i
-                    v-if="form.homeCityId === city.value"
+                    v-if="form.homeCityId === city.value && city.value != null"
                     class="pi pi-check city-picker__item-check"
                     aria-hidden="true"
                   />
-                  <span>{{ city.label }}</span>
+                  <span class="city-picker__item-label">{{ city.label }}</span>
+                  <span class="city-picker__item-sub">{{ city.sub }}</span>
+                  <i v-if="city.value == null" class="pi pi-globe city-picker__item-new" :title="t('recommendations.newCity')" aria-hidden="true" />
                 </li>
               </ul>
             </div>
@@ -876,6 +953,23 @@ async function handleSubmit() {
 .city-picker__item-check {
   font-size: 0.75rem;
   color: var(--ns-primary);
+}
+
+.city-picker__item-label { flex: 0 0 auto; }
+
+.city-picker__item-sub {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: var(--ns-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.city-picker__item-new {
+  margin-left: auto;
+  font-size: 0.8125rem;
+  color: var(--ns-primary);
+  opacity: 0.7;
 }
 
 /* ---- Restrictions & conditions (step 4) ---- */
