@@ -2,6 +2,7 @@
 <script setup>
 import { ref, computed, onMounted, toRefs, watch, onBeforeUnmount } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useToast } from 'primevue/usetoast'
 import { Chart } from 'chart.js/auto'
 import { useAnalyticsReportingStore } from '../../application/analytics-reporting.store.js'
 import { useNutritionTrackingStore } from '../../../nutrition-tracking/application/nutrition-tracking.store.js'
@@ -9,7 +10,8 @@ import { useBodyHealthMetricsStore } from '../../../body-health-metrics/applicat
 import { useSubscriptionsBillingStore } from '../../../subscriptions-billing/application/subscriptions-billing.store.js'
 import { toLocalDateString } from '../../../shared/infrastructure/date-utils.js'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
+const toast = useToast()
 const analyticsStore = useAnalyticsReportingStore()
 const nutritionStore = useNutritionTrackingStore()
 const bodyStore = useBodyHealthMetricsStore()
@@ -24,6 +26,7 @@ const userId = localStorage.getItem('ns_user_id') ?? ''
 
 const showCustomModal = ref(false)
 const showExportModal = ref(false)
+const isExporting = ref(false)
 const draftStart = ref(null)
 const draftEnd = ref(null)
 /** @type {import('vue').Ref<'7d'|'30d'|'90d'|'custom'>} */
@@ -76,9 +79,7 @@ const kpis = computed(() => {
   return analyticsStore.calculateKpis(nutritionEntries, weightEntries)
 })
 
-const adherence = computed(() =>
-  analyticsStore.calculateAdherence(logsInRange.value.map(l => l.date))
-)
+const adherence = computed(() => analyticsStore.calculateAdherence())
 
 const isLoading = computed(() => !logsLoaded.value)
 
@@ -102,8 +103,24 @@ onMounted(() => {
     nutritionStore.fetchLogs(userId)
     bodyStore.fetchWeightLogs(userId)
     analyticsStore.fetchStreak(userId)
+    analyticsStore.fetchDashboard(userId, toLocalDateString(new Date()))
+    analyticsStore.fetchProgress(
+      userId,
+      toLocalDateString(dateRange.value.start),
+      toLocalDateString(dateRange.value.end),
+    )
     if (!billingStore.subscriptionLoaded) billingStore.fetchSubscription(userId)
     if (!billingStore.plansLoaded)        billingStore.fetchPlans()
+  }
+})
+
+watch(dateRange, (range) => {
+  if (userId) {
+    analyticsStore.fetchProgress(
+      userId,
+      toLocalDateString(range.start),
+      toLocalDateString(range.end),
+    )
   }
 })
 
@@ -211,9 +228,47 @@ watch(currentTier, tier => {
   }
 })
 
-/** Closes the export modal (PDF generation is a future integration point). */
-function handleExportPdf() {
-  showExportModal.value = false
+/** Human-readable label for the currently selected range, used in the PDF header. */
+const rangeLabel = computed(() => {
+  const r = selectedRange.value
+  return r === 'custom' ? t('analytics.custom') : t(`analytics.${r}`)
+})
+
+/**
+ * Generates and downloads a PDF report of the selected sections.
+ * Chart images are captured from the live chart.js canvas; all other data
+ * is read from the already-computed view state and handed to the service.
+ */
+async function handleExportPdf() {
+  isExporting.value = true
+  try {
+    const { generateAnalyticsPdf } = await import('../../infrastructure/pdf-export.service.js')
+    const calorieChartImage = exportSections.value.calories
+      ? (calorieChart?.toBase64Image('image/png', 1) ?? null)
+      : null
+
+    generateAnalyticsPdf({
+      sections: { ...exportSections.value },
+      data: {
+        kpis: kpis.value,
+        macroTotals: macroTotals.value,
+        adherence: adherence.value,
+        weeklyCompletion: weeklyCompletionPercent.value,
+        weightLogs: weightLogsInRange.value.map(l => ({ loggedAt: l.loggedAt, weightKg: l.weightKg })),
+      },
+      calorieChartImage,
+      range: { start: dateRange.value.start, end: dateRange.value.end, label: rangeLabel.value },
+      t,
+      locale: locale.value,
+    })
+
+    showExportModal.value = false
+    toast.add({ severity: 'success', summary: t('analytics.exportSuccess'), life: 2500 })
+  } catch (err) {
+    toast.add({ severity: 'error', summary: t('analytics.exportError'), life: 3000 })
+  } finally {
+    isExporting.value = false
+  }
 }
 </script>
 
@@ -473,11 +528,12 @@ function handleExportPdf() {
         </div>
       </div>
       <template #footer>
-        <pv-button :label="t('common.cancel')" text @click="showExportModal = false" />
+        <pv-button :label="t('common.cancel')" text :disabled="isExporting" @click="showExportModal = false" />
         <pv-button
           icon="pi pi-download"
           :label="t('analytics.generate')"
-          :disabled="!Object.values(exportSections).some(Boolean)"
+          :loading="isExporting"
+          :disabled="isExporting || !Object.values(exportSections).some(Boolean)"
           @click="handleExportPdf"
         />
       </template>
