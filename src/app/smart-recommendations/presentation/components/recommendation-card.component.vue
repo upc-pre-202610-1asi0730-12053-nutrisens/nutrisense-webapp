@@ -16,7 +16,7 @@ defineProps({
 /** @type {(event: 'log', recommendation: Object) => void} */
 const emit = defineEmits(['log'])
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 
 /** @type {Record<string, string>} */
 const badgeSeverityMap = {
@@ -38,7 +38,7 @@ const badgeSeverityMap = {
     </div>
     <div class="rec-card__header">
       <div class="rec-card__name">
-        {{ recommendation.foodId ? t(`food.${recommendation.foodId}`) : t(recommendation.customFoodNameKey) }}
+        {{ (locale.startsWith('es') ? recommendation.foodNameEs : recommendation.foodNameEn) || recommendation.foodNameEn || recommendation.foodNameEs }}
       </div>
       <pv-tag
         v-if="recommendation.badge"
@@ -48,8 +48,8 @@ const badgeSeverityMap = {
       />
     </div>
 
-    <p v-if="recommendation.contextLabelKey" class="rec-card__context">
-      {{ t(recommendation.contextLabelKey) }}
+    <p v-if="recommendation.contextLabelEn" class="rec-card__context">
+      {{ locale.startsWith('es') ? recommendation.contextLabelEs : recommendation.contextLabelEn }}
     </p>
 
     <div class="rec-card__macros-panel">

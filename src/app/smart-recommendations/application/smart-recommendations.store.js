@@ -1,11 +1,12 @@
 // PATH: src/app/smart-recommendations/application/smart-recommendations.store.js
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { SmartRecommendationsApi } from '../infrastructure/smart-recommendations.api.js'
 import { RecommendationCardAssembler } from '../infrastructure/recommendation-card.assembler.js'
 import { RecipeAssembler } from '../infrastructure/recipe.assembler.js'
 import { PantryItemAssembler } from '../infrastructure/pantry-item.assembler.js'
 import { CityAssembler } from '../infrastructure/city.assembler.js'
+import { WeatherAssembler } from '../infrastructure/weather.assembler.js'
 import { IngredientCatalogItemAssembler } from '../infrastructure/ingredient-catalog-item.assembler.js'
 import { MacroProfile } from '../domain/model/macro-profile.entity.js'
 import { CONFLICT_TAGS } from '../../iam/domain/model/dietary-restriction.entity.js'
@@ -19,9 +20,6 @@ const MEDICAL_CONDITION_TAGS = {
   'gout': ['seafood', 'fish'],
 }
 
-/**
- * Store for weather-based food recommendations, recipes, pantry, and city data.
- */
 export const useSmartRecommendationsStore = defineStore('smart-recommendations', () => {
   /** @type {import('vue').Ref<ReturnType<import('../domain/model/recommendation-card.entity.js').RecommendationCard>[]>} */
   const recommendations = ref([])
@@ -33,13 +31,21 @@ export const useSmartRecommendationsStore = defineStore('smart-recommendations',
   const cities = ref([])
   /** @type {import('vue').Ref<ReturnType<import('../domain/model/ingredient-catalog-item.entity.js').IngredientCatalogItem>[]>} */
   const ingredientCatalog = ref([])
+  /**
+   * Cache of current-weather snapshots keyed by city ID.
+   * @type {import('vue').Ref<Record<number, ReturnType<import('../domain/model/weather.record.js').Weather>>>}
+   */
+  const weatherByCity = ref({})
   const travelModeActive = ref(false)
-  /** @type {import('vue').Ref<string|null>} */
+  /** @type {import('vue').Ref<number|string|null>} */
   const homeCityId = ref(null)
   const homeCityName = ref('')
-  /** @type {import('vue').Ref<string|null>} */
+  /** @type {import('vue').Ref<number|string|null>} */
   const travelCityId = ref(null)
   const travelCityName = ref('')
+  /** GPS-detected current city (persisted server-side via /detect). @type {import('vue').Ref<number|string|null>} */
+  const currentCityId = ref(null)
+  const currentCityName = ref('')
   /** @type {import('vue').Ref<import('../../../shared/domain/model/goal-type.record.js').GoalTypeValue|null>} */
   const userGoal = ref(null)
   const activeFilters = ref({
@@ -48,7 +54,6 @@ export const useSmartRecommendationsStore = defineStore('smart-recommendations',
     highInMacro: null,
     /** @type {Array<'recommendations'|'recipes'>} */
     sources: [],
-    temperatureContext: /** @type {'auto'|'cold'|'hot'} */ ('auto'),
     citySource: /** @type {'current'|'home'} */ ('current'),
   })
   const recommendationsLoaded = ref(false)
@@ -66,10 +71,11 @@ export const useSmartRecommendationsStore = defineStore('smart-recommendations',
   const userRestrictions = ref([])
   /** @type {import('vue').Ref<string[]>} */
   const userMedicalConditions = ref([])
+  /** Persisted to pass userId into pantry mutations that lack it as a parameter. */
+  const pantryUserId = ref(/** @type {string|number|null} */ (null))
 
   /**
    * Flat set of food tags forbidden by the user's restrictions and medical conditions.
-   * Used by recommendation/recipe entities' conflictsWith() method.
    * @type {import('vue').ComputedRef<string[]>}
    */
   const userForbiddenTags = computed(() => {
@@ -84,12 +90,12 @@ export const useSmartRecommendationsStore = defineStore('smart-recommendations',
 
   /**
    * Active city ID respecting both travel mode and the citySource filter.
-   * 'home' always resolves to homeCityId; 'current' uses the travel city when travel mode is on.
-   * @type {import('vue').ComputedRef<string|null>}
+   * @type {import('vue').ComputedRef<number|string|null>}
    */
   const activeCityId = computed(() => {
     if (activeFilters.value.citySource === 'home') return homeCityId.value
-    return travelModeActive.value ? travelCityId.value : homeCityId.value
+    if (travelModeActive.value) return travelCityId.value
+    return currentCityId.value ?? homeCityId.value
   })
 
   /**
@@ -106,7 +112,8 @@ export const useSmartRecommendationsStore = defineStore('smart-recommendations',
    */
   const activeCityName = computed(() => {
     if (activeFilters.value.citySource === 'home') return homeCityName.value
-    return travelModeActive.value ? travelCityName.value : homeCityName.value
+    if (travelModeActive.value) return travelCityName.value
+    return currentCityName.value || homeCityName.value
   })
 
   /**
@@ -118,7 +125,16 @@ export const useSmartRecommendationsStore = defineStore('smart-recommendations',
   )
 
   /**
-   * Recommendations filtered by goal, source, macro focus and max kcal.
+   * Current-weather snapshot for the active city, if already fetched.
+   * @type {import('vue').ComputedRef<ReturnType<import('../domain/model/weather.record.js').Weather>|null>}
+   */
+  const currentWeather = computed(() =>
+    activeCityId.value != null ? weatherByCity.value[activeCityId.value] ?? null : null
+  )
+
+  /**
+   * Recommendations filtered by source, macro focus and max kcal.
+   * The backend already personalizes recommendations per user; no city/goal filter is applied client-side.
    * @type {import('vue').ComputedRef<ReturnType<import('../domain/model/recommendation-card.entity.js').RecommendationCard>[]>}
    */
   const filteredRecommendations = computed(() => {
@@ -127,12 +143,6 @@ export const useSmartRecommendationsStore = defineStore('smart-recommendations',
     if (!showRecs) return []
 
     let result = recommendations.value
-
-    if (activeCityId.value)
-      result = result.filter(r => r.matchesCity(activeCityId.value))
-
-    if (userGoal.value)
-      result = result.filter(r => r.matchesGoal(userGoal.value))
 
     if (activeFilters.value.maxKcal !== null)
       result = result.filter(r => r.estimatedCalories <= activeFilters.value.maxKcal)
@@ -156,7 +166,7 @@ export const useSmartRecommendationsStore = defineStore('smart-recommendations',
 
   /**
    * Ingredient IDs currently in the pantry.
-   * @type {import('vue').ComputedRef<string[]>}
+   * @type {import('vue').ComputedRef<number[]>}
    */
   const pantryIngredientIds = computed(() =>
     pantryItems.value.map(p => p.ingredientId)
@@ -186,7 +196,6 @@ export const useSmartRecommendationsStore = defineStore('smart-recommendations',
 
   /**
    * Combined, goal-filtered and macro-filtered recipe feed.
-   * Includes full and partial pantry matches when source filter allows recipes.
    * @type {import('vue').ComputedRef<ReturnType<import('../domain/model/recipe.entity.js').Recipe>[]>}
    */
   const feedRecipes = computed(() => {
@@ -220,10 +229,11 @@ export const useSmartRecommendationsStore = defineStore('smart-recommendations',
   })
 
   /**
-   * Loads all recommendation cards.
+   * Loads recommendation cards for a specific user.
+   * @param {string|number} userId
    */
-  function fetchRecommendations() {
-    smartRecommendationsApi.getRecommendations()
+  function fetchRecommendations(userId) {
+    smartRecommendationsApi.getRecommendationsByUser(userId)
       .then(response => {
         recommendations.value = RecommendationCardAssembler.toEntitiesFromResponse(response)
         recommendationsLoaded.value = true
@@ -232,10 +242,11 @@ export const useSmartRecommendationsStore = defineStore('smart-recommendations',
   }
 
   /**
-   * Loads all recipes.
+   * Loads all recipes, optionally filtered by goal.
+   * @param {string} [goal]
    */
-  function fetchRecipes() {
-    smartRecommendationsApi.getRecipes()
+  function fetchRecipes(goal) {
+    smartRecommendationsApi.getRecipes(goal)
       .then(response => {
         recipes.value = RecipeAssembler.toEntitiesFromResponse(response)
       })
@@ -244,42 +255,44 @@ export const useSmartRecommendationsStore = defineStore('smart-recommendations',
 
   /**
    * Loads pantry items for a given user.
-   * @param {string} userId
+   * @param {string|number} userId
    */
   function fetchPantry(userId) {
-    smartRecommendationsApi.getPantryItems()
+    pantryUserId.value = userId
+    smartRecommendationsApi.getPantryByUser(userId)
       .then(response => {
-        const all = PantryItemAssembler.toEntitiesFromResponse(response)
-        pantryItems.value = all.filter(p => p.userId === userId)
+        pantryItems.value = response.data
+          ? PantryItemAssembler.toEntitiesFromResponse(response)
+          : []
         pantryLoaded.value = true
       })
       .catch(error => errors.value.push(error))
   }
 
   /**
-   * Adds an ingredient to the pantry.
-   * @param {string} userId
-   * @param {string} ingredientId
-   * @param {string} ingredientName
+   * Adds a single ingredient to the pantry.
+   * @param {string|number} userId
+   * @param {number} ingredientCatalogItemId
    * @param {number} quantity
    * @param {string} unit
    */
-  function addToPantry(userId, ingredientId, ingredientName, quantity, unit) {
-    const resource = { userId, ingredientId, ingredientName, quantity, unit, addedAt: new Date().toISOString() }
-    smartRecommendationsApi.createPantryItem(resource)
+  function addToPantry(userId, ingredientCatalogItemId, quantity, unit) {
+    pantryUserId.value = userId
+    smartRecommendationsApi.registerPantryItems(userId, [{ ingredientCatalogItemId, quantity, unit }])
       .then(response => {
-        const newItem = PantryItemAssembler.toEntityFromResource(response.data)
-        if (newItem) pantryItems.value.push(newItem)
+        pantryItems.value = PantryItemAssembler.toEntitiesFromResponse(response)
       })
       .catch(error => errors.value.push(error))
   }
 
   /**
    * Removes a pantry item by ID.
-   * @param {string} itemId
+   * @param {number} itemId
    */
   function removeFromPantry(itemId) {
-    smartRecommendationsApi.deletePantryItem(itemId)
+    const userId = pantryUserId.value
+    if (!userId) return
+    smartRecommendationsApi.deletePantryItem(userId, itemId)
       .then(() => {
         pantryItems.value = pantryItems.value.filter(p => p.id !== itemId)
       })
@@ -288,18 +301,17 @@ export const useSmartRecommendationsStore = defineStore('smart-recommendations',
 
   /**
    * Updates the quantity of an existing pantry item.
-   * @param {string} itemId
+   * @param {number} itemId
    * @param {number} quantity
    */
   function updatePantryQuantity(itemId, quantity) {
+    const userId = pantryUserId.value
+    if (!userId) return
     const item = pantryItems.value.find(p => p.id === itemId)
     if (!item) return
-    smartRecommendationsApi.patchPantryItem(itemId, { quantity, unit: item.unit })
+    smartRecommendationsApi.patchPantryItem(userId, itemId, { quantity, unit: item.unit })
       .then(response => {
-        const updated = PantryItemAssembler.toEntityFromResource(response.data)
-        if (updated) {
-          pantryItems.value = pantryItems.value.map(p => p.id === itemId ? updated : p)
-        }
+        pantryItems.value = PantryItemAssembler.toEntitiesFromResponse(response)
       })
       .catch(error => errors.value.push(error))
   }
@@ -311,6 +323,90 @@ export const useSmartRecommendationsStore = defineStore('smart-recommendations',
     smartRecommendationsApi.getCities()
       .then(response => {
         cities.value = CityAssembler.toEntitiesFromResponse(response)
+      })
+      .catch(error => errors.value.push(error))
+  }
+
+  /**
+   * Loads the current weather for a city (cached per city ID).
+   * @param {number|string|null} cityId
+   * @param {boolean} [force] - re-fetch even if a snapshot is already cached
+   */
+  function fetchWeather(cityId, force = false) {
+    if (cityId == null) return
+    const id = Number(cityId)
+    if (!force && weatherByCity.value[id]) return
+    smartRecommendationsApi.getWeatherByCity(id)
+      .then(response => {
+        const weather = WeatherAssembler.toEntityFromResponse(response)
+        if (weather) weatherByCity.value = { ...weatherByCity.value, [id]: weather }
+      })
+      .catch(error => errors.value.push(error))
+  }
+
+  /**
+   * Searches cities by name; returns merged local + geocoding candidates.
+   * Candidates not yet in the catalog have `id === null`.
+   * @param {string} q
+   * @param {number} [limit]
+   * @returns {Promise<Object[]>}
+   */
+  function searchCities(q, limit = 5) {
+    return smartRecommendationsApi.searchCities(q, limit)
+      .then(response => Array.isArray(response.data) ? response.data : [])
+      .catch(error => { errors.value.push(error); return [] })
+  }
+
+  /**
+   * Ensures a city exists in the catalog. If the result already has an `id`, returns it as-is;
+   * otherwise imports it via the backend and caches it in the local `cities` list.
+   * @param {Object} result - a city search result (may lack an id)
+   * @returns {Promise<{ id: number, nameEs: string, nameEn: string }|null>}
+   */
+  function importCity(result) {
+    if (result?.id != null) {
+      return Promise.resolve(result)
+    }
+    return smartRecommendationsApi.importCity({
+      name: result.nameEn ?? result.nameEs,
+      nameEn: result.nameEn,
+      nameEs: result.nameEs,
+      country: result.country,
+      lat: result.lat,
+      lng: result.lng,
+    })
+      .then(response => {
+        const city = CityAssembler.toEntityFromResponse(response)
+        if (city && !cities.value.some(c => c.id === city.id)) {
+          cities.value = [...cities.value, city]
+        }
+        return city
+      })
+      .catch(error => { errors.value.push(error); return null })
+  }
+
+  /**
+   * Detects and persists the user's current city from GPS coordinates.
+   * Refreshes the catalog (the detected city may have been imported) and recommendations.
+   * @param {string|number} userId
+   * @param {number} lat
+   * @param {number} lng
+   */
+  function detectLocation(userId, lat, lng) {
+    smartRecommendationsApi.detectLocation(userId, lat, lng)
+      .then(async response => {
+        const detectedId = response.data?.currentCityId
+        if (detectedId == null) return
+        // The detected city may be freshly imported and absent from the local list.
+        if (!cities.value.some(c => c.id === detectedId)) {
+          await smartRecommendationsApi.getCities()
+            .then(res => { cities.value = CityAssembler.toEntitiesFromResponse(res) })
+            .catch(() => {})
+        }
+        const city = cities.value.find(c => c.id === detectedId)
+        currentCityId.value = detectedId
+        currentCityName.value = city ? (city.nameEs || city.nameEn) : ''
+        fetchRecommendations(userId)
       })
       .catch(error => errors.value.push(error))
   }
@@ -342,7 +438,6 @@ export const useSmartRecommendationsStore = defineStore('smart-recommendations',
       maxKcal: null,
       highInMacro: null,
       sources: [],
-      temperatureContext: 'auto',
       citySource: 'current',
     }
   }
@@ -370,19 +465,16 @@ export const useSmartRecommendationsStore = defineStore('smart-recommendations',
   }
 
   /**
-   * Records today's consumed macros so the recommendation feed can factor in remaining needs.
-   * Called by Nutrition Tracking after every log mutation (Consumption Updated policy).
    * @param {{ calories: number, proteinG: number }} consumed
-   * @param {number} calorieGoal
    */
-  function onConsumptionUpdated(consumed, calorieGoal) {
+  function onConsumptionUpdated(consumed) {
     consumedCaloriesToday.value = consumed.calories ?? 0
     consumedProteinToday.value = consumed.proteinG ?? 0
   }
 
   /**
    * Sets the user's home city.
-   * @param {string} cityId
+   * @param {number|string} cityId
    * @param {string} cityName
    */
   function setHomeCity(cityId, cityName) {
@@ -391,33 +483,49 @@ export const useSmartRecommendationsStore = defineStore('smart-recommendations',
   }
 
   /**
-   * Activates travel mode with a different city.
-   * @param {string} cityId
+   * Activates travel mode with a different city. Persists it server-side (which regenerates the
+   * user's recommendations for that city) and then refreshes the feed.
+   * @param {string|number} userId
+   * @param {number|string} cityId
    * @param {string} cityName
+   * @returns {Promise<void>}
    */
-  function enableTravelMode(cityId, cityName) {
-    travelCityId.value = cityId
-    travelCityName.value = cityName
-    travelModeActive.value = true
+  function enableTravelMode(userId, cityId, cityName) {
+    return smartRecommendationsApi.enableTravelMode(userId, cityId)
+      .then(() => {
+        travelCityId.value = cityId
+        travelCityName.value = cityName
+        travelModeActive.value = true
+        fetchRecommendations(userId)
+      })
+      .catch(error => errors.value.push(error))
   }
 
   /**
-   * Deactivates travel mode and reverts to home city.
+   * Deactivates travel mode (reverts to current/home city) and refreshes the feed.
+   * @param {string|number} userId
+   * @returns {Promise<void>}
    */
-  function disableTravelMode() {
-    travelModeActive.value = false
-    travelCityId.value = null
-    travelCityName.value = ''
+  function disableTravelMode(userId) {
+    return smartRecommendationsApi.disableTravelMode(userId)
+      .then(() => {
+        travelModeActive.value = false
+        travelCityId.value = null
+        travelCityName.value = ''
+        fetchRecommendations(userId)
+      })
+      .catch(error => errors.value.push(error))
   }
 
   /**
    * Deducts the ingredients of a logged recipe from the user's pantry.
-   * Each ingredient quantity is scaled by the number of servings.
-   * Items that reach zero or below are removed; others are patched with the remaining amount.
    * @param {ReturnType<import('../domain/model/recipe.entity.js').Recipe>} recipe
    * @param {number} servings
    */
   function deductRecipeFromPantry(recipe, servings) {
+    const userId = pantryUserId.value
+    if (!userId) return
+
     const ops = recipe.ingredients.map(ing => {
       const needed = ing.quantity * servings
       const pantryItem = pantryItems.value.find(p => p.ingredientId === ing.ingredientId)
@@ -427,16 +535,13 @@ export const useSmartRecommendationsStore = defineStore('smart-recommendations',
 
       if (remaining > 0) {
         const newUnit = pantryItem.normalizedUnit()
-        return smartRecommendationsApi.patchPantryItem(pantryItem.id, { quantity: remaining, unit: newUnit })
+        return smartRecommendationsApi.patchPantryItem(userId, pantryItem.id, { quantity: remaining, unit: newUnit })
           .then(response => {
-            const updated = PantryItemAssembler.toEntityFromResource(response.data)
-            if (updated) {
-              pantryItems.value = pantryItems.value.map(p => p.id === pantryItem.id ? updated : p)
-            }
+            pantryItems.value = PantryItemAssembler.toEntitiesFromResponse(response)
           })
       }
 
-      return smartRecommendationsApi.deletePantryItem(pantryItem.id)
+      return smartRecommendationsApi.deletePantryItem(userId, pantryItem.id)
         .then(() => {
           pantryItems.value = pantryItems.value.filter(p => p.id !== pantryItem.id)
         })
@@ -444,6 +549,9 @@ export const useSmartRecommendationsStore = defineStore('smart-recommendations',
 
     Promise.all(ops).catch(error => errors.value.push(error))
   }
+
+  // Auto-load weather whenever the active city changes (home ↔ travel ↔ filter).
+  watch(activeCityId, id => fetchWeather(id), { immediate: true })
 
   on(NUTRITION_LOG_ADDED, ({ dailyMacros }) => {
     consumedCaloriesToday.value = dailyMacros.calories ?? 0
@@ -460,9 +568,8 @@ export const useSmartRecommendationsStore = defineStore('smart-recommendations',
   }
 
   /**
-   * Stores the user's dietary restrictions and medical conditions for conflict detection.
-   * @param {string[]} restrictions - dietary restriction values (e.g. 'gluten-free')
-   * @param {string[]} conditions   - medical condition values (e.g. 'coeliac-disease')
+   * @param {string[]} restrictions
+   * @param {string[]} conditions
    */
   function setUserRestrictions(restrictions, conditions) {
     userRestrictions.value = restrictions ?? []
@@ -475,11 +582,14 @@ export const useSmartRecommendationsStore = defineStore('smart-recommendations',
     pantryItems,
     cities,
     ingredientCatalog,
+    weatherByCity,
     travelModeActive,
     homeCityId,
     homeCityName,
     travelCityId,
     travelCityName,
+    currentCityId,
+    currentCityName,
     userGoal,
     activeFilters,
     recommendationsLoaded,
@@ -491,6 +601,7 @@ export const useSmartRecommendationsStore = defineStore('smart-recommendations',
     activeCityId,
     activeCityName,
     activeCity,
+    currentWeather,
     homeCity,
     filteredRecommendations,
     feedRecipes,
@@ -508,6 +619,10 @@ export const useSmartRecommendationsStore = defineStore('smart-recommendations',
     updatePantryQuantity,
     deductRecipeFromPantry,
     fetchCities,
+    fetchWeather,
+    searchCities,
+    importCity,
+    detectLocation,
     fetchIngredientCatalog,
     setFilters,
     clearFilters,
