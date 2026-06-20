@@ -25,7 +25,7 @@ const subStore       = useSubscriptionsBillingStore()
 const activityStore  = useActivityWearableStore()
 
 const { logsByMealType, dailyCaloriesConsumed, dailyMacros,
-        selectedDate, isViewingToday, logsLoaded, foods,
+        selectedDate, isViewingToday, logsLoaded,
         scanDishLoading, scanMenuLoading, dishScanResult, menuScanResult } = toRefs(nutritionStore)
 
 const { todayCaloriesBurned } = toRefs(activityStore)
@@ -38,7 +38,6 @@ onMounted(() => {
   if (route.query.tab === 'smart-scan') activeTab.value = 'smart-scan'
   if (!userId) return
   nutritionStore.fetchLogs(userId)
-  nutritionStore.fetchFoods()
   bodyStore.fetchUserGoal(userId)
   activityStore.fetchActivityLogs(userId)
   if (!currentUser.value) iamStore.fetchCurrentUser(userId)
@@ -65,8 +64,8 @@ const isAtMinDate = computed(() => {
 const activeTab = ref('daily-log')
 
 /* Access */
-const canScanDish = computed(() => subStore.hasAccess('smart-scan'))
-const canScanMenu = computed(() => subStore.hasAccess('menu-scan'))
+const canScanDish = computed(() => subStore.hasAccess('smart-scan-dish'))
+const canScanMenu = computed(() => subStore.hasAccess('smart-scan-menu'))
 
 const nlTabs = computed(() => [
   { value: 'daily-log',  label: t('nutrition.title'),    icon: 'pi-calendar' },
@@ -86,11 +85,18 @@ const dateLabel = computed(() => {
 })
 
 /* Goal */
-const calorieGoal = computed(() => bodyStore.userGoal?.dailyCalorieTarget ?? 1911)
-const proteinGoal = computed(() => bodyStore.userGoal?.macroTargets?.proteinG ?? 112)
-const carbsGoal   = computed(() => bodyStore.userGoal?.macroTargets?.carbsG   ?? 247)
-const fatGoal     = computed(() => bodyStore.userGoal?.macroTargets?.fatG     ?? 53)
-const fiberGoal   = computed(() => bodyStore.userGoal?.macroTargets?.fiberG   ?? 25)
+/**
+ * Whether the user has a real, persisted nutrition goal. When false the targets
+ * below are placeholders only: the server has no goal, so the day can never count
+ * toward the streak and the UI must say "set your goal" rather than "on track".
+ * @type {import('vue').ComputedRef<boolean>}
+ */
+const hasGoal     = computed(() => !!bodyStore.userGoal)
+const calorieGoal = computed(() => bodyStore.userGoal?.macroTargets?.dailyCalorieTarget ?? 1911)
+const proteinGoal = computed(() => bodyStore.userGoal?.macroTargets?.proteinTargetG     ?? 112)
+const carbsGoal   = computed(() => bodyStore.userGoal?.macroTargets?.carbsTargetG       ?? 247)
+const fatGoal     = computed(() => bodyStore.userGoal?.macroTargets?.fatTargetG         ?? 53)
+const fiberGoal   = computed(() => bodyStore.userGoal?.macroTargets?.fiberTargetG       ?? 25)
 const remaining      = computed(() =>
   Math.max(0, calorieGoal.value - dailyCaloriesConsumed.value + todayCaloriesBurned.value)
 )
@@ -113,7 +119,8 @@ watch([calorieGoal, proteinGoal], ([cal, prot]) => nutritionStore.setGoals(cal, 
 
 /** @type {import('vue').ComputedRef<boolean>} */
 const streakMet = computed(() =>
-  nutritionStore.evaluateStreakMet(calorieGoal.value, proteinGoal.value)
+  // Without a real goal the backend cannot advance the streak, so never claim it is met.
+  hasGoal.value && nutritionStore.evaluateStreakMet(calorieGoal.value, proteinGoal.value)
 )
 
 /**
@@ -122,6 +129,7 @@ const streakMet = computed(() =>
  */
 const streakBlockReason = computed(() => {
   if (!isViewingToday.value || !logsLoaded.value || streakMet.value) return null
+  if (!hasGoal.value) return 'nutrition.streakNoGoal'
   const hasMeals = ['breakfast', 'lunch', 'dinner'].every(
     m => (logsByMealType.value[m]?.length ?? 0) > 0
   )
@@ -143,10 +151,11 @@ const editGrams       = ref(100)
 
 const detailMacros = computed(() => selectedLog.value?.macros() ?? null)
 
-const editFood = computed(() =>
-  selectedLog.value ? foods.value.find(f => f.id === selectedLog.value.foodId) ?? null : null
-)
-const editLiveMacros  = computed(() => editFood.value?.macrosForQuantity(editGrams.value ?? 0) ?? null)
+const editLiveMacros = computed(() => {
+  if (!selectedLog.value || !editGrams.value) return null
+  const ratio = editGrams.value / (selectedLog.value.quantityG || 100)
+  return selectedLog.value.macros().scale(ratio)
+})
 const editLiveKcal    = computed(() => Math.round(editLiveMacros.value?.calories ?? 0))
 const editLiveProtein = computed(() => Math.round((editLiveMacros.value?.proteinG ?? 0) * 10) / 10)
 const editLiveCarbs   = computed(() => Math.round((editLiveMacros.value?.carbsG   ?? 0) * 10) / 10)
@@ -186,16 +195,14 @@ const searchResults   = ref([])
 const pendingMealType = ref('breakfast')
 
 let debounceTimer = null
-/** Debounces food search input and filters the foods list against the translated keys. */
+/** Debounces food search input and fetches results from the API. */
 function onSearchInput() {
   clearTimeout(debounceTimer)
   debounceTimer = setTimeout(() => {
     const raw = searchQuery.value.trim()
     if (!raw) { searchResults.value = []; return }
-    const q = raw.toLowerCase()
-    searchResults.value = foods.value
-      .filter(f => t(f.key).toLowerCase().includes(q) || f.key.toLowerCase().includes(q))
-      .slice(0, 10)
+    nutritionStore.searchFoods(raw, locale.value)
+      .then(results => { searchResults.value = results })
   }, 250)
 }
 
@@ -323,12 +330,12 @@ function mealTotal(type) {
 }
 
 /**
- * Returns the translated food name from a log entry, falling back to the raw name.
- * @param {{ foodKey?: string, name?: string }} log
+ * Returns the localized food name from a log entry, falling back to a generic label.
+ * @param {{ displayName?: (locale: string) => string }} log
  * @returns {string}
  */
 function foodName(log) {
-  try { return log.foodKey ? t(log.foodKey) : (log.name ?? t('nutrition.unknownFood')) } catch { return log.name ?? t('nutrition.unknownFood') }
+  return log?.displayName?.(locale.value) || t('nutrition.unknownFood')
 }
 
 /**
@@ -382,23 +389,44 @@ function onFileChange(type, e) {
 }
 
 /**
- * Validates the image type and triggers the appropriate scan simulation.
+ * Reads an image File as a base64 data-URL.
+ * @param {File} file
+ * @returns {Promise<string>}
+ */
+function readFileAsDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload  = () => resolve(/** @type {string} */ (reader.result))
+    reader.onerror = () => reject(reader.error)
+    reader.readAsDataURL(file)
+  })
+}
+
+/**
+ * Validates the image type and triggers the appropriate backend scan (Gemini + DeepSeek).
  * @param {'dish'|'menu'} type
  * @param {File} file
  */
-function processScanFile(type, file) {
+async function processScanFile(type, file) {
   if (!file.type.match(/image\/(jpeg|png)/)) {
     toast.add({ severity: 'warn', summary: t('scan.invalidImageType'), life: 3000 })
     return
   }
-  if (type === 'dish') {
-    nutritionStore.simulateDishScan(file.name)
-  } else {
-    nutritionStore.simulateMenuScan(
-      file.name,
-      currentUser.value?.dietaryRestrictions ?? [],
-      currentUser.value?.medicalConditions ?? [],
-    )
+  try {
+    const imageBase64 = await readFileAsDataUrl(file)
+    if (type === 'dish') {
+      await nutritionStore.scanDish(userId, file.name, imageBase64)
+    } else {
+      await nutritionStore.scanMenu(
+        userId,
+        file.name,
+        imageBase64,
+        currentUser.value?.dietaryRestrictions ?? [],
+        currentUser.value?.medicalConditions ?? [],
+      )
+    }
+  } catch {
+    toast.add({ severity: 'error', summary: t('scan.scanError'), life: 3000 })
   }
 }
 
@@ -961,7 +989,7 @@ function processScanFile(type, file) {
           @keydown.enter="selectFood(food)"
         >
           <div class="search-item__info">
-            <span class="search-item__name">{{ t(food.key) }}</span>
+            <span class="search-item__name">{{ food.name }}</span>
             <span class="search-item__source">{{ food.source ?? '' }}</span>
           </div>
           <span class="search-item__kcal">{{ food.caloriesPer100g }} {{ t('nutrition.per100g') }}</span>
@@ -983,8 +1011,8 @@ function processScanFile(type, file) {
           {{ t('nutrition.addingTo') }}: <strong>{{ t(`meal.${addMealType}`) }}</strong>
         </p>
 
-        <div class="food-card" role="region" :aria-label="t(selectedFood.key)">
-          <div class="food-card__name">{{ t(selectedFood.key) }}</div>
+        <div class="food-card" role="region" :aria-label="selectedFood.name">
+          <div class="food-card__name">{{ selectedFood.name }}</div>
           <div class="food-card__base">
             {{ t('nutrition.base100g') }} ·
             {{ Math.round(baseMacros?.calories ?? 0) }} kcal ·

@@ -11,9 +11,16 @@ export class NutritionTrackingApi extends BaseApi {
     this.#foods = new BaseEndpoint(this, import.meta.env.VITE_FOODS_ENDPOINT)
   }
 
-  /** @returns {Promise<import('axios').AxiosResponse>} */
-  getLogs() {
-    return this.#nutritionLogs.getAll()
+  /**
+   * @param {number} userId
+   * @param {string} date - YYYY-MM-DD
+   * @returns {Promise<import('axios').AxiosResponse>}
+   */
+  getLogsByUserAndDate(userId, date) {
+    return this.http.get(
+      `${import.meta.env.VITE_NUTRITION_LOGS_ENDPOINT}/by-user/${userId}`,
+      { params: { date } },
+    )
   }
 
   /**
@@ -49,16 +56,46 @@ export class NutritionTrackingApi extends BaseApi {
     return this.#nutritionLogs.delete(id)
   }
 
-  /** @returns {Promise<import('axios').AxiosResponse>} */
-  getFoods() {
-    return this.#foods.getAll()
+  /**
+   * @param {string} query
+   * @param {string} [language]
+   * @returns {Promise<import('axios').AxiosResponse>}
+   */
+  searchFoods(query, language = 'en') {
+    return this.#foods.getWhere({ query, language })
   }
 
   /**
-   * @param {string} id
+   * @param {number} id
    * @returns {Promise<import('axios').AxiosResponse>}
    */
   getFoodById(id) {
     return this.#foods.getById(id)
+  }
+
+  /**
+   * Smart Scan — analyze a dish photo. Returns detected items with macros (does not persist a log).
+   * @param {number} userId
+   * @param {string} imageBase64OrUri - base64 (with or without data-URL prefix)
+   * @returns {Promise<import('axios').AxiosResponse>}
+   */
+  scanDish(userId, imageBase64OrUri) {
+    return this.http.post(
+      `${import.meta.env.VITE_NUTRITION_LOGS_ENDPOINT}/scan-dish`,
+      { userId: Number(userId), imageBase64OrUri },
+    )
+  }
+
+  /**
+   * Smart Scan — analyze a menu photo. Returns the available options with macros (does not persist a log).
+   * @param {number} userId
+   * @param {string} imageBase64OrUri - base64 (with or without data-URL prefix)
+   * @returns {Promise<import('axios').AxiosResponse>}
+   */
+  scanMenu(userId, imageBase64OrUri) {
+    return this.http.post(
+      `${import.meta.env.VITE_NUTRITION_LOGS_ENDPOINT}/scan-menu`,
+      { userId: Number(userId), imageBase64OrUri },
+    )
   }
 }

@@ -8,7 +8,8 @@ import { toLocalDateString } from '../../../shared/infrastructure/date-utils.js'
  * @property {string} id
  * @property {string} userId
  * @property {string} foodId
- * @property {string} foodKey
+ * @property {string} nameEn - food name in English
+ * @property {string} nameEs - food name in Spanish
  * @property {import('./meal-type.record.js').MealTypeValue} mealType
  * @property {string} date - YYYY-MM-DD
  * @property {number} quantityG
@@ -31,12 +32,25 @@ export function NutritionLog(props) {
     id: props.id,
     userId: props.userId,
     foodId: props.foodId,
-    foodKey: props.foodKey,
+    nameEn: props.nameEn,
+    nameEs: props.nameEs,
     mealType,
     date: props.date,
     quantityG: props.quantityG,
     source,
     loggedAt: props.loggedAt,
+
+    /**
+     * Returns the food name for the given locale, falling back to the other
+     * language so there is always a readable label.
+     * @param {string} [locale]
+     * @returns {string}
+     */
+    displayName(locale = 'en') {
+      return locale?.startsWith('es')
+        ? (props.nameEs || props.nameEn || '')
+        : (props.nameEn || props.nameEs || '')
+    },
 
     /** @returns {ReturnType<typeof Macros>} */
     macros() {
@@ -57,6 +71,6 @@ export function NutritionLog(props) {
      */
     isOnDate(date) { return props.date === date },
     /** @returns {boolean} */
-    isFromSmartScan() { return source.isSmartScan() },
+    isFromScan() { return source.isScanDish() || source.isScanMenu() },
   })
 }

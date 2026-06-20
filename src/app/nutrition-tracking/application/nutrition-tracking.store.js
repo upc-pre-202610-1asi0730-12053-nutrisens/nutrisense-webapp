@@ -1,6 +1,6 @@
 // PATH: src/app/nutrition-tracking/application/nutrition-tracking.store.js
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { NutritionTrackingApi } from '../infrastructure/nutrition-tracking.api.js'
 import { NutritionLogAssembler } from '../infrastructure/nutrition-log.assembler.js'
 import { FoodAssembler } from '../infrastructure/food.assembler.js'
@@ -11,6 +11,7 @@ import { NUTRITION_LOG_ADDED, GOAL_UPDATED } from '../../shared/domain/events/ev
 import { toLocalDateString } from '../../shared/infrastructure/date-utils.js'
 import { conflictingFlags } from '../domain/services/food-restriction.service.js'
 import { isStreakDayMet } from '../domain/services/streak-criteria.service.js'
+import i18n from '../../../i18n.js'
 
 const nutritionTrackingApi = new NutritionTrackingApi()
 
@@ -24,7 +25,8 @@ export const useNutritionTrackingStore = defineStore('nutrition-tracking', () =>
   const foods = ref([])
   const selectedDate = ref(new Date())
   const logsLoaded = ref(false)
-  const foodsLoaded = ref(false)
+  /** Tracks the last userId used to fetch logs so date changes can re-fetch automatically. */
+  const _currentUserId = ref('')
   const scanDishLoading = ref(false)
   const scanMenuLoading = ref(false)
   /**
@@ -50,13 +52,11 @@ export const useNutritionTrackingStore = defineStore('nutrition-tracking', () =>
   const proteinGoal = ref(0)
 
   /**
-   * Logs matching the currently selected date.
+   * Logs for the currently selected date.
+   * The server already filters by date, so this is a direct passthrough.
    * @type {import('vue').ComputedRef<ReturnType<import('../domain/model/nutrition-log.entity.js').NutritionLog>[]>}
    */
-  const logsForSelectedDate = computed(() => {
-    const target = toLocalDateString(selectedDate.value)
-    return logs.value.filter(l => l.isOnDate(target))
-  })
+  const logsForSelectedDate = computed(() => logs.value)
 
   /**
    * Logs grouped by meal type for the selected date.
@@ -142,30 +142,40 @@ export const useNutritionTrackingStore = defineStore('nutrition-tracking', () =>
   }
 
   /**
-   * Loads all nutrition logs for a given user.
-   * @param {string} userId
+   * Loads nutrition logs for a given user on the currently selected date.
+   * Captures userId so that date changes trigger an automatic re-fetch.
+   * @param {string|number} userId
    */
   function fetchLogs(userId) {
-    nutritionTrackingApi.getLogs()
+    _currentUserId.value = String(userId)
+    const date = toLocalDateString(selectedDate.value)
+    nutritionTrackingApi.getLogsByUserAndDate(userId, date)
       .then(response => {
-        const all = NutritionLogAssembler.toEntitiesFromResponse(response)
-        logs.value = all.filter(l => l.userId === userId)
+        logs.value = NutritionLogAssembler.toEntitiesFromResponse(response)
         logsLoaded.value = true
         _onConsumptionUpdated()
       })
       .catch(error => errors.value.push(error))
   }
 
+  watch(selectedDate, () => {
+    if (_currentUserId.value) fetchLogs(_currentUserId.value)
+  })
+
   /**
-   * Loads the full food catalogue.
+   * Searches the food catalogue by query string.
+   * Populates `foods` with results (used by scan simulations and the search dialog).
+   * @param {string} query
+   * @param {string} [language]
+   * @returns {Promise<ReturnType<import('../domain/model/food.entity.js').Food>[]>}
    */
-  function fetchFoods() {
-    nutritionTrackingApi.getFoods()
+  function searchFoods(query, language = 'en') {
+    return nutritionTrackingApi.searchFoods(query, language)
       .then(response => {
-        foods.value = FoodAssembler.toEntitiesFromResponse(response)
-        foodsLoaded.value = true
+        foods.value = FoodAssembler.toEntitiesFromResponse(response, language)
+        return foods.value
       })
-      .catch(error => errors.value.push(error))
+      .catch(error => { errors.value.push(error); return [] })
   }
 
   /**
@@ -177,11 +187,8 @@ export const useNutritionTrackingStore = defineStore('nutrition-tracking', () =>
    * @param {string} sourceName
    */
   function addToLog(userId, foodId, grams, mealTypeName, sourceName) {
-    const food = foods.value.find(f => f.id === foodId)
-    if (!food) { errors.value.push(new Error('Food not found')); return }
-
     const resource = NutritionLogAssembler.toResource(
-      userId, food, grams, mealTypeName, sourceName, toLocalDateString(selectedDate.value),
+      userId, foodId, grams, mealTypeName, sourceName, toLocalDateString(selectedDate.value),
     )
 
     nutritionTrackingApi.createLog(resource)
@@ -223,17 +230,9 @@ export const useNutritionTrackingStore = defineStore('nutrition-tracking', () =>
   function updateLogQuantity(logId, newGrams) {
     const log = logs.value.find(l => l.id === logId)
     if (!log) return
-    const food = foods.value.find(f => f.id === log.foodId)
-    if (!food) return
-    const macros = food.macrosForQuantity(newGrams)
     nutritionTrackingApi.updateLog(logId, {
+      userId:    log.userId,
       quantityG: newGrams,
-      calories:  macros.calories,
-      proteinG:  macros.proteinG,
-      carbsG:    macros.carbsG,
-      fatG:      macros.fatG,
-      fiberG:    macros.fiberG,
-      sugarG:    macros.sugarG,
     })
       .then(response => {
         const updated = NutritionLogAssembler.toEntityFromResponse(response)
@@ -295,55 +294,109 @@ export const useNutritionTrackingStore = defineStore('nutrition-tracking', () =>
   }
 
   /**
-   * Simulates a dish scan with a 1.8 s delay, detecting 2–3 random foods with estimated portions.
-   * @param {string} imageName
+   * Maps a backend scan item (dish item / menu option) to a Food entity. AI-estimated items don't
+   * carry fiber/sugar, so those default to 0; `key` is set to the English name so the UI shows a
+   * readable label when no i18n translation exists.
+   * @param {Object} item
+   * @returns {ReturnType<import('../domain/model/food.entity.js').Food>|null}
    */
-  function simulateDishScan(imageName) {
+  function _scanItemToFood(item) {
+    const locale = i18n.global.locale.value
+    return FoodAssembler.toEntityFromResource({
+      id: item.foodId,
+      key: item.nameEn,
+      nameEn: item.nameEn,
+      nameEs: item.nameEs,
+      source: item.isEstimate ? 'ai-estimate' : 'catalog',
+      externalId: null,
+      servingSizeG: 100,
+      servingUnit: 'g',
+      caloriesPer100g: item.caloriesPer100g,
+      proteinPer100g: item.proteinPer100g,
+      carbsPer100g: item.carbsPer100g,
+      fatPer100g: item.fatPer100g,
+      fiberPer100g: item.fiberPer100g ?? 0,
+      sugarPer100g: item.sugarPer100g ?? 0,
+      restrictions: item.restrictions ?? [],
+    }, locale)
+  }
+
+  /**
+   * Scans a dish photo via the backend (Gemini + DeepSeek), resolving each detected item to a food
+   * and aggregating its macros. An empty `detectedItems` list signals the "no dishes detected"
+   * fallback to the result view.
+   * @param {string} userId
+   * @param {string} imageName
+   * @param {string} imageBase64OrUri
+   * @returns {Promise<void>}
+   */
+  async function scanDish(userId, imageName, imageBase64OrUri) {
     scanDishLoading.value = true
     dishScanResult.value  = null
-    setTimeout(() => {
-      const shuffled = [...foods.value].sort(() => Math.random() - 0.5)
-      const count    = 2 + Math.floor(Math.random() * 2)
-      const detectedItems = shuffled.slice(0, count).map(food => {
-        const base          = food.servingSizeG > 0 ? food.servingSizeG : 100
-        const estimatedGrams = Math.round((base * (0.7 + Math.random() * 0.6)) / 5) * 5
-        const confidence     = Math.round((0.72 + Math.random() * 0.26) * 100) / 100
-        return { food, estimatedGrams, confidence }
-      })
-      const zero       = Macros({ calories: 0, proteinG: 0, carbsG: 0, fatG: 0 })
+    try {
+      const response = await nutritionTrackingApi.scanDish(userId, imageBase64OrUri)
+      const items = Array.isArray(response.data?.items) ? response.data.items : []
+      const detectedItems = items
+        .map(item => {
+          const food = _scanItemToFood(item)
+          if (!food) return null
+          return {
+            food,
+            estimatedGrams: Math.round(item.estimatedQuantityG ?? 100),
+            confidence: item.isEstimate ? 0.75 : 1,
+          }
+        })
+        .filter(Boolean)
+      const zero        = Macros({ calories: 0, proteinG: 0, carbsG: 0, fatG: 0 })
       const totalMacros = detectedItems.reduce(
         (acc, { food, estimatedGrams }) => acc.add(food.macrosForQuantity(estimatedGrams)),
         zero,
       )
-      dishScanResult.value  = { imageName, detectedItems, totalMacros }
+      dishScanResult.value = { imageName, detectedItems, totalMacros }
+    } catch (error) {
+      errors.value.push(error)
+      throw error
+    } finally {
       scanDishLoading.value = false
-    }, 1800)
+    }
   }
 
   /**
-   * Simulates a menu scan with a 1.8 s delay, ranking foods by health score and restriction safety.
+   * Scans a menu photo via the backend (Gemini + DeepSeek), resolving each dish to a food and
+   * ranking the options by restriction safety and health score. An empty `recommendations` list
+   * signals the "no menu detected" fallback to the result view.
+   * @param {string} userId
    * @param {string} imageName
+   * @param {string} imageBase64OrUri
    * @param {string[]} dietaryRestrictions
    * @param {string[]} medicalConditions
+   * @returns {Promise<void>}
    */
-  function simulateMenuScan(imageName, dietaryRestrictions, medicalConditions) {
+  async function scanMenu(userId, imageName, imageBase64OrUri, dietaryRestrictions, medicalConditions) {
     scanMenuLoading.value = true
     menuScanResult.value  = null
-    setTimeout(() => {
-      const shuffled = [...foods.value].sort(() => Math.random() - 0.5).slice(0, 12)
-      const recommendations = shuffled
-        .map(food => {
+    try {
+      const response = await nutritionTrackingApi.scanMenu(userId, imageBase64OrUri)
+      const options = Array.isArray(response.data?.options) ? response.data.options : []
+      const recommendations = options
+        .map(option => {
+          const food = _scanItemToFood(option)
+          if (!food) return null
           const flags = conflictingFlags(food, dietaryRestrictions, medicalConditions)
           return { food, score: food.healthScore(), flags, isSafe: flags.length === 0 }
         })
+        .filter(Boolean)
         .sort((a, b) => {
           if (a.isSafe !== b.isSafe) return a.isSafe ? -1 : 1
           return b.score - a.score
         })
-        .slice(0, 8)
-      menuScanResult.value  = { imageName, recommendations }
+      menuScanResult.value = { imageName, recommendations }
+    } catch (error) {
+      errors.value.push(error)
+      throw error
+    } finally {
       scanMenuLoading.value = false
-    }, 1800)
+    }
   }
 
   /** Resets dish scan state to allow a new scan. */
@@ -407,7 +460,6 @@ export const useNutritionTrackingStore = defineStore('nutrition-tracking', () =>
     foods,
     selectedDate,
     logsLoaded,
-    foodsLoaded,
     scanDishLoading,
     scanMenuLoading,
     dishScanResult,
@@ -420,14 +472,14 @@ export const useNutritionTrackingStore = defineStore('nutrition-tracking', () =>
     recentFoodIds,
     isViewingToday,
     fetchLogs,
-    fetchFoods,
+    searchFoods,
     addToLog,
     addEstimatedToLog,
     addRecipeToLog,
     updateLogQuantity,
     removeFromLog,
-    simulateDishScan,
-    simulateMenuScan,
+    scanDish,
+    scanMenu,
     resetDishScan,
     resetMenuScan,
     setSelectedDate,

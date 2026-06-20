@@ -1,10 +1,10 @@
-/** @typedef {'manual' | 'smart-scan' | 'recipe'} LogSourceValue */
+/** @typedef {'manual' | 'scan-dish' | 'scan-menu'} LogSourceValue */
 
-export const MANUAL = 'manual'
-export const SMART_SCAN = 'smart-scan'
-export const RECIPE = 'recipe'
+export const MANUAL    = 'manual'
+export const SCAN_DISH = 'scan-dish'
+export const SCAN_MENU = 'scan-menu'
 
-const VALID = new Set([MANUAL, SMART_SCAN, RECIPE])
+const VALID = new Set([MANUAL, SCAN_DISH, SCAN_MENU])
 
 /** @param {LogSourceValue} value */
 export function LogSource(value) {
@@ -12,10 +12,10 @@ export function LogSource(value) {
   return Object.freeze({
     value,
     /** @returns {boolean} */
-    isManual() { return value === MANUAL },
+    isManual()   { return value === MANUAL },
     /** @returns {boolean} */
-    isSmartScan() { return value === SMART_SCAN },
+    isScanDish() { return value === SCAN_DISH },
     /** @returns {boolean} */
-    isRecipe() { return value === RECIPE },
+    isScanMenu() { return value === SCAN_MENU },
   })
 }

@@ -4,6 +4,7 @@ import { Macros } from '../../../shared/domain/model/macros.record.js'
  * @typedef {Object} FoodProps
  * @property {string} id
  * @property {string} key
+ * @property {string} name - display name already resolved to the active locale
  * @property {'usda' | 'open-food-facts'} source
  * @property {string|null} externalId
  * @property {number} servingSizeG
@@ -22,6 +23,7 @@ export function Food(props) {
   return Object.freeze({
     id: props.id,
     key: props.key,
+    name: props.name,
     source: props.source,
     externalId: props.externalId,
     servingSizeG: props.servingSizeG,
