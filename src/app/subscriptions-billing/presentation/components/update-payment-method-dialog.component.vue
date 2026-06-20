@@ -1,8 +1,8 @@
 <!-- PATH: src/app/subscriptions-billing/presentation/components/update-payment-method-dialog.component.vue -->
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { PaymentMethod } from '../../domain/model/payment-method.entity.js'
+import { useStripeCard } from '../../../shared/infrastructure/use-stripe-card.js'
 
 const { t } = useI18n()
 
@@ -11,76 +11,41 @@ const props = defineProps({
   loading: { type: Boolean, default: false },
 })
 
+/**
+ * Emits:
+ *   update:visible  — closes the dialog
+ *   submit          — { stripePaymentMethodId: string, cardMeta: CardMeta }
+ */
 const emit = defineEmits(['update:visible', 'submit'])
 
-const cardNumber = ref('')
-const cardholderName = ref('')
-const expiry = ref('')
-const cvv = ref('')
+const cardElementRef  = ref(null)
+const cardholderName  = ref('')
+const nameError       = ref('')
 
-/** @type {import('vue').Ref<Record<string, string>>} */
-const fieldErrors = ref({})
+const stripeCard = useStripeCard()
 
-const detectedBrand = computed(() => PaymentMethod.detectBrand(cardNumber.value))
-
-watch(() => props.visible, (val) => {
-  if (val) {
-    cardNumber.value = ''
+// Mount / destroy CardElement when the dialog opens / closes
+watch(() => props.visible, async (open) => {
+  if (open) {
     cardholderName.value = ''
-    expiry.value = ''
-    cvv.value = ''
-    fieldErrors.value = {}
+    nameError.value = ''
+    await nextTick()
+    await stripeCard.mount(cardElementRef.value)
+  } else {
+    stripeCard.destroy()
   }
 })
 
-/** @param {Event} e */
-function onCardInput(e) {
-  const raw = e.target.value.replace(/\D/g, '').slice(0, 16)
-  cardNumber.value = raw.replace(/(.{4})/g, '$1 ').trim()
-}
+async function handleSubmit() {
+  nameError.value = cardholderName.value.trim() ? '' : t('checkout.errorName')
+  if (nameError.value) return
 
-/** @param {Event} e */
-function onExpiryInput(e) {
-  let raw = e.target.value.replace(/\D/g, '').slice(0, 4)
-  if (raw.length > 2) raw = raw.slice(0, 2) + '/' + raw.slice(2)
-  expiry.value = raw
-}
-
-function validate() {
-  const errors = {}
-  const digits = cardNumber.value.replace(/\D/g, '')
-  if (digits.length !== 16) errors.cardNumber = t('checkout.errorCardNumber')
-
-  const [mm, yy] = expiry.value.split('/')
-  const month = parseInt(mm, 10)
-  const year = 2000 + parseInt(yy ?? '0', 10)
-  const now = new Date()
-  if (!mm || !yy || month < 1 || month > 12 || year < now.getFullYear() ||
-      (year === now.getFullYear() && month < now.getMonth() + 1)) {
-    errors.expiry = t('checkout.errorExpiry')
+  try {
+    const result = await stripeCard.createPaymentMethod(cardholderName.value.trim())
+    emit('submit', result)
+  } catch {
+    // stripeCard.stripeError is already set reactively
   }
-
-  const isAmex = detectedBrand.value === 'amex'
-  if (cvv.value.replace(/\D/g, '').length < (isAmex ? 4 : 3)) {
-    errors.cvv = t('checkout.errorCvv')
-  }
-
-  if (!cardholderName.value.trim()) errors.cardholderName = t('checkout.errorName')
-
-  fieldErrors.value = errors
-  return Object.keys(errors).length === 0
-}
-
-function handleSubmit() {
-  if (!validate()) return
-  const [mm, yy] = expiry.value.split('/')
-  emit('submit', {
-    cardNumber: cardNumber.value.replace(/\D/g, ''),
-    cardholderName: cardholderName.value.trim(),
-    expiryMonth: parseInt(mm, 10),
-    expiryYear: 2000 + parseInt(yy, 10),
-    cvv: cvv.value,
-  })
 }
 
 function handleClose() {
@@ -98,27 +63,7 @@ function handleClose() {
     @update:visible="handleClose"
   >
     <div class="card-form">
-      <div class="card-form__field">
-        <label class="card-form__label" for="upm-card-number">{{ t('checkout.cardNumber') }}</label>
-        <div class="card-form__input-wrap">
-          <pv-input-text
-            id="upm-card-number"
-            :value="cardNumber"
-            inputmode="numeric"
-            maxlength="19"
-            :placeholder="'1234 5678 9012 3456'"
-            :aria-label="t('checkout.cardNumber')"
-            :invalid="!!fieldErrors.cardNumber"
-            @input="onCardInput"
-          />
-          <span v-if="detectedBrand !== 'other'" class="card-form__brand" :aria-label="detectedBrand">
-            <i :class="detectedBrand === 'visa' ? 'pi pi-credit-card' : 'pi pi-credit-card'" aria-hidden="true" />
-            {{ detectedBrand }}
-          </span>
-        </div>
-        <small v-if="fieldErrors.cardNumber" class="card-form__error" role="alert">{{ fieldErrors.cardNumber }}</small>
-      </div>
-
+      <!-- Cardholder name stays in our DOM — not sensitive -->
       <div class="card-form__field">
         <label class="card-form__label" for="upm-name">{{ t('checkout.cardholderName') }}</label>
         <pv-input-text
@@ -126,40 +71,24 @@ function handleClose() {
           v-model="cardholderName"
           autocomplete="cc-name"
           :aria-label="t('checkout.cardholderName')"
-          :invalid="!!fieldErrors.cardholderName"
+          :invalid="!!nameError"
+          @input="nameError = ''"
         />
-        <small v-if="fieldErrors.cardholderName" class="card-form__error" role="alert">{{ fieldErrors.cardholderName }}</small>
+        <small v-if="nameError" class="card-form__error" role="alert">{{ nameError }}</small>
       </div>
 
-      <div class="card-form__row">
-        <div class="card-form__field">
-          <label class="card-form__label" for="upm-expiry">{{ t('checkout.expiry') }}</label>
-          <pv-input-text
-            id="upm-expiry"
-            :value="expiry"
-            inputmode="numeric"
-            maxlength="5"
-            placeholder="MM/YY"
-            :aria-label="t('checkout.expiry')"
-            :invalid="!!fieldErrors.expiry"
-            @input="onExpiryInput"
-          />
-          <small v-if="fieldErrors.expiry" class="card-form__error" role="alert">{{ fieldErrors.expiry }}</small>
-        </div>
-
-        <div class="card-form__field">
-          <label class="card-form__label" for="upm-cvv">{{ t('checkout.cvv') }}</label>
-          <pv-input-text
-            id="upm-cvv"
-            v-model="cvv"
-            inputmode="numeric"
-            :maxlength="detectedBrand === 'amex' ? 4 : 3"
-            placeholder="CVV"
-            :aria-label="t('checkout.cvv')"
-            :invalid="!!fieldErrors.cvv"
-          />
-          <small v-if="fieldErrors.cvv" class="card-form__error" role="alert">{{ fieldErrors.cvv }}</small>
-        </div>
+      <!-- Stripe CardElement: number + expiry + CVC in one secure iframe -->
+      <div class="card-form__field">
+        <label class="card-form__label">{{ t('checkout.cardNumber') }}</label>
+        <div
+          ref="cardElementRef"
+          class="stripe-card-element"
+          :class="{ 'stripe-card-element--error': stripeCard.stripeError.value }"
+          aria-label="Card number, expiry, and CVC"
+        />
+        <small v-if="stripeCard.stripeError.value" class="card-form__error" role="alert">
+          {{ stripeCard.stripeError.value }}
+        </small>
       </div>
 
       <p class="card-form__notice">
@@ -173,7 +102,7 @@ function handleClose() {
         :label="t('common.cancel')"
         severity="secondary"
         text
-        :disabled="loading"
+        :disabled="loading || stripeCard.stripeLoading.value"
         :aria-label="t('common.cancel')"
         @click="handleClose"
       />
@@ -181,7 +110,7 @@ function handleClose() {
         :label="t('profile.updateCard')"
         icon="pi pi-check"
         icon-pos="right"
-        :loading="loading"
+        :loading="loading || stripeCard.stripeLoading.value"
         :aria-label="t('profile.updateCard')"
         @click="handleSubmit"
       />
@@ -201,13 +130,6 @@ function handleClose() {
   display: flex;
   flex-direction: column;
   gap: 0.375rem;
-  flex: 1;
-}
-
-.card-form__row {
-  display: grid;
-  grid-template-columns: 1fr 100px;
-  gap: 1rem;
 }
 
 .card-form__label {
@@ -216,28 +138,21 @@ function handleClose() {
   color: var(--ns-text);
 }
 
-.card-form__input-wrap {
-  position: relative;
-  display: flex;
-  align-items: center;
+.stripe-card-element {
+  padding: 0.65rem 0.875rem;
+  border: 1.5px solid #d1d5db;
+  border-radius: 8px;
+  background: #fff;
+  transition: border-color 0.15s;
+  min-height: 42px;
 }
 
-.card-form__input-wrap .p-inputtext {
-  width: 100%;
-  padding-right: 5rem;
+.stripe-card-element:focus-within {
+  border-color: var(--ns-primary);
 }
 
-.card-form__brand {
-  position: absolute;
-  right: 0.75rem;
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--ns-text-muted);
-  text-transform: uppercase;
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-  pointer-events: none;
+.stripe-card-element--error {
+  border-color: var(--ns-danger);
 }
 
 .card-form__error {

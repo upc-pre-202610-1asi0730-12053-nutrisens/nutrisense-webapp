@@ -1,50 +1,79 @@
 <!-- PATH: src/app/subscriptions-billing/presentation/views/plan-selection.view.vue -->
 <script setup>
-import { ref, toRefs } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { useSubscriptionsBillingStore } from '../../application/subscriptions-billing.store.js'
 import { useIamStore } from '../../../iam/application/iam.store.js'
+import { useSubscriptionsBillingStore } from '../../application/subscriptions-billing.store.js'
 import { formatNum } from '../../../shared/infrastructure/format-utils.js'
+import { FEATURE_I18N, HIDDEN_PLAN_FEATURES } from '../feature-i18n.js'
 
 const { t } = useI18n()
 const router = useRouter()
-const billingStore = useSubscriptionsBillingStore()
 const iamStore = useIamStore()
-const { plans, plansLoaded, errors } = toRefs(billingStore)
+const billingStore = useSubscriptionsBillingStore()
 
 const userId = localStorage.getItem('ns_user_id') ?? ''
-const selectingPlanId = ref('')
+if (!iamStore.userLoaded) iamStore.fetchCurrentUser(userId)
 
-billingStore.fetchPlans()
-iamStore.fetchCurrentUser(userId)
+onMounted(() => {
+  if (!billingStore.plansLoaded) billingStore.fetchPlans()
+})
 
+// Display order for the marketing cards.
+const PLAN_RANK = { basic: 0, pro: 1, premium: 2 }
 
-/** @type {Record<string, string>} */
-const FEATURE_I18N = {
-  'nutrition-log':          'subscription.featureNutritionLog',
-  'basic-dashboard':        'subscription.featureBasicDashboard',
-  'bmi-calculator':         'subscription.featureBmiCalculator',
-  'smart-scan':             'subscription.featureSmartScan',
-  'travel-mode':            'subscription.featureTravelMode',
-  'weather-recommendations':'subscription.featureWeatherRecs',
-  'pantry-recipes':         'subscription.featurePantry',
-  'google-fit':             'subscription.featureGoogleFit',
-  'menu-scan':              'subscription.featureMenuScan',
-  'unlimited-history':      'subscription.featureUnlimitedHistory',
-  'pdf-reports':            'subscription.featurePdfReports',
-}
+const sortedPlans = computed(() =>
+  [...billingStore.plans].sort((a, b) => (PLAN_RANK[a.key] ?? 99) - (PLAN_RANK[b.key] ?? 99))
+)
 
 /**
- * Navigates to the checkout step for the chosen plan.
- * @param {string} planId - e.g. 'plan-pro'
+ * Plans prepared for the marketing cards: internal-only features are hidden,
+ * and each tier above the first is summarised as "Everything in {prev}" plus
+ * only the features it adds over the previous tier.
  */
-function handleSelectPlan(planId) {
-  selectingPlanId.value = planId
-  router.push({ name: 'checkout', query: { planId } })
+const displayPlans = computed(() =>
+  sortedPlans.value.map((plan, i) => {
+    const prev = i > 0 ? sortedPlans.value[i - 1] : null
+    const visible = keys => keys.filter(k => !HIDDEN_PLAN_FEATURES.has(k))
+    const features = prev
+      ? [`everything-in-${prev.key}`, ...visible(plan.featuresGainedOver(prev))]
+      : visible(plan.features)
+    return {
+      key: plan.key,
+      priceMonthly: plan.priceMonthly,
+      priceAnnual: plan.priceAnnual,
+      features,
+    }
+  })
+)
+
+const billingPeriod = ref('monthly')
+const billingOptions = [
+  { label: t('planSelection.monthly'), value: 'monthly' },
+  { label: t('planSelection.annual'),  value: 'annual' },
+]
+
+const selectingPlanKey = ref('')
+
+/** @param {string} featureKey */
+function featureText(featureKey) {
+  return t(FEATURE_I18N[featureKey] ?? featureKey)
 }
 
-/** Signs out and returns to login. */
+function annualTotal(plan) {
+  return plan.priceAnnual ?? plan.priceMonthly * 12 * 0.8
+}
+
+function displayPrice(plan) {
+  return billingPeriod.value === 'annual' ? annualTotal(plan) / 12 : plan.priceMonthly
+}
+
+function handleSelectPlan(planKey) {
+  selectingPlanKey.value = planKey
+  router.push({ name: 'checkout', query: { planKey, billingPeriod: billingPeriod.value } })
+}
+
 function handleLater() {
   iamStore.signOut()
   router.push({ name: 'login' })
@@ -58,28 +87,43 @@ function handleLater() {
       <h1 class="plan-selection-wrap__title">{{ t('planSelection.title') }}</h1>
       <p class="plan-selection-wrap__subtitle">{{ t('planSelection.subtitle') }}</p>
 
-      <div v-if="errors.length" class="plan-selection-error">{{ t('common.error') }}</div>
+      <div class="billing-toggle">
+        <pv-select-button
+          v-model="billingPeriod"
+          :options="billingOptions"
+          option-label="label"
+          option-value="value"
+          :aria-label="t('subscription.billingPeriod')"
+        />
+        <span v-if="billingPeriod === 'annual'" class="billing-toggle__savings">
+          {{ t('planSelection.annualSavings') }}
+        </span>
+      </div>
 
-      <div v-if="!plansLoaded" class="plan-grid">
-        <pv-skeleton v-for="n in 3" :key="n" height="360px" border-radius="12px" />
+      <div v-if="!billingStore.plansLoaded" class="plan-grid">
+        <pv-skeleton v-for="n in 3" :key="n" height="420px" border-radius="16px" />
       </div>
 
       <div v-else class="plan-grid">
         <div
-          v-for="plan in plans"
-          :key="plan.id"
+          v-for="plan in displayPlans"
+          :key="plan.key"
           class="plan-card"
-          :class="{ 'plan-card--featured': plan.id === 'plan-pro' }"
+          :class="{ 'plan-card--featured': plan.key === 'pro' }"
         >
-          <div v-if="plan.id === 'plan-pro'" class="plan-card__badge">
+          <div v-if="plan.key === 'pro'" class="plan-card__badge">
             {{ t('planSelection.recommended') }}
           </div>
 
-          <h2 class="plan-card__name">{{ t(plan.key) }}</h2>
+          <h2 class="plan-card__name">{{ t('plan.' + plan.key) }}</h2>
 
           <div class="plan-card__price">
-            <span class="plan-card__price-amount">${{ formatNum(plan.priceMonthly) }}</span>
+            <span class="plan-card__price-amount">${{ formatNum(displayPrice(plan)) }}</span>
             <span class="plan-card__price-period">{{ t('planSelection.perMonth') }}</span>
+          </div>
+
+          <div v-if="billingPeriod === 'annual'" class="plan-card__annual-note">
+            {{ t('planSelection.billedAnnually', { total: formatNum(annualTotal(plan)) }) }}
           </div>
 
           <ul class="plan-card__features" :aria-label="t('planSelection.includedFeatures')">
@@ -89,17 +133,17 @@ function handleLater() {
               class="plan-card__feature"
             >
               <i class="pi pi-check plan-card__feature-icon" aria-hidden="true" />
-              {{ t(FEATURE_I18N[feature] ?? feature) }}
+              {{ featureText(feature) }}
             </li>
           </ul>
 
           <pv-button
-            :label="t('planSelection.select', { plan: t(plan.key) })"
-            :loading="selectingPlanId === plan.id"
-            :disabled="!!selectingPlanId && selectingPlanId !== plan.id"
-            :outlined="plan.id !== 'plan-pro'"
+            :label="t('planSelection.select', { plan: t('plan.' + plan.key) })"
+            :loading="selectingPlanKey === plan.key"
+            :disabled="!!selectingPlanKey && selectingPlanKey !== plan.key"
+            :outlined="plan.key !== 'pro'"
             class="w-full mt-auto"
-            @click="handleSelectPlan(plan.id)"
+            @click="handleSelectPlan(plan.key)"
           />
         </div>
       </div>
@@ -154,7 +198,23 @@ function handleLater() {
   font-size: 0.9375rem;
   color: var(--ns-text-secondary);
   text-align: center;
-  margin: 0 0 2.5rem;
+  margin: 0 0 1.5rem;
+}
+
+.billing-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 2rem;
+}
+
+.billing-toggle__savings {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--ns-primary);
+  background: rgba(34, 197, 94, 0.1);
+  padding: 0.25rem 0.625rem;
+  border-radius: 999px;
 }
 
 .plan-grid {
@@ -210,7 +270,7 @@ function handleLater() {
   display: flex;
   align-items: baseline;
   gap: 0.25rem;
-  margin-bottom: 1.25rem;
+  margin-bottom: 0.375rem;
 }
 
 .plan-card__price-amount {
@@ -223,6 +283,12 @@ function handleLater() {
 .plan-card__price-period {
   font-size: 0.875rem;
   color: var(--ns-text-secondary);
+}
+
+.plan-card__annual-note {
+  font-size: 0.75rem;
+  color: var(--ns-text-secondary);
+  margin-bottom: 1rem;
 }
 
 .plan-card__features {
