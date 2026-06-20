@@ -17,19 +17,23 @@ const props = defineProps({
 
 const emit = defineEmits(['update:visible', 'confirm'])
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 
 /** @type {import('vue').Ref<'breakfast'|'lunch'|'snack'|'dinner'>} */
 const selectedMealType = ref('lunch')
 const grams = ref(100)
+/** Guards against double-submit: a second click before the dialog closes is ignored. */
+const submitting = ref(false)
 
 const mealTypes = ['breakfast', 'lunch', 'snack', 'dinner']
 
 /** @type {import('vue').ComputedRef<string>} */
 const dishName = computed(() => {
   if (!props.recommendation) return ''
-  if (props.recommendation.foodId && props.food) return t(props.food.key)
-  return t(props.recommendation.customFoodNameKey ?? '')
+  const name = locale.value.startsWith('es')
+    ? props.recommendation.foodNameEs
+    : props.recommendation.foodNameEn
+  return name || props.recommendation.foodNameEn || props.recommendation.foodNameEs || ''
 })
 
 /** @type {import('vue').ComputedRef<boolean>} */
@@ -67,12 +71,14 @@ watch(() => props.food, food => {
 watch(() => props.visible, open => {
   if (!open) return
   selectedMealType.value = 'lunch'
+  submitting.value = false
   if (props.food && props.food.servingSizeG > 0) grams.value = props.food.servingSizeG
   else grams.value = 100
 })
 
 function handleConfirm() {
-  if (!canLog.value) return
+  if (!canLog.value || submitting.value) return
+  submitting.value = true
   emit('confirm', {
     foodId: props.recommendation.foodId,
     grams: grams.value,
@@ -157,7 +163,7 @@ function handleConfirm() {
       <pv-button
         :label="t('recommendations.logDish')"
         icon="pi pi-check"
-        :disabled="!canLog"
+        :disabled="!canLog || submitting"
         @click="handleConfirm"
       />
     </template>

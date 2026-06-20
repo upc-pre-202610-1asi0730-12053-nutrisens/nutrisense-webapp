@@ -39,14 +39,16 @@ const deleteConfirmText = ref('')
 const canDelete = () => deleteConfirmText.value === 'DELETE'
 
 /**
- * Signs the user out and deletes their local session, then redirects to login.
+ * Calls DELETE /users/{id} via the store, then redirects to login.
  * Only proceeds if canDelete() is true.
  */
 function handleDeleteAccount() {
   if (!canDelete()) return
-  iamStore.signOut()
-  localStorage.removeItem('ns_user_id')
-  router.push({ name: 'login' })
+  iamStore.deleteAccount()
+    .then(() => router.push({ name: 'login' }))
+    .catch(() => {
+      toast.add({ severity: 'error', summary: t('common.error'), life: 3000 })
+    })
 }
 </script>
 

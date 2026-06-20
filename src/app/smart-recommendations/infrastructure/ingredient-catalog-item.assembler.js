@@ -10,10 +10,12 @@ export class IngredientCatalogItemAssembler {
       return IngredientCatalogItem({
         id: resource.id,
         key: resource.key,
+        nameEn: resource.nameEn ?? '',
+        nameEs: resource.nameEs ?? '',
         foodId: resource.foodId ?? null,
         category: resource.category,
         defaultUnit: resource.defaultUnit,
-        gramsPerUnit: resource.gramsPerUnit,
+        gramsPerUnit: resource.gramsPerUnit ?? null,
       })
     } catch (e) {
       console.error('[IngredientCatalogItemAssembler] failed to map resource', e)

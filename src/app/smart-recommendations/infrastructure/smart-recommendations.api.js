@@ -2,75 +2,77 @@ import { BaseApi } from '../../shared/infrastructure/base-api.js'
 import { BaseEndpoint } from '../../shared/infrastructure/base-endpoint.js'
 
 export class SmartRecommendationsApi extends BaseApi {
-  #recommendationCards
   #recipes
-  #pantry
   #cities
   #ingredientCatalog
 
   constructor() {
     super()
-    this.#recommendationCards = new BaseEndpoint(this, import.meta.env.VITE_RECOMMENDATION_CARDS_ENDPOINT)
     this.#recipes = new BaseEndpoint(this, import.meta.env.VITE_RECIPES_ENDPOINT)
-    this.#pantry = new BaseEndpoint(this, import.meta.env.VITE_PANTRY_ENDPOINT)
     this.#cities = new BaseEndpoint(this, import.meta.env.VITE_CITIES_ENDPOINT)
     this.#ingredientCatalog = new BaseEndpoint(this, import.meta.env.VITE_INGREDIENT_CATALOG_ENDPOINT)
   }
 
-  /** @returns {Promise<import('axios').AxiosResponse>} */
-  getRecommendations() {
-    return this.#recommendationCards.getAll()
-  }
-
   /**
-   * @param {string} id
+   * @param {string|number} userId
    * @returns {Promise<import('axios').AxiosResponse>}
    */
-  getRecommendationById(id) {
-    return this.#recommendationCards.getById(id)
-  }
-
-  /** @returns {Promise<import('axios').AxiosResponse>} */
-  getRecipes() {
-    return this.#recipes.getAll()
+  getRecommendationsByUser(userId) {
+    return this.http.get(`${import.meta.env.VITE_RECOMMENDATION_CARDS_ENDPOINT}/${userId}`)
   }
 
   /**
-   * @param {string} id
+   * @param {string} [goal]
+   * @returns {Promise<import('axios').AxiosResponse>}
+   */
+  getRecipes(goal) {
+    return goal
+      ? this.http.get(import.meta.env.VITE_RECIPES_ENDPOINT, { params: { goal } })
+      : this.#recipes.getAll()
+  }
+
+  /**
+   * @param {number} id
    * @returns {Promise<import('axios').AxiosResponse>}
    */
   getRecipeById(id) {
     return this.#recipes.getById(id)
   }
 
-  /** @returns {Promise<import('axios').AxiosResponse>} */
-  getPantryItems() {
-    return this.#pantry.getAll()
+  /**
+   * @param {string|number} userId
+   * @returns {Promise<import('axios').AxiosResponse>}
+   */
+  getPantryByUser(userId) {
+    return this.http.get(`${import.meta.env.VITE_PANTRY_ENDPOINT}/by-user/${userId}`)
   }
 
   /**
-   * @param {Object} resource
+   * @param {string|number} userId
+   * @param {Array<{ingredientCatalogItemId: number, quantity: number, unit: string}>} items
    * @returns {Promise<import('axios').AxiosResponse>}
    */
-  createPantryItem(resource) {
-    return this.#pantry.create(resource)
+  registerPantryItems(userId, items) {
+    return this.http.post(`${import.meta.env.VITE_PANTRY_ENDPOINT}/${userId}/items`, { items })
   }
 
   /**
-   * @param {string} id
-   * @param {Partial<{quantity: number, unit: string}>} patch
+   * @param {string|number} userId
+   * @param {number} itemId
    * @returns {Promise<import('axios').AxiosResponse>}
    */
-  patchPantryItem(id, patch) {
-    return this.#pantry.patch(id, patch)
+  deletePantryItem(userId, itemId) {
+    return this.http.delete(`${import.meta.env.VITE_PANTRY_ENDPOINT}/${userId}/items/${itemId}`)
   }
 
   /**
-   * @param {string} id
+   * @param {string|number} userId
+   * @param {number} id
+   * @param {{quantity: number, unit: string}} patch
    * @returns {Promise<import('axios').AxiosResponse>}
    */
-  deletePantryItem(id) {
-    return this.#pantry.delete(id)
+  patchPantryItem(userId, id, patch) {
+    return this.http.patch(`${import.meta.env.VITE_PANTRY_ENDPOINT}/${userId}/items/${id}`, patch)
   }
 
   /** @returns {Promise<import('axios').AxiosResponse>} */
@@ -79,11 +81,62 @@ export class SmartRecommendationsApi extends BaseApi {
   }
 
   /**
-   * @param {string} id
+   * Current weather for a city.
+   * @param {number} cityId
    * @returns {Promise<import('axios').AxiosResponse>}
    */
-  getCityById(id) {
-    return this.#cities.getById(id)
+  getWeatherByCity(cityId) {
+    return this.http.get(`${import.meta.env.VITE_CITIES_ENDPOINT}/${cityId}/weather`)
+  }
+
+  /**
+   * Searches cities by name (local catalog + OpenWeatherMap geocoding candidates).
+   * @param {string} q
+   * @param {number} [limit]
+   * @returns {Promise<import('axios').AxiosResponse>}
+   */
+  searchCities(q, limit = 5) {
+    return this.http.get(`${import.meta.env.VITE_CITIES_ENDPOINT}/search`, { params: { q, limit } })
+  }
+
+  /**
+   * Imports (or reuses) a geocoded city into the catalog; returns it with a real ID.
+   * @param {{ name: string, nameEn?: string, nameEs?: string, country: string, lat: number, lng: number }} candidate
+   * @returns {Promise<import('axios').AxiosResponse>}
+   */
+  importCity(candidate) {
+    return this.http.post(import.meta.env.VITE_CITIES_ENDPOINT, candidate)
+  }
+
+  /**
+   * Detects the user's current city from GPS coordinates (persists it server-side).
+   * @param {string|number} userId
+   * @param {number} lat
+   * @param {number} lng
+   * @returns {Promise<import('axios').AxiosResponse>}
+   */
+  detectLocation(userId, lat, lng) {
+    return this.http.post(`/location-preferences/${userId}/detect`, { lat, lng })
+  }
+
+  /**
+   * Enables travel mode for a city server-side, which also regenerates the user's recommendations
+   * for that city. Pro-gated on the backend.
+   * @param {string|number} userId
+   * @param {number} cityId
+   * @returns {Promise<import('axios').AxiosResponse>}
+   */
+  enableTravelMode(userId, cityId) {
+    return this.http.put(`/location-preferences/${userId}/travel-mode/enable`, { cityId })
+  }
+
+  /**
+   * Disables travel mode for a user server-side.
+   * @param {string|number} userId
+   * @returns {Promise<import('axios').AxiosResponse>}
+   */
+  disableTravelMode(userId) {
+    return this.http.put(`/location-preferences/${userId}/travel-mode/disable`)
   }
 
   /** @returns {Promise<import('axios').AxiosResponse>} */

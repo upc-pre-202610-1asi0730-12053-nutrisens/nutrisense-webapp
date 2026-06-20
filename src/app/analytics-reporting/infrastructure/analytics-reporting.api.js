@@ -1,36 +1,30 @@
 import { BaseApi } from '../../shared/infrastructure/base-api.js'
-import { BaseEndpoint } from '../../shared/infrastructure/base-endpoint.js'
 
 export class AnalyticsReportingApi extends BaseApi {
-  #streaks
-
-  constructor() {
-    super()
-    this.#streaks = new BaseEndpoint(this, import.meta.env.VITE_STREAK_ENDPOINT)
-  }
-
   /**
-   * @param {string} userId
+   * @param {number|string} userId
    * @returns {Promise<import('axios').AxiosResponse>}
    */
   getStreak(userId) {
-    return this.#streaks.getWhere({ userId })
+    return this.http.get(`/analytics/streaks/by-user/${userId}`)
   }
 
   /**
-   * @param {Object} resource
+   * @param {number|string} userId
+   * @param {string} date - YYYY-MM-DD
    * @returns {Promise<import('axios').AxiosResponse>}
    */
-  createStreak(resource) {
-    return this.#streaks.create(resource)
+  getDashboard(userId, date) {
+    return this.http.get(`/analytics/dashboard/by-user/${userId}`, { params: { date } })
   }
 
   /**
-   * @param {string} id
-   * @param {Object} resource
+   * @param {number|string} userId
+   * @param {string} from - YYYY-MM-DD
+   * @param {string} to - YYYY-MM-DD
    * @returns {Promise<import('axios').AxiosResponse>}
    */
-  updateStreak(id, resource) {
-    return this.#streaks.update(id, resource)
+  getProgress(userId, from, to) {
+    return this.http.get(`/analytics/progress/by-user/${userId}`, { params: { from, to } })
   }
 }

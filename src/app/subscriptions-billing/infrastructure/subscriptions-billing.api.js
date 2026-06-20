@@ -1,78 +1,65 @@
 import { BaseApi } from '../../shared/infrastructure/base-api.js'
-import { BaseEndpoint } from '../../shared/infrastructure/base-endpoint.js'
 
 export class SubscriptionsBillingApi extends BaseApi {
-  #userSubscriptions
-  #subscriptionPlans
-  #paymentHistory
-  #paymentMethods
-
-  constructor() {
-    super()
-    this.#userSubscriptions = new BaseEndpoint(this, import.meta.env.VITE_SUBSCRIPTIONS_ENDPOINT)
-    this.#subscriptionPlans = new BaseEndpoint(this, import.meta.env.VITE_SUBSCRIPTION_PLANS_ENDPOINT)
-    this.#paymentHistory    = new BaseEndpoint(this, import.meta.env.VITE_PAYMENT_HISTORY_ENDPOINT)
-    this.#paymentMethods    = new BaseEndpoint(this, import.meta.env.VITE_PAYMENT_METHODS_ENDPOINT)
-  }
-
-  /** @returns {Promise<import('axios').AxiosResponse>} */
-  getSubscriptions() {
-    return this.#userSubscriptions.getAll()
+  /** @param {number} userId */
+  getSubscriptionByUser(userId) {
+    return this.http.get(`user-subscriptions/by-user/${userId}`)
   }
 
   /**
-   * @param {Object} resource
-   * @returns {Promise<import('axios').AxiosResponse>}
+   * @param {{ userId: number, planKey: string, paymentMethodId: number, billingPeriod: string }} resource
    */
-  createSubscription(resource) {
-    return this.#userSubscriptions.create(resource)
+  selectPlan(resource) {
+    return this.http.post('user-subscriptions', resource)
   }
 
   /**
-   * @param {string} id
-   * @param {Object} resource
-   * @returns {Promise<import('axios').AxiosResponse>}
+   * @param {number} subscriptionId
+   * @param {{ newPlanKey: string, billingPeriod: string, paymentMethodId?: number }} resource
    */
-  updateSubscription(id, resource) {
-    return this.#userSubscriptions.patch(id, resource)
+  changePlan(subscriptionId, resource) {
+    return this.http.put(`user-subscriptions/${subscriptionId}/plan`, resource)
   }
 
-  /** @returns {Promise<import('axios').AxiosResponse>} */
+  /**
+   * @param {number} subscriptionId
+   * @param {{ cancelAtPeriodEnd: boolean }} resource
+   */
+  cancelSubscription(subscriptionId, resource) {
+    return this.http.post(`user-subscriptions/${subscriptionId}/cancel`, resource)
+  }
+
+  /** @param {number} subscriptionId */
+  renewSubscription(subscriptionId) {
+    return this.http.post(`user-subscriptions/${subscriptionId}/renew`)
+  }
+
   getPlans() {
-    return this.#subscriptionPlans.getAll()
+    return this.http.get('subscription-plans')
   }
 
-  /**
-   * @param {string} id
-   * @returns {Promise<import('axios').AxiosResponse>}
-   */
-  getPlanById(id) {
-    return this.#subscriptionPlans.getById(id)
+  /** @param {string} key */
+  getPlanByKey(key) {
+    return this.http.get(`subscription-plans/${key}`)
   }
 
-  /** @returns {Promise<import('axios').AxiosResponse>} */
-  getPaymentHistory() {
-    return this.#paymentHistory.getAll()
+  /** @param {number} subscriptionId */
+  getPaymentHistory(subscriptionId) {
+    return this.http.get(`payments/by-subscription/${subscriptionId}`)
   }
 
-  /**
-   * @param {Object} resource
-   * @returns {Promise<import('axios').AxiosResponse>}
-   */
-  createPaymentRecord(resource) {
-    return this.#paymentHistory.create(resource)
+  /** @param {number} userId */
+  getPaymentMethods(userId) {
+    return this.http.get(`payment-methods/by-user/${userId}`)
   }
 
-  /** @returns {Promise<import('axios').AxiosResponse>} */
-  getPaymentMethods() {
-    return this.#paymentMethods.getAll()
-  }
-
-  /**
-   * @param {Object} resource
-   * @returns {Promise<import('axios').AxiosResponse>}
-   */
+  /** @param {Object} resource */
   createPaymentMethod(resource) {
-    return this.#paymentMethods.create(resource)
+    return this.http.post('payment-methods', resource)
+  }
+
+  /** @param {number} id */
+  deletePaymentMethod(id) {
+    return this.http.delete(`payment-methods/${id}`)
   }
 }

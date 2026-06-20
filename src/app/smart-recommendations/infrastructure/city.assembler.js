@@ -10,14 +10,12 @@ export class CityAssembler {
       return City({
         id: resource.id,
         key: resource.key,
+        nameEn: resource.nameEn ?? '',
+        nameEs: resource.nameEs ?? '',
         country: resource.country,
         lat: resource.lat,
         lng: resource.lng,
         timezone: resource.timezone,
-        currentTempC: resource.currentTempC,
-        weatherCondition: resource.weatherCondition,
-        weatherType: resource.weatherType,
-        weatherUpdatedAt: resource.weatherUpdatedAt,
       })
     } catch (e) {
       console.error('[CityAssembler] failed to map resource', e)

@@ -23,7 +23,6 @@ onMounted(() => {
   if (!menuScanResult.value) {
     router.replace({ name: 'nutrition-log', query: { tab: 'smart-scan' } })
   }
-  if (!store.foods.length) store.fetchFoods()
   bodyStore.fetchUserGoal(userId)
 })
 
@@ -51,8 +50,14 @@ function openAddDialog(food) {
 /** Adds the pending food to today's log using its serving size, then navigates back. */
 function confirmAdd() {
   if (!pendingFood.value) return
+  if (pendingFood.value.id == null) {
+    toast.add({ severity: 'warn', summary: t('scan.nothingToLog'), life: 3000 })
+    showAddDialog.value = false
+    pendingFood.value = null
+    return
+  }
   const grams = pendingFood.value.servingSizeG > 0 ? pendingFood.value.servingSizeG : 100
-  store.addToLog(userId, pendingFood.value.id, grams, addMeal.value, 'smart-scan')
+  store.addToLog(userId, pendingFood.value.id, grams, addMeal.value, 'scan-menu')
   toast.add({
     severity: 'success',
     summary: t('scan.addedToLog', { meal: t(`meal.${addMeal.value}`) }),
@@ -82,7 +87,7 @@ const pendingMacros = computed(() =>
     : null
 )
 
-const calorieGoal = computed(() => bodyStore.userGoal?.dailyCalorieTarget ?? 1911)
+const calorieGoal = computed(() => bodyStore.userGoal?.macroTargets?.dailyCalorieTarget ?? 1911)
 
 const menuItemProjectedPct = computed(() => {
   if (!pendingMacros.value) return 0
@@ -165,8 +170,16 @@ function itemBannerLevel(food) {
       </span>
     </div>
 
+    <!-- Fallback: nothing detected -->
+    <div v-if="menuScanResult.recommendations.length === 0" class="smr__empty">
+      <i class="pi pi-search" aria-hidden="true" />
+      <h2 class="smr__empty-title">{{ t('scan.noMenuTitle') }}</h2>
+      <p class="smr__empty-desc">{{ t('scan.noMenuDesc') }}</p>
+      <pv-button :label="t('scan.scanAgain')" icon="pi pi-refresh" @click="scanAgain" />
+    </div>
+
     <!-- Section title -->
-    <section aria-labelledby="smr-recs-title">
+    <section v-else aria-labelledby="smr-recs-title">
       <h2 id="smr-recs-title" class="smr__section-title">
         <i class="pi pi-star" aria-hidden="true" />
         {{ t('scan.menuRecommendations') }}
@@ -185,7 +198,7 @@ function itemBannerLevel(food) {
           <!-- Body -->
           <div class="smr__item-body">
             <div class="smr__item-top">
-              <span class="smr__item-name">{{ t(item.food.key) }}</span>
+              <span class="smr__item-name">{{ item.food.name }}</span>
               <span
                 class="smr__score"
                 :class="item.score >= 7 ? 'smr__score--good' : 'smr__score--avg'"
@@ -260,7 +273,7 @@ function itemBannerLevel(food) {
             size="small"
             outlined
             class="smr__add-btn"
-            :aria-label="`${t('scan.addItemToLog')}: ${t(item.food.key)}`"
+            :aria-label="`${t('scan.addItemToLog')}: ${item.food.name}`"
             @click="openAddDialog(item.food)"
           />
         </div>
@@ -270,7 +283,7 @@ function itemBannerLevel(food) {
     <!-- Add to log dialog -->
     <pv-dialog
       v-model:visible="showAddDialog"
-      :header="pendingFood ? t(pendingFood.key) : ''"
+      :header="pendingFood ? pendingFood.name : ''"
       :modal="true"
       :draggable="false"
       style="width: 420px; max-width: 95vw"
@@ -353,6 +366,26 @@ function itemBannerLevel(food) {
 </template>
 
 <style scoped>
+.smr__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.75rem;
+  padding: 3rem 1.5rem;
+  border: 1px dashed var(--surface-border, #d1d5db);
+  border-radius: 1rem;
+}
+.smr__empty i {
+  font-size: 2.5rem;
+  color: var(--text-color-secondary, #6b7280);
+}
+.smr__empty-title { margin: 0; font-size: 1.25rem; }
+.smr__empty-desc {
+  margin: 0 0 0.5rem;
+  max-width: 28rem;
+  color: var(--text-color-secondary, #6b7280);
+}
 .smr {
   display: flex;
   flex-direction: column;

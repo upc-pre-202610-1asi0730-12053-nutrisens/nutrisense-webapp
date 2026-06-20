@@ -5,10 +5,12 @@ import { useI18n } from 'vue-i18n'
 import { useToast } from 'primevue/usetoast'
 import { useConfirm } from 'primevue/useconfirm'
 import { useSubscriptionsBillingStore } from '../../application/subscriptions-billing.store.js'
+import { useDomainLabels } from '../../../shared/composables/use-domain-labels.js'
 import PlanCard from '../components/plan-card.component.vue'
 import UpdatePaymentMethodDialog from '../components/update-payment-method-dialog.component.vue'
 
 const { t } = useI18n()
+const { planLabel } = useDomainLabels()
 const toast = useToast()
 const confirm = useConfirm()
 
@@ -36,37 +38,35 @@ const showUpdateCardDialog = ref(false)
 const cardUpdating = ref(false)
 const billingPeriod = ref('monthly')
 
-/** @type {import('vue').ComputedRef<import('../../domain/model/subscription-plan.entity.js').SubscriptionPlan[]>} */
+/** Plans excluding the currently active one */
 const selectablePlans = computed(() =>
   currentPlan.value
-    ? plans.value.filter(p => p.id !== currentPlan.value.id)
+    ? plans.value.filter(p => p.key !== currentPlan.value.key)
     : plans.value.filter(p => !p.isFree())
 )
 
 const isLoading = computed(() => !subscriptionLoaded.value || !plansLoaded.value)
 
-/** Whether the user has already changed their plan today. */
 const planChangeLimitReached = computed(() =>
   subscription.value ? !subscription.value.canChangePlanToday() : false
 )
 
 /**
- * @param {string} planId
+ * @param {string} planKey
  * @returns {boolean}
  */
-function isPlanUpgrade(planId) {
+function isPlanUpgrade(planKey) {
   if (!currentPlan.value) return true
-  const target = plans.value.find(p => p.id === planId)
+  const target = plans.value.find(p => p.key === planKey)
   return target ? target.isUpgradeFrom(currentPlan.value) : true
 }
 
 /**
- * Returns the prorated amount string for the plan change confirmation.
- * @param {string} planId
+ * @param {string} planKey
  * @returns {{ amount: number, days: number }}
  */
-function getProratedInfo(planId) {
-  const toPlan = plans.value.find(p => p.id === planId)
+function getProratedInfo(planKey) {
+  const toPlan = plans.value.find(p => p.key === planKey)
   if (!subscription.value || !currentPlan.value || !toPlan) return { amount: 0, days: 0 }
   const amount = subscription.value.proratedChangeAmount(currentPlan.value, toPlan)
   const days = subscription.value.daysUntilRenewal() ?? 0
@@ -74,21 +74,18 @@ function getProratedInfo(planId) {
 }
 
 onMounted(() => {
-  store.fetchSubscription(userId)
+  store.fetchSubscription(userId)  // chains fetchPaymentHistory automatically
   store.fetchPlans()
-  store.fetchPaymentHistory(userId)
 })
 
 /**
- * Opens a confirmation dialog and changes the subscription plan on confirm.
- * Shows the prorated amount and the card that will be charged/credited.
- * @param {string} planId
+ * @param {string} planKey
  */
-function handleSelectPlan(planId) {
-  const target = plans.value.find(p => p.id === planId)
-  const planName = target ? t(target.key) : ''
-  const isUpgrade = isPlanUpgrade(planId)
-  const { amount, days } = getProratedInfo(planId)
+function handleSelectPlan(planKey) {
+  const target = plans.value.find(p => p.key === planKey)
+  const planName = target ? planLabel(target.key) : ''
+  const isUpgrade = isPlanUpgrade(planKey)
+  const { amount, days } = getProratedInfo(planKey)
   const cardInfo = paymentMethod.value ? `**** ${paymentMethod.value.lastFour}` : ''
 
   const messageKey = isUpgrade
@@ -105,16 +102,15 @@ function handleSelectPlan(planId) {
     rejectLabel: t('common.cancel'),
     accept() {
       showUpgradeDialog.value = false
-      store.changePlan(planId, billingPeriod.value)
+      store.changePlan(planKey, billingPeriod.value)
         .then(() => toast.add({ severity: 'success', summary: t('subscription.planChangeSuccess'), life: 3000 }))
         .catch(() => toast.add({ severity: 'error', summary: t('subscription.errorChangeLimitReached'), life: 4000 }))
     },
   })
 }
 
-/** Opens a confirmation dialog and cancels the subscription at period end on confirm. */
 function handleCancel() {
-  const planName = currentPlan.value ? t(currentPlan.value.key) : ''
+  const planName = currentPlan.value ? planLabel(currentPlan.value.key) : ''
   confirm.require({
     message: t('profile.cancelPlanBody', { plan: planName, date: renewalDateLabel.value }),
     header:  t('profile.cancelPlanTitle', { plan: planName }),
@@ -128,19 +124,17 @@ function handleCancel() {
   })
 }
 
-/** Reactivates a previously cancelled subscription and shows a success toast. */
 function handleReactivate() {
   store.reactivateSubscription()
   toast.add({ severity: 'success', summary: t('subscription.reactivate'), life: 3000 })
 }
 
 /**
- * Saves a new payment method via the store, then shows success/error feedback.
- * @param {{ cardNumber: string, expiryMonth: number, expiryYear: number, cardholderName: string }} cardData
+ * @param {{ stripePaymentMethodId: string, cardMeta: import('../../../shared/infrastructure/use-stripe-card.js').CardMeta }} result
  */
-function handleUpdateCard(cardData) {
+function handleUpdateCard({ stripePaymentMethodId, cardMeta }) {
   cardUpdating.value = true
-  store.updatePaymentMethod(userId, cardData)
+  store.updatePaymentMethod(userId, stripePaymentMethodId, cardMeta)
     .then(() => {
       showUpdateCardDialog.value = false
       toast.add({ severity: 'success', summary: t('profile.cardUpdatedSuccess'), life: 3000 })
@@ -149,14 +143,24 @@ function handleUpdateCard(cardData) {
     .finally(() => { cardUpdating.value = false })
 }
 
-/**
- * Returns the translated plan name for a given plan ID, falling back to the raw ID.
- * @param {string} planId
- * @returns {string}
- */
-function getPlanName(planId) {
-  const plan = plans.value.find(p => p.id === planId)
-  return plan ? t(plan.key) : planId
+const deletingCard = ref(false)
+
+function handleDeleteCard() {
+  if (!paymentMethod.value) return
+  confirm.require({
+    message: t('profile.deleteCardConfirm'),
+    header:  t('profile.deleteCardTitle'),
+    acceptLabel: t('profile.deleteCard'),
+    rejectLabel: t('common.cancel'),
+    acceptClass: 'p-button-danger',
+    accept() {
+      deletingCard.value = true
+      store.deletePaymentMethod(paymentMethod.value.id)
+        .then(() => toast.add({ severity: 'info', summary: t('profile.cardDeleted'), life: 3000 }))
+        .catch(() => toast.add({ severity: 'error', summary: t('common.error'), life: 4000 }))
+        .finally(() => { deletingCard.value = false })
+    },
+  })
 }
 </script>
 
@@ -168,6 +172,11 @@ function getPlanName(planId) {
       {{ t('common.error') }}
     </pv-message>
 
+    <!-- Pending payment banner -->
+    <pv-message v-if="subscription?.status?.isPendingPayment()" severity="warn" :closable="false" class="mb-3">
+      {{ t('subscription.pendingPaymentWarning') }}
+    </pv-message>
+
     <!-- Current plan -->
     <pv-card class="mb-3">
       <template #title>{{ t('profile.currentPlan') }}</template>
@@ -177,14 +186,17 @@ function getPlanName(planId) {
         <div v-else class="plan-row">
           <div>
             <div class="plan-name-row">
-              <span class="plan-name">{{ currentPlan ? t(currentPlan.key) : t('subscription.free') }}</span>
-              <pv-tag severity="success" :value="t('subscription.active')" />
+              <span class="plan-name">{{ currentPlan ? planLabel(currentPlan.key) : t('subscription.free') }}</span>
+              <pv-tag
+                :severity="subscription?.status?.isActive() ? 'success' : 'secondary'"
+                :value="subscription?.status?.isActive() ? t('subscription.active') : (subscription?.status?.value ?? '')"
+              />
             </div>
 
             <p v-if="willCancelAtPeriodEnd" class="plan-renews plan-renews--danger">
               {{ t('subscription.cancelsOn', { date: renewalDateLabel }) }}
             </p>
-            <p v-else-if="renewalDateLabel" class="plan-renews">
+            <p v-else-if="renewalDateLabel && subscription?.status?.isActive()" class="plan-renews">
               {{ t('profile.renewsOn', { date: renewalDateLabel }) }}
             </p>
           </div>
@@ -197,7 +209,7 @@ function getPlanName(planId) {
               :aria-label="t('subscription.reactivate')"
               @click="handleReactivate"
             />
-            <template v-else>
+            <template v-else-if="subscription?.status?.isActive()">
               <pv-button
                 v-if="selectablePlans.length"
                 :label="t('subscription.changePlan')"
@@ -222,7 +234,7 @@ function getPlanName(planId) {
       </template>
     </pv-card>
 
-    <!-- Payment method -->
+    <!-- Payment method (D.7b: update card requires Stripe tokenisation) -->
     <pv-card class="mb-3">
       <template #title>{{ t('profile.paymentMethod') }}</template>
       <template #content>
@@ -242,15 +254,27 @@ function getPlanName(planId) {
           </div>
           <p v-else class="text-secondary">{{ t('profile.noCardOnFile') }}</p>
 
-          <pv-button
-            :label="t('profile.updateCard')"
-            icon="pi pi-pencil"
-            icon-pos="right"
-            severity="secondary"
-            outlined
-            :aria-label="t('profile.updateCard')"
-            @click="showUpdateCardDialog = true"
-          />
+          <div class="payment-method-actions">
+            <pv-button
+              :label="t('profile.updateCard')"
+              icon="pi pi-pencil"
+              icon-pos="right"
+              severity="secondary"
+              outlined
+              :aria-label="t('profile.updateCard')"
+              @click="showUpdateCardDialog = true"
+            />
+            <pv-button
+              v-if="paymentMethod"
+              icon="pi pi-trash"
+              severity="danger"
+              text
+              :loading="deletingCard"
+              :aria-label="t('profile.deleteCard')"
+              v-tooltip.top="t('profile.deleteCard')"
+              @click="handleDeleteCard"
+            />
+          </div>
         </div>
       </template>
     </pv-card>
@@ -274,33 +298,13 @@ function getPlanName(planId) {
         >
           <pv-column field="paidAt" :header="t('paymentHistory.date')">
             <template #body="{ data }">
-              {{ new Date(data.paidAt).toLocaleDateString() }}
+              {{ data.paidAt ? new Date(data.paidAt).toLocaleDateString() : '—' }}
             </template>
           </pv-column>
 
-          <pv-column field="planId" :header="t('paymentHistory.plan')">
+          <pv-column field="amount" :header="t('paymentHistory.amount')">
             <template #body="{ data }">
-              <span v-if="data.isPlanChange()">
-                {{ t('paymentHistory.planChange', { from: getPlanName(data.fromPlanId), to: getPlanName(data.planId) }) }}
-              </span>
-              <span v-else>{{ getPlanName(data.planId) }}</span>
-            </template>
-          </pv-column>
-
-          <pv-column field="amountUsd" :header="t('paymentHistory.amount')">
-            <template #body="{ data }">
-              <span :class="{ 'amount--credit': data.amountUsd < 0 }">
-                {{ data.amountUsd < 0 ? `-$${Math.abs(data.amountUsd).toFixed(2)}` : `$${data.amountUsd.toFixed(2)}` }}
-              </span>
-            </template>
-          </pv-column>
-
-          <pv-column field="type" :header="t('paymentHistory.type')">
-            <template #body="{ data }">
-              <pv-tag
-                :value="t(`paymentHistory.type${data.type.charAt(0).toUpperCase() + data.type.slice(1)}`)"
-                :severity="data.type === 'upgrade' ? 'success' : data.type === 'downgrade' ? 'warn' : 'secondary'"
-              />
+              <span>${{ data.amount.toFixed(2) }} {{ data.currency }}</span>
             </template>
           </pv-column>
 
@@ -308,7 +312,7 @@ function getPlanName(planId) {
             <template #body="{ data }">
               <pv-tag
                 :value="t(`paymentHistory.${data.status}`)"
-                :severity="data.status === 'paid' ? 'success' : 'secondary'"
+                :severity="data.status === 'paid' ? 'success' : data.status === 'failed' ? 'danger' : 'secondary'"
               />
             </template>
           </pv-column>
@@ -324,19 +328,25 @@ function getPlanName(planId) {
       :draggable="false"
       style="width: 640px; max-width: 95vw"
     >
-      <div class="upgrade-dialog">
-        <div class="upgrade-dialog__plans">
-          <plan-card
-            v-for="plan in selectablePlans"
-            :key="plan.id"
-            :plan="plan"
-            :is-current-plan="false"
-            :billing-period="billingPeriod"
-            :is-changing="changingPlanId === plan.id"
-            :is-upgrade="isPlanUpgrade(plan.id)"
-            @select="handleSelectPlan"
-          />
-        </div>
+      <div class="upgrade-dialog__billing">
+        <pv-select-button
+          v-model="billingPeriod"
+          :options="[{ label: t('subscription.monthly'), value: 'monthly' }, { label: t('subscription.annual'), value: 'annual' }]"
+          option-label="label"
+          option-value="value"
+        />
+      </div>
+      <div class="upgrade-dialog__plans">
+        <plan-card
+          v-for="plan in selectablePlans"
+          :key="plan.key"
+          :plan="plan"
+          :is-current-plan="false"
+          :billing-period="billingPeriod"
+          :is-changing="changingPlanId === plan.key"
+          :is-upgrade="isPlanUpgrade(plan.key)"
+          @select="handleSelectPlan"
+        />
       </div>
 
       <template #footer>
@@ -349,7 +359,7 @@ function getPlanName(planId) {
       </template>
     </pv-dialog>
 
-    <!-- Update card dialog -->
+    <!-- Update card dialog (D.7b: requires Stripe tokenisation) -->
     <update-payment-method-dialog
       v-model:visible="showUpdateCardDialog"
       :loading="cardUpdating"
@@ -442,8 +452,14 @@ function getPlanName(planId) {
   margin: 0;
 }
 
-.amount--credit {
-  color: var(--ns-success, #16a34a);
+.payment-method-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.upgrade-dialog__billing {
+  margin-bottom: 1rem;
 }
 
 .upgrade-dialog__plans {

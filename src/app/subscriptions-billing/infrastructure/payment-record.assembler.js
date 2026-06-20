@@ -2,20 +2,19 @@ import { PaymentRecord } from '../domain/model/payment-record.entity.js'
 
 export class PaymentRecordAssembler {
   /**
-   * @param {Object} resource
+   * @param {Object} resource - camelCased backend PaymentRecordResource
    * @returns {ReturnType<typeof PaymentRecord>|null}
    */
   static toEntityFromResource(resource) {
     try {
       return PaymentRecord({
         id: resource.id,
-        userId: resource.userId,
-        planId: resource.planId,
-        fromPlanId: resource.fromPlanId ?? null,
-        amountUsd: resource.amountUsd,
+        userSubscriptionId: resource.userSubscriptionId,
+        amount: resource.amount,
+        currency: resource.currency ?? 'USD',
         status: resource.status,
-        type: resource.type ?? 'payment',
-        paidAt: resource.paidAt ?? null,
+        processedAt: resource.processedAt ?? null,
+        stripePaymentIntentId: resource.stripePaymentIntentId ?? null,
       })
     } catch (e) {
       console.error('[PaymentRecordAssembler] failed to map resource', e)

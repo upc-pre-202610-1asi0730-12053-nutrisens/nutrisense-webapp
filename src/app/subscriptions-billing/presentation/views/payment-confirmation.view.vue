@@ -11,7 +11,7 @@ const billingStore = useSubscriptionsBillingStore()
 
 const paymentMethod  = computed(() => billingStore.paymentMethod ?? billingStore.lastPaymentMethod)
 const currentPlan    = computed(() => billingStore.currentPlan)
-const planName       = computed(() => currentPlan.value ? t(currentPlan.value.key) : '')
+const planName       = computed(() => currentPlan.value ? t('plan.' + currentPlan.value.key) : '')
 </script>
 
 <template>

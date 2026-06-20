@@ -19,7 +19,17 @@ const props = defineProps({
 /** @type {(event: 'detail', recipe: Object) => void} */
 const emit = defineEmits(['detail'])
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
+
+/**
+ * Localized recipe name, falling back to the key.
+ * Recipes carry backend names (`nameEn`/`nameEs`); their keys are slugs with no i18n entries.
+ * @type {import('vue').ComputedRef<string>}
+ */
+const recipeName = computed(() => {
+  const name = locale.value.startsWith('es') ? props.recipe.nameEs : props.recipe.nameEn
+  return name || props.recipe.nameEn || props.recipe.nameEs || props.recipe.key
+})
 
 /** @type {import('vue').ComputedRef<number>} */
 const missingCount = computed(() =>
@@ -41,7 +51,7 @@ const matchScore = computed(() => {
       {{ t('recommendations.unsafeHint') }}
     </div>
     <div class="recipe-card__header">
-      <span class="recipe-card__name">{{ t(recipe.key) }}</span>
+      <span class="recipe-card__name">{{ recipeName }}</span>
       <pv-tag
         :value="`${matchScore}%`"
         :severity="matchScore >= 70 ? 'success' : 'warn'"

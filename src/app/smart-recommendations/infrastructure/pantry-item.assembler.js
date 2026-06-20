@@ -2,18 +2,19 @@ import { PantryItem } from '../domain/model/pantry-item.entity.js'
 
 export class PantryItemAssembler {
   /**
-   * @param {Object} resource
+   * @param {Object} resource - PantryItemResource
+   * @param {string|number} userId - from parent PantryResource
    * @returns {ReturnType<typeof PantryItem>|null}
    */
-  static toEntityFromResource(resource) {
+  static toEntityFromResource(resource, userId) {
     try {
       return PantryItem({
         id: resource.id,
-        userId: resource.userId,
-        ingredientId: resource.ingredientId,
+        userId,
+        ingredientId: resource.ingredientCatalogItemId,
         quantity: resource.quantity,
         unit: resource.unit,
-        addedAt: resource.addedAt,
+        addedAt: null,
       })
     } catch (e) {
       console.error('[PantryItemAssembler] failed to map resource', e)
@@ -22,11 +23,14 @@ export class PantryItemAssembler {
   }
 
   /**
+   * Maps a PantryResource (wrapped) response to PantryItem entities.
    * @param {import('axios').AxiosResponse} response
    * @returns {ReturnType<typeof PantryItem>[]}
    */
   static toEntitiesFromResponse(response) {
-    const data = Array.isArray(response.data) ? response.data : []
-    return data.map(r => PantryItemAssembler.toEntityFromResource(r)).filter(Boolean)
+    const pantryResource = response.data ?? {}
+    const userId = pantryResource.userId
+    const items = Array.isArray(pantryResource.items) ? pantryResource.items : []
+    return items.map(r => PantryItemAssembler.toEntityFromResource(r, userId)).filter(Boolean)
   }
 }

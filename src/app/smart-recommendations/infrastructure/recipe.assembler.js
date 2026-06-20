@@ -7,9 +7,17 @@ export class RecipeAssembler {
    */
   static toEntityFromResource(resource) {
     try {
+      const ingredients = (resource.ingredients ?? []).map(i => ({
+        ingredientId: i.ingredientCatalogItemId,
+        quantity: i.quantity,
+        unit: i.unit,
+      }))
+
       return Recipe({
         id: resource.id,
         key: resource.key,
+        nameEn: resource.nameEn ?? '',
+        nameEs: resource.nameEs ?? '',
         goalType: resource.goalType,
         prepTimeMinutes: resource.prepTimeMinutes,
         servings: resource.servings,
@@ -19,7 +27,7 @@ export class RecipeAssembler {
         totalFatG: resource.totalFatG,
         totalFiberG: resource.totalFiberG ?? 0,
         restrictionsConflict: resource.restrictionsConflict ?? [],
-        ingredients: resource.ingredients ?? [],
+        ingredients,
       })
     } catch (e) {
       console.error('[RecipeAssembler] failed to map resource', e)

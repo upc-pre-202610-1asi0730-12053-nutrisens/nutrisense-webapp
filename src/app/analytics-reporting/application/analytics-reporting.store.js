@@ -3,21 +3,19 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { AnalyticsReportingApi } from '../infrastructure/analytics-reporting.api.js'
 import { StreakRecordAssembler } from '../infrastructure/streak-record.assembler.js'
-import { calculateStreak } from '../domain/services/streak-calculator.service.js'
-import { weeklyAdherenceRate } from '../domain/services/adherence-calculator.service.js'
 import { on } from '../../shared/infrastructure/event-bus.js'
-import { NUTRITION_LOG_ADDED, ACTIVITY_LOGGED } from '../../shared/domain/events/event-types.js'
+import { ACTIVITY_LOGGED } from '../../shared/domain/events/event-types.js'
 
 const analyticsReportingApi = new AnalyticsReportingApi()
 
 /**
  * Store for streak tracking and nutritional adherence analytics.
+ * Streak is server-managed: no POST/PUT to streak_records.
+ * KPI aggregation and adherence use backend analytics endpoints.
  */
 export const useAnalyticsReportingStore = defineStore('analytics-reporting', () => {
   /** @type {import('vue').Ref<ReturnType<import('../domain/model/streak-record.entity.js').StreakRecord>|null>} */
   const streak = ref(null)
-  /** @type {import('vue').Ref<string|null>} */
-  const streakId = ref(null)
   /** @type {import('vue').Ref<'7d'|'30d'|'90d'|'custom'>} */
   const selectedRange = ref('7d')
   /** @type {import('vue').Ref<Date|null>} */
@@ -25,11 +23,20 @@ export const useAnalyticsReportingStore = defineStore('analytics-reporting', () 
   /** @type {import('vue').Ref<Date|null>} */
   const customEndDate = ref(null)
   const streakLoaded = ref(false)
-  const streakComputedFromLogs = ref(false)
   /** @type {import('vue').Ref<Error[]>} */
   const errors = ref([])
   /** @type {import('vue').Ref<number>} */
   const lastRefreshed = ref(Date.now())
+  /**
+   * Today's dashboard snapshot from GET /analytics/dashboard/by-user/{userId}.
+   * @type {import('vue').Ref<{userId:number,date:string,totalCalories:number,totalProteinG:number,totalCarbsG:number,totalFatG:number,activeCaloriesBurned:number,adherenceScore:number,currentStreak:number,weeklyCompletionRate:number}|null>}
+   */
+  const dashboard = ref(null)
+  /**
+   * Range progress data from GET /analytics/progress/by-user/{userId}.
+   * @type {import('vue').Ref<{userId:number,from:string,to:string,snapshots:{date:string,totalCalories:number,adherenceScore:number}[]}|null>}
+   */
+  const progress = ref(null)
 
   /**
    * Start and end dates for the selected range.
@@ -47,137 +54,104 @@ export const useAnalyticsReportingStore = defineStore('analytics-reporting', () 
     return { start, end }
   })
 
-  /**
-   * Whether the current streak is at risk (no log today, streak > 0).
-   * @type {import('vue').ComputedRef<boolean>}
-   */
+  /** @type {import('vue').ComputedRef<boolean>} */
   const streakAtRisk = computed(() => streak.value?.isAtRisk() ?? false)
 
-  /**
-   * Whether the current streak is broken.
-   * @type {import('vue').ComputedRef<boolean>}
-   */
+  /** @type {import('vue').ComputedRef<boolean>} */
   const streakBroken = computed(() => streak.value?.isBroken() ?? false)
 
-  /**
-   * i18n key for the motivational message of the current streak.
-   * @type {import('vue').ComputedRef<string>}
-   */
+  /** @type {import('vue').ComputedRef<string>} */
   const streakMessage = computed(() => streak.value?.motivationalMessageKey() ?? '')
 
-  /**
-   * Weekly completion percentage (0–100).
-   * @type {import('vue').ComputedRef<number>}
-   */
+  /** @type {import('vue').ComputedRef<number>} */
   const weeklyCompletionPercent = computed(() =>
     streak.value?.weeklyCompletionPercent() ?? 0
   )
 
   /**
-   * Calculates KPI data from plain nutrition and weight entries.
+   * Calculates KPI data for the current date range.
+   * avgKcal: derived from progress snapshots (server-side daily totals).
+   * avgProtein: derived from passed nutrition entries (no analytics endpoint covers range protein).
+   * weightChange: derived from passed weight entries (no weight history endpoint).
    * @param {{ calories: number, proteinG: number }[]} nutritionEntries
    * @param {{ loggedAt: string, weightKg: number }[]} weightEntries
    * @returns {{ avgKcal: number, avgProtein: number, weightChange: number, currentStreak: number, weeklyCompletion: number }}
    */
   function calculateKpis(nutritionEntries, weightEntries) {
-    const avgKcal = nutritionEntries.length
-      ? nutritionEntries.reduce((s, e) => s + e.calories, 0) / nutritionEntries.length
-      : 0
+    const snapshots = progress.value?.snapshots ?? []
+    const avgKcal = snapshots.length
+      ? Math.round(snapshots.reduce((s, snap) => s + snap.totalCalories, 0) / snapshots.length)
+      : nutritionEntries.length
+        ? Math.round(nutritionEntries.reduce((s, e) => s + e.calories, 0) / nutritionEntries.length)
+        : 0
+
     const avgProtein = nutritionEntries.length
-      ? nutritionEntries.reduce((s, e) => s + e.proteinG, 0) / nutritionEntries.length
+      ? Math.round(nutritionEntries.reduce((s, e) => s + e.proteinG, 0) / nutritionEntries.length)
       : 0
+
     const sorted = [...weightEntries].sort((a, b) => a.loggedAt.localeCompare(b.loggedAt))
     const weightChange = sorted.length >= 2
-      ? sorted.at(-1).weightKg - sorted[0].weightKg
+      ? Math.round((sorted.at(-1).weightKg - sorted[0].weightKg) * 10) / 10
       : 0
+
     return {
-      avgKcal: Math.round(avgKcal),
-      avgProtein: Math.round(avgProtein),
-      weightChange: Math.round(weightChange * 10) / 10,
+      avgKcal,
+      avgProtein,
+      weightChange,
       currentStreak: streak.value?.currentStreak ?? 0,
       weeklyCompletion: weeklyCompletionPercent.value,
     }
   }
 
   /**
-   * Calculates weekly adherence percentage from an array of log date strings (YYYY-MM-DD).
-   * @param {string[]} logDates
+   * Returns the average adherence percentage for the selected date range,
+   * derived from progress snapshots (server-side).
    * @returns {number} 0–100
    */
-  function calculateAdherence(logDates) {
-    return Math.round(weeklyAdherenceRate(logDates) * 100)
+  function calculateAdherence() {
+    const snapshots = progress.value?.snapshots ?? []
+    if (!snapshots.length) return 0
+    return Math.round(
+      snapshots.reduce((s, snap) => s + snap.adherenceScore, 0) / snapshots.length
+    )
   }
 
   /**
-   * Persists the current streak value to the API.
-   * No-op if streakId is not yet known.
-   * @param {ReturnType<import('../domain/model/streak-record.entity.js').StreakRecord>} entity
-   */
-  function persistStreak(entity) {
-    if (!streakId.value) return
-    const resource = {
-      currentStreak: entity.currentStreak,
-      longestStreak: entity.longestStreak,
-      lastLogDate: entity.lastLogDate,
-      weeklyCompletionRate: entity.weeklyCompletionRate,
-    }
-    analyticsReportingApi.updateStreak(streakId.value, resource)
-      .catch(() => {})
-  }
-
-  /**
-   * Loads the streak record for the given user. Creates one if none exists.
-   * If logs were already computed before the record was fetched, persists the
-   * computed value instead of overwriting it with the stale API value.
+   * Loads the streak record for the given user from the server.
+   * The streak is fully managed server-side; no local calculation or write-back.
    * @param {string} userId
    */
   function fetchStreak(userId) {
     analyticsReportingApi.getStreak(userId)
       .then(response => {
-        const resources = Array.isArray(response.data) ? response.data : []
-        const resource = resources[0] ?? null
-        if (resource) {
-          streakId.value = resource.id
-          if (streakComputedFromLogs.value) {
-            persistStreak(streak.value)
-          } else {
-            streak.value = StreakRecordAssembler.toEntityFromResource(resource)
-          }
-          streakLoaded.value = true
-        } else {
-          return analyticsReportingApi.createStreak({
-            userId,
-            currentStreak: 0,
-            longestStreak: 0,
-            lastLogDate: null,
-            weeklyCompletionRate: 0,
-          }).then(createResponse => {
-            streakId.value = createResponse.data?.id ?? null
-            if (streakComputedFromLogs.value) {
-              persistStreak(streak.value)
-            } else {
-              streak.value = StreakRecordAssembler.toEntityFromResponse(createResponse)
-            }
-            streakLoaded.value = true
-          })
-        }
+        streak.value = StreakRecordAssembler.toEntityFromResource(response.data)
+        streakLoaded.value = true
       })
       .catch(error => errors.value.push(error))
   }
 
   /**
-   * Recalculates streak from log entries and persists the result.
-   * A day counts when breakfast+lunch+dinner are logged, kcal is in [80%, 105%] of goal,
-   * and proteinG meets ≥50% of the protein goal (fallback 50g).
-   * @param {{ date: string, mealType: string, calories: number, proteinG: number }[]} logEntries
-   * @param {number} calorieGoal
-   * @param {number} proteinGoal
+   * Fetches the dashboard snapshot for a specific day.
+   * @param {string} userId
+   * @param {string} date - YYYY-MM-DD
    */
-  function updateStreakAfterLog(logEntries, calorieGoal, proteinGoal) {
-    const updated = calculateStreak(logEntries, calorieGoal, proteinGoal)
-    streak.value = updated
-    streakComputedFromLogs.value = true
-    persistStreak(updated)
+  function fetchDashboard(userId, date) {
+    analyticsReportingApi.getDashboard(userId, date)
+      .then(response => { dashboard.value = response.data })
+      .catch(error => errors.value.push(error))
+  }
+
+  /**
+   * Fetches progress chart data for the given date range.
+   * Populates `progress` which drives calculateKpis and calculateAdherence.
+   * @param {string} userId
+   * @param {string} from - YYYY-MM-DD
+   * @param {string} to - YYYY-MM-DD
+   */
+  function fetchProgress(userId, from, to) {
+    analyticsReportingApi.getProgress(userId, from, to)
+      .then(response => { progress.value = response.data })
+      .catch(error => errors.value.push(error))
   }
 
   /**
@@ -204,10 +178,6 @@ export const useAnalyticsReportingStore = defineStore('analytics-reporting', () 
     lastRefreshed.value = Date.now()
   }
 
-  on(NUTRITION_LOG_ADDED, ({ logEntries, calorieGoal, proteinGoal }) => {
-    updateStreakAfterLog(logEntries, calorieGoal, proteinGoal)
-  })
-
   on(ACTIVITY_LOGGED, () => {
     refreshDateRange()
   })
@@ -219,12 +189,13 @@ export const useAnalyticsReportingStore = defineStore('analytics-reporting', () 
 
   return {
     streak,
-    streakId,
     selectedRange,
     customStartDate,
     customEndDate,
     streakLoaded,
     errors,
+    dashboard,
+    progress,
     dateRange,
     streakAtRisk,
     streakBroken,
@@ -233,7 +204,8 @@ export const useAnalyticsReportingStore = defineStore('analytics-reporting', () 
     calculateKpis,
     calculateAdherence,
     fetchStreak,
-    updateStreakAfterLog,
+    fetchDashboard,
+    fetchProgress,
     setRange,
     setCustomRange,
     refreshDateRange,

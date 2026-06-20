@@ -2,12 +2,14 @@ import { IngredientCategory } from './ingredient-category.record.js'
 
 /**
  * @typedef {Object} IngredientCatalogItemProps
- * @property {string} id
+ * @property {number} id
  * @property {string} key
- * @property {string|null} foodId
+ * @property {string} nameEn
+ * @property {string} nameEs
+ * @property {number|null} foodId
  * @property {import('./ingredient-category.record.js').IngredientCategoryValue} category
  * @property {'g' | 'ml' | 'unit'} defaultUnit
- * @property {number} [gramsPerUnit]
+ * @property {number|null} [gramsPerUnit]
  */
 
 /** @param {IngredientCatalogItemProps} props */
@@ -17,6 +19,8 @@ export function IngredientCatalogItem(props) {
   return Object.freeze({
     id: props.id,
     key: props.key,
+    nameEn: props.nameEn,
+    nameEs: props.nameEs,
     foodId: props.foodId,
     category,
     defaultUnit: props.defaultUnit,

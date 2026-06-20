@@ -1,89 +1,49 @@
 import { BaseApi } from '../../shared/infrastructure/base-api.js'
-import { BaseEndpoint } from '../../shared/infrastructure/base-endpoint.js'
 
 export class BodyHealthMetricsApi extends BaseApi {
-  #bodyMeasurements
-  #weightLogs
-  #userGoals
+  #base
 
   constructor() {
     super()
-    this.#bodyMeasurements = new BaseEndpoint(this, import.meta.env.VITE_BODY_MEASUREMENTS_ENDPOINT)
-    this.#weightLogs = new BaseEndpoint(this, import.meta.env.VITE_WEIGHT_LOGS_ENDPOINT)
-    this.#userGoals = new BaseEndpoint(this, import.meta.env.VITE_USER_GOALS_ENDPOINT)
+    this.#base = import.meta.env.VITE_BODY_MEASUREMENTS_ENDPOINT
   }
 
-  /** @returns {Promise<import('axios').AxiosResponse>} */
-  getBodyMeasurements() {
-    return this.#bodyMeasurements.getAll()
+  /** @param {number} userId */
+  getBodyMetrics(userId) {
+    return this.http.get(`${this.#base}/by-user/${userId}`)
   }
 
-  /**
-   * @param {string} id
-   * @returns {Promise<import('axios').AxiosResponse>}
-   */
-  getBodyMeasurement(id) {
-    return this.#bodyMeasurements.getById(id)
+  /** @param {Object} resource - { userId, heightCm, weightKg, dateOfBirth, biologicalSex, activityLevel } */
+  registerBodyMetrics(resource) {
+    return this.http.post(this.#base, resource)
   }
 
   /**
-   * @param {Object} resource
-   * @returns {Promise<import('axios').AxiosResponse>}
+   * @param {number} userId
+   * @param {{ waistCm: number, neckCm: number }} resource
    */
-  createBodyMeasurement(resource) {
-    return this.#bodyMeasurements.create(resource)
+  registerBodyMeasurement(userId, resource) {
+    return this.http.post(`${this.#base}/${userId}/body-measurements`, resource)
   }
 
   /**
-   * @param {string} id
-   * @param {Object} resource
-   * @returns {Promise<import('axios').AxiosResponse>}
+   * @param {number} userId
+   * @param {{ weightKg: number, note: string|null }} resource
    */
-  updateBodyMeasurement(id, resource) {
-    return this.#bodyMeasurements.update(id, resource)
+  updateWeight(userId, resource) {
+    return this.http.put(`${this.#base}/${userId}/weight`, resource)
   }
 
-  /** @returns {Promise<import('axios').AxiosResponse>} */
-  getWeightLogs() {
-    return this.#weightLogs.getAll()
+  /** @param {number} userId */
+  getWeightHistory(userId) {
+    return this.http.get(`${this.#base}/${userId}/weight-history`)
   }
 
   /**
-   * @param {Object} resource
-   * @returns {Promise<import('axios').AxiosResponse>}
+   * @param {number} userId
+   * @param {{ goal: string, targetWeightKg: number, weeklyRateKg: number }} resource
    */
-  createWeightLog(resource) {
-    return this.#weightLogs.create(resource)
-  }
-
-  /**
-   * @param {string} id
-   * @param {Object} resource
-   * @returns {Promise<import('axios').AxiosResponse>}
-   */
-  updateWeightLog(id, resource) {
-    return this.#weightLogs.update(id, resource)
-  }
-
-  /** @returns {Promise<import('axios').AxiosResponse>} */
-  getUserGoals() {
-    return this.#userGoals.getAll()
-  }
-
-  /**
-   * @param {Object} resource
-   * @returns {Promise<import('axios').AxiosResponse>}
-   */
-  createUserGoal(resource) {
-    return this.#userGoals.create(resource)
-  }
-
-  /**
-   * @param {string} id
-   * @param {Object} resource
-   * @returns {Promise<import('axios').AxiosResponse>}
-   */
-  updateUserGoal(id, resource) {
-    return this.#userGoals.update(id, resource)
+  setHealthGoal(userId, resource) {
+    return this.http.put(`${this.#base}/${userId}/health-goal`, resource)
   }
 }

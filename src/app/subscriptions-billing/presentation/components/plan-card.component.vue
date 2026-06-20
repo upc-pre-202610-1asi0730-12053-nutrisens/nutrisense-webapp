@@ -1,15 +1,7 @@
 <!-- PATH: src/app/subscriptions-billing/presentation/components/plan-card.component.vue -->
 <script setup>
 import { useI18n } from 'vue-i18n'
-
-/**
- * @typedef {Object} PlanCardProps
- * @property {import('../../domain/model/subscription-plan.entity.js').SubscriptionPlan} plan
- * @property {boolean} [isCurrentPlan]
- * @property {'monthly'|'annual'} [billingPeriod]
- * @property {boolean} [isChanging]
- * @property {boolean} [isUpgrade]
- */
+import { featureLabel as resolveFeatureLabel } from '../feature-i18n.js'
 
 const props = defineProps({
   plan: { type: Object, required: true },
@@ -17,42 +9,29 @@ const props = defineProps({
   billingPeriod: { type: String, default: 'monthly' },
   isChanging: { type: Boolean, default: false },
   isUpgrade: { type: Boolean, default: true },
+  disabled: { type: Boolean, default: false },
 })
 
-/** @type {(event: 'select', planId: string) => void} */
+/** @type {(event: 'select', planKey: string) => void} */
 const emit = defineEmits(['select'])
 const { t } = useI18n()
 
-const annualMultiplier = 0.8
-
-const featureKeyMap = {
-  'nutrition-log':          'subscription.featureNutritionLog',
-  'basic-dashboard':        'subscription.featureBasicDashboard',
-  'bmi-calculator':         'subscription.featureBmiCalculator',
-  'smart-scan':             'subscription.featureSmartScan',
-  'travel-mode':            'subscription.featureTravelMode',
-  'weather-recommendations':'subscription.featureWeatherRecs',
-  'pantry-recipes':         'subscription.featurePantry',
-  'google-fit':             'subscription.featureGoogleFit',
-  'menu-scan':              'subscription.featureMenuScan',
-  'unlimited-history':      'subscription.featureUnlimitedHistory',
-  'pdf-reports':            'subscription.featurePdfReports',
-}
-
 /** @param {string} featureId */
 function featureLabel(featureId) {
-  return t(featureKeyMap[featureId] ?? featureId)
+  return resolveFeatureLabel(t, featureId)
 }
 
 /**
  * Returns the formatted price string for the current billing period.
+ * Uses priceAnnual from the backend when available; falls back to 80% of monthly × 12.
  * @returns {string}
  */
 function getPrice() {
-  const price = props.billingPeriod === 'annual'
-    ? (props.plan.priceMonthly * annualMultiplier).toFixed(2)
-    : props.plan.priceMonthly.toFixed(2)
-  return `$${price}${t('subscription.perMonth')}`
+  if (props.billingPeriod === 'annual') {
+    const annual = props.plan.priceAnnual ?? props.plan.priceMonthly * 12 * 0.8
+    return `$${(annual / 12).toFixed(2)}${t('subscription.perMonth')}`
+  }
+  return `$${props.plan.priceMonthly.toFixed(2)}${t('subscription.perMonth')}`
 }
 </script>
 
@@ -82,9 +61,9 @@ function getPrice() {
       :icon="isChanging ? 'pi pi-spin pi-spinner' : isUpgrade ? 'pi pi-arrow-up' : 'pi pi-arrow-down'"
       :icon-pos="isChanging ? 'left' : 'right'"
       class="w-full"
-      :disabled="isChanging"
+      :disabled="isChanging || disabled"
       :aria-label="`${isUpgrade ? t('subscription.upgrade') : t('subscription.downgrade')} ${t(plan.key)}`"
-      @click="emit('select', plan.id)"
+      @click="emit('select', plan.key)"
     />
     <pv-button
       v-else

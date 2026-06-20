@@ -2,7 +2,7 @@ import { SubscriptionPlan } from '../domain/model/subscription-plan.entity.js'
 
 export class SubscriptionPlanAssembler {
   /**
-   * @param {Object} resource
+   * @param {Object} resource - camelCased backend SubscriptionPlanResource
    * @returns {ReturnType<typeof SubscriptionPlan>|null}
    */
   static toEntityFromResource(resource) {
@@ -11,6 +11,8 @@ export class SubscriptionPlanAssembler {
         id: resource.id,
         key: resource.key,
         priceMonthly: resource.priceMonthly,
+        priceAnnual: resource.priceAnnual ?? null,
+        currency: resource.currency ?? 'USD',
         features: resource.features ?? [],
       })
     } catch (e) {

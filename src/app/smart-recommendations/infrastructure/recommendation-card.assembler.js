@@ -9,17 +9,16 @@ export class RecommendationCardAssembler {
     try {
       return RecommendationCard({
         id: resource.id,
-        cityId: resource.cityId,
-        weatherType: resource.weatherType,
-        goalType: resource.goalType,
         foodId: resource.foodId ?? null,
-        customFoodNameKey: resource.customFoodNameKey ?? undefined,
+        foodNameEn: resource.foodNameEn ?? '',
+        foodNameEs: resource.foodNameEs ?? '',
         estimatedCalories: resource.estimatedCalories,
         estimatedProteinG: resource.estimatedProteinG,
         estimatedCarbsG: resource.estimatedCarbsG,
         estimatedFatG: resource.estimatedFatG,
         badge: resource.badge,
-        contextLabelKey: resource.contextLabelKey,
+        contextLabelEn: resource.contextLabelEn ?? '',
+        contextLabelEs: resource.contextLabelEs ?? '',
         restrictionsConflict: resource.restrictionsConflict ?? [],
       })
     } catch (e) {

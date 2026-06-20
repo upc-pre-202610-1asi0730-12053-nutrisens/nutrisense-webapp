@@ -1,31 +1,33 @@
-// PATH: src/app/subscriptions-billing/infrastructure/payment-method.assembler.js
 import { PaymentMethod } from '../domain/model/payment-method.entity.js'
 
 /**
- * @typedef {{ cardNumber: string, expiryMonth: number, expiryYear: number, cardholderName: string }} CardInput
+ * @typedef {import('../../shared/infrastructure/use-stripe-card.js').CardMeta} CardMeta
  */
 
 export class PaymentMethodAssembler {
   /**
-   * Builds the API resource body from raw card input.
-   * @param {string} userId
-   * @param {CardInput} cardData
+   * Builds the RegisterPaymentMethodResource body for the backend.
+   * All card metadata comes from the Stripe PaymentMethod object — never
+   * from raw card-number input.
+   * @param {number|string} userId
+   * @param {string} stripePaymentMethodId  - e.g. "pm_xxx"
+   * @param {CardMeta} cardMeta             - from Stripe's paymentMethod.card
    * @returns {Object}
    */
-  static toResource(userId, cardData) {
+  static toResource(userId, stripePaymentMethodId, cardMeta) {
     return {
-      userId,
-      lastFour:       cardData.cardNumber.replace(/\D/g, '').slice(-4),
-      brand:          PaymentMethod.detectBrand(cardData.cardNumber),
-      expiryMonth:    cardData.expiryMonth,
-      expiryYear:     cardData.expiryYear,
-      cardholderName: cardData.cardholderName.trim(),
-      createdAt:      new Date().toISOString(),
+      userId:                parseInt(userId, 10),
+      lastFour:              cardMeta.lastFour,
+      brand:                 cardMeta.brand,
+      expiryMonth:           cardMeta.expiryMonth,
+      expiryYear:            cardMeta.expiryYear,
+      cardholderName:        cardMeta.cardholderName,
+      stripePaymentMethodId,
     }
   }
 
   /**
-   * @param {Object} resource
+   * @param {Object} resource - camelCased backend PaymentMethodResource
    * @returns {ReturnType<typeof PaymentMethod>|null}
    */
   static toEntityFromResource(resource) {
@@ -38,7 +40,7 @@ export class PaymentMethodAssembler {
         expiryMonth:    resource.expiryMonth,
         expiryYear:     resource.expiryYear,
         cardholderName: resource.cardholderName,
-        createdAt:      resource.createdAt,
+        createdAt:      resource.createdAt ?? null,
       })
     } catch (e) {
       console.error('[PaymentMethodAssembler] failed to map resource', e)

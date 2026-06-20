@@ -11,7 +11,7 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['remove', 'update-quantity'])
-const { t } = useI18n()
+const { t, locale } = useI18n()
 
 /** @type {import('vue').Ref<ReturnType<import('../../domain/model/pantry-item.entity.js').PantryItem>|null>} */
 const editingItem = ref(null)
@@ -22,13 +22,17 @@ const editingQty = ref(0)
 const showEditDialog = computed(() => editingItem.value !== null)
 
 /**
- * Resolves the translated name of an ingredient by its ID.
+ * Resolves the localized name of an ingredient by its ID.
+ * Names come from the backend (`nameEn`/`nameEs`); the catalog is derived dynamically
+ * from the food catalog, so there are no i18n keys to translate against.
  * @param {string} ingredientId
  * @returns {string}
  */
 function ingredientName(ingredientId) {
   const found = props.ingredientCatalog.find(i => i.id === ingredientId)
-  return found ? t(found.key) : ingredientId
+  if (!found) return ingredientId
+  const name = locale.value.startsWith('es') ? found.nameEs : found.nameEn
+  return name || found.nameEn || found.nameEs || found.key
 }
 
 /**
