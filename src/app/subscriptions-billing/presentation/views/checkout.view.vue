@@ -6,8 +6,9 @@ import { useI18n } from 'vue-i18n'
 import { useToast } from 'primevue/usetoast'
 import { useSubscriptionsBillingStore } from '../../application/subscriptions-billing.store.js'
 import { useIamStore } from '../../../iam/application/iam.store.js'
-import { PaymentMethod } from '../../domain/model/payment-method.entity.js'
+import { useStripeCard } from '../../../shared/infrastructure/use-stripe-card.js'
 import { formatNum } from '../../../shared/infrastructure/format-utils.js'
+import { featureLabel, HIDDEN_PLAN_FEATURES } from '../feature-i18n.js'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -17,133 +18,60 @@ const toast  = useToast()
 const billingStore = useSubscriptionsBillingStore()
 const iamStore     = useIamStore()
 
-const userId = localStorage.getItem('ns_user_id') ?? ''
-const planId = route.query.planId ?? ''
+const userId        = localStorage.getItem('ns_user_id') ?? ''
+const planKey       = route.query.planKey ?? ''
+const billingPeriod = route.query.billingPeriod ?? 'monthly'
 
-onMounted(() => {
+const cardElementRef  = ref(null)
+const cardholderName  = ref('')
+const nameError       = ref('')
+
+const stripeCard = useStripeCard()
+
+onMounted(async () => {
   if (!billingStore.plansLoaded) billingStore.fetchPlans()
   if (!iamStore.currentUser)     iamStore.fetchCurrentUser(userId)
+  await stripeCard.mount(cardElementRef.value)
 })
 
-const selectedPlan = computed(() => billingStore.plans.find(p => p.id === planId) ?? null)
+const selectedPlan = computed(() => billingStore.plans.find(p => p.key === planKey) ?? null)
 
-/** @type {import('vue').Ref<string>} */
-const cardNumber      = ref('')
-/** @type {import('vue').Ref<string>} */
-const cardholderName  = ref('')
-/** @type {import('vue').Ref<string>} */
-const expiry          = ref('')
-/** @type {import('vue').Ref<string>} */
-const cvv             = ref('')
+const summaryFeatures = computed(() =>
+  (selectedPlan.value?.features ?? [])
+    .filter(f => !HIDDEN_PLAN_FEATURES.has(f))
+    .slice(0, 5)
+)
 
-const fieldErrors = ref({ cardNumber: '', cardholderName: '', expiry: '', cvv: '' })
-
-/** @type {import('vue').ComputedRef<string>} */
-const cardBrand = computed(() => PaymentMethod.detectBrand(cardNumber.value))
-
-/** @type {import('vue').ComputedRef<string>} */
-const brandIcon = computed(() => {
-  const map = { visa: 'pi-credit-card', mastercard: 'pi-credit-card', amex: 'pi-credit-card', other: 'pi-credit-card' }
-  return map[cardBrand.value] ?? 'pi-credit-card'
-})
-
-/**
- * Formats raw card digits into groups of 4 separated by spaces.
- * @param {string} raw
- * @returns {string}
- */
-function formatCardNumber(raw) {
-  return raw.replace(/\D/g, '').slice(0, 16).replace(/(.{4})/g, '$1 ').trim()
-}
-
-/** @param {Event} e */
-function onCardNumberInput(e) {
-  cardNumber.value = formatCardNumber(e.target.value)
-  e.target.value   = cardNumber.value
-  fieldErrors.value.cardNumber = ''
-}
-
-/** @param {Event} e */
-function onExpiryInput(e) {
-  let raw = e.target.value.replace(/\D/g, '').slice(0, 4)
-  if (raw.length >= 3) raw = raw.slice(0, 2) + '/' + raw.slice(2)
-  expiry.value     = raw
-  e.target.value   = raw
-  fieldErrors.value.expiry = ''
-}
-
-/** @param {Event} e */
-function onCvvInput(e) {
-  cvv.value = e.target.value.replace(/\D/g, '').slice(0, cardBrand.value === 'amex' ? 4 : 3)
-  e.target.value = cvv.value
-  fieldErrors.value.cvv = ''
-}
-
-/**
- * Validates all card fields and returns true when all pass.
- * @returns {boolean}
- */
-function validate() {
-  const errs = { cardNumber: '', cardholderName: '', expiry: '', cvv: '' }
-  const digits = cardNumber.value.replace(/\D/g, '')
-  if (digits.length < 16) errs.cardNumber = t('checkout.errorCardNumber')
-
-  if (!cardholderName.value.trim()) errs.cardholderName = t('checkout.errorName')
-
-  const [mm, yy] = expiry.value.split('/')
-  const month = parseInt(mm, 10)
-  const year  = parseInt('20' + yy, 10)
-  const now   = new Date()
-  if (!mm || !yy || month < 1 || month > 12 || year < now.getFullYear() ||
-      (year === now.getFullYear() && month < now.getMonth() + 1)) {
-    errs.expiry = t('checkout.errorExpiry')
+const displayPrice = computed(() => {
+  if (!selectedPlan.value) return 0
+  if (billingPeriod === 'annual') {
+    const annual = selectedPlan.value.priceAnnual ?? selectedPlan.value.priceMonthly * 12 * 0.8
+    return annual / 12
   }
+  return selectedPlan.value.priceMonthly
+})
 
-  const cvvLen = cardBrand.value === 'amex' ? 4 : 3
-  if (cvv.value.length < cvvLen) errs.cvv = t('checkout.errorCvv')
+const paying = computed(() => billingStore.paymentProcessing || stripeCard.stripeLoading.value)
 
-  fieldErrors.value = errs
-  return !Object.values(errs).some(Boolean)
+function validateName() {
+  nameError.value = cardholderName.value.trim() ? '' : t('checkout.errorName')
+  return !nameError.value
 }
-
-const paying = computed(() => billingStore.paymentProcessing)
 
 async function handlePay() {
-  if (!validate()) return
-
-  const [mm, yy] = expiry.value.split('/')
-  const user = iamStore.currentUser
+  if (!validateName()) return
 
   try {
-    await billingStore.processPayment(userId, planId, {
-      cardNumber:     cardNumber.value,
-      expiryMonth:    parseInt(mm, 10),
-      expiryYear:     parseInt('20' + yy, 10),
-      cardholderName: cardholderName.value.trim(),
-    })
-
-    if (user) {
-      const tierKey = planId.replace('plan-', '')
-      await iamStore.updateProfile({
-        firstName:         user.firstName,
-        lastName:          user.lastName,
-        email:             user.email.value,
-        biologicalSex:     user.biologicalSex.value,
-        dateOfBirth:       user.dateOfBirth,
-        heightCm:          user.heightCm,
-        goal:              user.goal.value,
-        activityLevel:     user.activityLevel.value,
-        preferredUnits:    user.preferredUnits.value,
-        preferredLanguage: user.preferredLanguage,
-        plan:              tierKey,
-        homeCityId:        user.homeCityId ?? '',
-        createdAt:         user.createdAt,
-      })
-    }
-
+    const { stripePaymentMethodId, cardMeta } = await stripeCard.createPaymentMethod(
+      cardholderName.value.trim()
+    )
+    await billingStore.processPayment(userId, planKey, stripePaymentMethodId, cardMeta, billingPeriod)
     router.push({ name: 'payment-success' })
-  } catch {
-    toast.add({ severity: 'error', summary: t('checkout.errorPayment'), life: 4000 })
+  } catch (err) {
+    // Stripe errors are already in stripeCard.stripeError; backend errors go to toast
+    if (!err?.type?.startsWith('card_error') && !err?.type?.startsWith('validation_error')) {
+      toast.add({ severity: 'error', summary: t('checkout.errorPayment'), life: 4000 })
+    }
   }
 }
 </script>
@@ -152,7 +80,6 @@ async function handlePay() {
   <div class="checkout-page" role="main">
     <div class="checkout-wrap">
 
-      <!-- Brand -->
       <div class="checkout-wrap__brand">NutriSense</div>
       <h1 class="checkout-wrap__title">{{ t('checkout.title') }}</h1>
       <p class="checkout-wrap__subtitle">{{ t('checkout.subtitle') }}</p>
@@ -163,19 +90,21 @@ async function handlePay() {
         <aside class="checkout-summary" :aria-label="t('checkout.orderSummary')">
           <h2 class="checkout-summary__heading">{{ t('checkout.orderSummary') }}</h2>
           <template v-if="selectedPlan">
-            <div class="checkout-summary__plan-name">{{ t(selectedPlan.key) }}</div>
+            <div class="checkout-summary__plan-name">{{ t('plan.' + selectedPlan.key) }}</div>
             <div class="checkout-summary__price">
-              <span class="checkout-summary__amount">${{ formatNum(selectedPlan.priceMonthly) }}</span>
-              <span class="checkout-summary__period">{{ t('checkout.billedMonthly') }}</span>
+              <span class="checkout-summary__amount">${{ formatNum(displayPrice) }}</span>
+              <span class="checkout-summary__period">
+                {{ billingPeriod === 'annual' ? t('checkout.billedAnnually') : t('checkout.billedMonthly') }}
+              </span>
             </div>
             <ul class="checkout-summary__features" :aria-label="t('checkout.includedFeatures')">
               <li
-                v-for="feature in selectedPlan.features.slice(0, 5)"
+                v-for="feature in summaryFeatures"
                 :key="feature"
                 class="checkout-summary__feature"
               >
                 <i class="pi pi-check" aria-hidden="true" />
-                {{ feature }}
+                {{ featureLabel(t, feature) }}
               </li>
             </ul>
           </template>
@@ -187,36 +116,11 @@ async function handlePay() {
           </div>
         </aside>
 
-        <!-- Card Form -->
+        <!-- Payment Form -->
         <section class="checkout-form" :aria-label="t('checkout.cardDetails')">
           <h2 class="checkout-form__heading">{{ t('checkout.cardDetails') }}</h2>
 
-          <!-- Card number -->
-          <div class="checkout-field">
-            <label class="checkout-field__label" for="card-number">
-              {{ t('checkout.cardNumber') }}
-            </label>
-            <div class="checkout-field__input-wrap" :class="{ 'checkout-field__input-wrap--error': fieldErrors.cardNumber }">
-              <input
-                id="card-number"
-                class="checkout-field__input"
-                type="text"
-                inputmode="numeric"
-                autocomplete="cc-number"
-                maxlength="19"
-                :placeholder="'1234 5678 9012 3456'"
-                :aria-label="t('checkout.cardNumber')"
-                :aria-invalid="!!fieldErrors.cardNumber"
-                @input="onCardNumberInput"
-              />
-              <i class="pi pi-credit-card checkout-field__icon" aria-hidden="true" />
-            </div>
-            <span v-if="fieldErrors.cardNumber" class="checkout-field__error" role="alert">
-              {{ fieldErrors.cardNumber }}
-            </span>
-          </div>
-
-          <!-- Cardholder name -->
+          <!-- Cardholder name (stays in our DOM — not sensitive) -->
           <div class="checkout-field">
             <label class="checkout-field__label" for="cardholder-name">
               {{ t('checkout.cardholderName') }}
@@ -225,67 +129,31 @@ async function handlePay() {
               id="cardholder-name"
               v-model="cardholderName"
               class="checkout-field__input"
-              :class="{ 'checkout-field__input--error': fieldErrors.cardholderName }"
+              :class="{ 'checkout-field__input--error': nameError }"
               type="text"
               autocomplete="cc-name"
               :placeholder="'John Smith'"
               :aria-label="t('checkout.cardholderName')"
-              :aria-invalid="!!fieldErrors.cardholderName"
-              @input="fieldErrors.cardholderName = ''"
+              :aria-invalid="!!nameError"
+              @input="nameError = ''"
             />
-            <span v-if="fieldErrors.cardholderName" class="checkout-field__error" role="alert">
-              {{ fieldErrors.cardholderName }}
+            <span v-if="nameError" class="checkout-field__error" role="alert">{{ nameError }}</span>
+          </div>
+
+          <!-- Stripe CardElement (number + expiry + CVC in one secure iframe) -->
+          <div class="checkout-field">
+            <label class="checkout-field__label">{{ t('checkout.cardNumber') }}</label>
+            <div
+              ref="cardElementRef"
+              class="stripe-card-element"
+              :class="{ 'stripe-card-element--error': stripeCard.stripeError.value }"
+              aria-label="Card number, expiry, and CVC"
+            />
+            <span v-if="stripeCard.stripeError.value" class="checkout-field__error" role="alert">
+              {{ stripeCard.stripeError.value }}
             </span>
           </div>
 
-          <!-- Expiry + CVV -->
-          <div class="checkout-row">
-            <div class="checkout-field">
-              <label class="checkout-field__label" for="expiry">
-                {{ t('checkout.expiry') }}
-              </label>
-              <input
-                id="expiry"
-                class="checkout-field__input"
-                :class="{ 'checkout-field__input--error': fieldErrors.expiry }"
-                type="text"
-                inputmode="numeric"
-                autocomplete="cc-exp"
-                maxlength="5"
-                placeholder="MM/YY"
-                :aria-label="t('checkout.expiry')"
-                :aria-invalid="!!fieldErrors.expiry"
-                @input="onExpiryInput"
-              />
-              <span v-if="fieldErrors.expiry" class="checkout-field__error" role="alert">
-                {{ fieldErrors.expiry }}
-              </span>
-            </div>
-
-            <div class="checkout-field">
-              <label class="checkout-field__label" for="cvv">
-                {{ t('checkout.cvv') }}
-              </label>
-              <input
-                id="cvv"
-                class="checkout-field__input"
-                :class="{ 'checkout-field__input--error': fieldErrors.cvv }"
-                type="password"
-                inputmode="numeric"
-                autocomplete="cc-csc"
-                :maxlength="cardBrand === 'amex' ? 4 : 3"
-                :placeholder="cardBrand === 'amex' ? '0000' : '000'"
-                :aria-label="t('checkout.cvv')"
-                :aria-invalid="!!fieldErrors.cvv"
-                @input="onCvvInput"
-              />
-              <span v-if="fieldErrors.cvv" class="checkout-field__error" role="alert">
-                {{ fieldErrors.cvv }}
-              </span>
-            </div>
-          </div>
-
-          <!-- Submit -->
           <pv-button
             class="checkout-form__submit"
             :loading="paying"
@@ -294,7 +162,7 @@ async function handlePay() {
           >
             <template v-if="paying">{{ t('checkout.processing') }}</template>
             <template v-else-if="selectedPlan">
-              {{ t('checkout.payNow', { amount: formatNum(selectedPlan.priceMonthly) }) }}
+              {{ t('checkout.payNow', { amount: formatNum(displayPrice) }) }}
             </template>
           </pv-button>
 
@@ -305,6 +173,7 @@ async function handlePay() {
             </button>
           </div>
         </section>
+
       </div>
     </div>
   </div>
@@ -351,7 +220,6 @@ async function handlePay() {
   margin: 0 0 2.5rem;
 }
 
-/* Layout */
 .checkout-layout {
   display: grid;
   grid-template-columns: 1fr 1.4fr;
@@ -458,7 +326,6 @@ async function handlePay() {
   margin: 0;
 }
 
-/* Fields */
 .checkout-field {
   display: flex;
   flex-direction: column;
@@ -469,24 +336,6 @@ async function handlePay() {
   font-size: 0.8125rem;
   font-weight: 600;
   color: var(--color-text);
-}
-
-.checkout-field__input-wrap {
-  position: relative;
-}
-
-.checkout-field__input-wrap .checkout-field__input {
-  padding-right: 2.5rem;
-}
-
-.checkout-field__icon {
-  position: absolute;
-  right: 0.75rem;
-  top: 50%;
-  transform: translateY(-50%);
-  color: #b0aba6;
-  font-size: 1rem;
-  pointer-events: none;
 }
 
 .checkout-field__input {
@@ -507,8 +356,7 @@ async function handlePay() {
   border-color: var(--color-primary);
 }
 
-.checkout-field__input--error,
-.checkout-field__input-wrap--error .checkout-field__input {
+.checkout-field__input--error {
   border-color: var(--color-danger);
 }
 
@@ -517,11 +365,22 @@ async function handlePay() {
   color: var(--color-danger);
 }
 
-/* Row: expiry + cvv */
-.checkout-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
+/* Stripe CardElement host */
+.stripe-card-element {
+  padding: 0.65rem 0.875rem;
+  border: 1.5px solid #d1d5db;
+  border-radius: 8px;
+  background: #fff;
+  transition: border-color 0.15s;
+  min-height: 42px;
+}
+
+.stripe-card-element:focus-within {
+  border-color: var(--color-primary);
+}
+
+.stripe-card-element--error {
+  border-color: var(--color-danger);
 }
 
 /* Submit */

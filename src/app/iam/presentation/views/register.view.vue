@@ -68,7 +68,7 @@ function handleRegister() {
   })
     .then(user => {
       if (user) {
-        localStorage.setItem('ns_user_id', user.id)
+        localStorage.setItem('ns_user_id', user.userId)
         router.push({ name: 'onboarding' })
       }
     })

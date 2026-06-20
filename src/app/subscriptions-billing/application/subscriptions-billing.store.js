@@ -1,4 +1,3 @@
-// PATH: src/app/subscriptions-billing/application/subscriptions-billing.store.js
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { SubscriptionsBillingApi } from '../infrastructure/subscriptions-billing.api.js'
@@ -11,11 +10,8 @@ import { emit } from '../../shared/infrastructure/event-bus.js'
 import { createDomainEvent } from '../../shared/domain/events/domain-event.js'
 import { SUBSCRIPTION_ACTIVATED } from '../../shared/domain/events/event-types.js'
 
-const subscriptionsBillingApi = new SubscriptionsBillingApi()
+const api = new SubscriptionsBillingApi()
 
-/**
- * Store for user subscriptions, plan catalogue, and payment history.
- */
 export const useSubscriptionsBillingStore = defineStore('subscriptions-billing', () => {
   /** @type {import('vue').Ref<ReturnType<import('../domain/model/user-subscription.entity.js').UserSubscription>|null>} */
   const subscription = ref(null)
@@ -24,9 +20,18 @@ export const useSubscriptionsBillingStore = defineStore('subscriptions-billing',
   /** @type {import('vue').Ref<ReturnType<import('../domain/model/payment-record.entity.js').PaymentRecord>[]>} */
   const paymentHistory = ref([])
   const subscriptionLoaded = ref(false)
+  /**
+   * The userId the subscription state was last loaded for. Used to detect
+   * when a different user is active and force a re-check.
+   * @type {import('vue').Ref<string|null>}
+   */
+  const loadedForUserId = ref(null)
   const plansLoaded = ref(false)
   const paymentHistoryLoaded = ref(false)
-  /** @type {import('vue').Ref<string|null>} */
+  /**
+   * planKey of the plan currently being changed; null when idle.
+   * @type {import('vue').Ref<string|null>}
+   */
   const changingPlanId = ref(null)
   const paymentProcessing = ref(false)
   /** @type {import('vue').Ref<ReturnType<import('../domain/model/payment-method.entity.js').PaymentMethod>|null>} */
@@ -38,190 +43,123 @@ export const useSubscriptionsBillingStore = defineStore('subscriptions-billing',
   const errors = ref([])
 
   /**
-   * The user's current subscription plan entity.
+   * The plan entity matching the user's active subscription, looked up by planKey.
    * @type {import('vue').ComputedRef<ReturnType<import('../domain/model/subscription-plan.entity.js').SubscriptionPlan>|null>}
    */
   const currentPlan = computed(() => {
     if (!subscription.value) return null
-    return plans.value.find(p => p.id === subscription.value.planId) ?? null
+    return plans.value.find(p => p.key === subscription.value.planKey) ?? null
   })
 
   /**
-   * The user's current plan tier, derived from the plan ID.
+   * The user's current plan tier derived from planKey.
    * @type {import('vue').ComputedRef<ReturnType<typeof PlanTier>|null>}
    */
   const currentTier = computed(() => {
     const plan = currentPlan.value
     if (!plan) return null
     try {
-      return PlanTier(plan.id.replace('plan-', ''))
+      return PlanTier(plan.key)
     } catch {
       return null
     }
   })
 
-  /**
-   * Whether the subscription is currently active.
-   * @type {import('vue').ComputedRef<boolean>}
-   */
+  /** @type {import('vue').ComputedRef<boolean>} */
   const isActive = computed(() => subscription.value?.isActive() ?? false)
 
-  /**
-   * Whether the subscription is set to cancel at period end.
-   * @type {import('vue').ComputedRef<boolean>}
-   */
-  const willCancelAtPeriodEnd = computed(() =>
-    subscription.value?.willCancel() ?? false
-  )
+  /** @type {import('vue').ComputedRef<boolean>} */
+  const willCancelAtPeriodEnd = computed(() => subscription.value?.willCancel() ?? false)
 
-  /**
-   * Days remaining until the next renewal, or null for free plans.
-   * @type {import('vue').ComputedRef<number|null>}
-   */
-  const daysUntilRenewal = computed(() =>
-    subscription.value?.daysUntilRenewal() ?? null
-  )
+  /** @type {import('vue').ComputedRef<number|null>} */
+  const daysUntilRenewal = computed(() => subscription.value?.daysUntilRenewal() ?? null)
 
-  /**
-   * Human-readable renewal date string, or empty string.
-   * @type {import('vue').ComputedRef<string>}
-   */
+  /** @type {import('vue').ComputedRef<string>} */
   const renewalDateLabel = computed(() => {
     const date = subscription.value?.renewalDate()
     return date ? date.toLocaleDateString() : ''
   })
 
   /**
-   * Returns whether the user has access to a specific feature based on their plan.
    * @param {string} featureName
    * @returns {boolean}
    */
   function hasAccess(featureName) {
     if (!subscription.value) return false
-    const plan = plans.value.find(p => p.id === subscription.value.planId)
+    const plan = plans.value.find(p => p.key === subscription.value.planKey)
     return plan?.hasFeature(featureName) ?? false
   }
 
   /**
-   * Checks whether a subscription exists for the given user without provisioning one.
-   * Sets subscription state if found.
-   * @param {string} userId
+   * Checks whether a subscription exists for the given user without side effects.
+   * @param {number|string} userId
    * @returns {Promise<boolean>}
    */
   function checkSubscription(userId) {
-    return subscriptionsBillingApi.getSubscriptions()
+    return api.getSubscriptionByUser(userId)
       .then(response => {
-        const all = UserSubscriptionAssembler.toEntitiesFromResponse(response)
-        const found = all.find(s => s.userId === userId) ?? null
-        if (found) {
-          subscription.value = found
-          subscriptionLoaded.value = true
-        }
+        const found = UserSubscriptionAssembler.toEntityFromResponse(response)
+        // Always assign — including null — so a stale subscription from a
+        // previous user/session is never carried over.
+        subscription.value = found
+        subscriptionLoaded.value = true
+        loadedForUserId.value = String(userId)
         return found !== null
       })
-      .catch(error => { errors.value.push(error); return false })
+      .catch(error => {
+        subscriptionLoaded.value = true
+        loadedForUserId.value = String(userId)
+        if (error.response?.status === 404) {
+          subscription.value = null
+          return false
+        }
+        errors.value.push(error)
+        return false
+      })
   }
 
   /**
-   * Loads the subscription for a given user.
-   * If none exists, provisions a basic subscription automatically.
-   * Also loads the active payment method in parallel.
-   * @param {string} userId
+   * Loads the subscription for the given user. Payment history is fetched
+   * automatically once the subscription ID is available.
+   * @param {number|string} userId
    */
   function fetchSubscription(userId) {
-    subscriptionsBillingApi.getSubscriptions()
+    api.getSubscriptionByUser(userId)
       .then(response => {
-        const all = UserSubscriptionAssembler.toEntitiesFromResponse(response)
-        const found = all.find(s => s.userId === userId) ?? null
-        if (found) {
-          subscription.value = found
-          subscriptionLoaded.value = true
-        } else {
-          return provisionBasicSubscription(userId)
-        }
+        subscription.value = UserSubscriptionAssembler.toEntityFromResponse(response)
+        subscriptionLoaded.value = true
+        fetchPaymentHistory()
       })
-      .catch(error => errors.value.push(error))
+      .catch(error => {
+        if (error.response?.status !== 404) errors.value.push(error)
+        subscriptionLoaded.value = true
+      })
 
     fetchPaymentMethod(userId)
   }
 
   /**
    * Loads the most recent payment method for the given user.
-   * @param {string} userId
+   * NOTE: actual payment method registration is handled in D.7b (Stripe).
+   * @param {number|string} userId
    */
   function fetchPaymentMethod(userId) {
-    subscriptionsBillingApi.getPaymentMethods()
+    api.getPaymentMethods(userId)
       .then(response => {
         const all = PaymentMethodAssembler.toEntitiesFromResponse(response)
-        const forUser = all.filter(m => m.userId === userId)
-        paymentMethod.value = forUser.length
-          ? forUser.reduce((latest, m) => m.createdAt > latest.createdAt ? m : latest)
+        paymentMethod.value = all.length
+          ? all.reduce((latest, m) => m.createdAt > latest.createdAt ? m : latest)
           : null
         paymentMethodLoaded.value = true
       })
-      .catch(error => errors.value.push(error))
-  }
-
-  /**
-   * Saves a new payment method for the user. The previous card is kept in the
-   * API but this one becomes the active method for the subscription.
-   * @param {string} userId
-   * @param {{ cardNumber: string, expiryMonth: number, expiryYear: number, cardholderName: string }} cardData
-   * @returns {Promise<void>}
-   */
-  function updatePaymentMethod(userId, cardData) {
-    const cardResource = PaymentMethodAssembler.toResource(userId, cardData)
-    return subscriptionsBillingApi.createPaymentMethod(cardResource)
-      .then(res => {
-        const updated = PaymentMethodAssembler.toEntityFromResponse(res)
-        paymentMethod.value = updated
-        lastPaymentMethod.value = updated
-        if (subscription.value) {
-          return subscriptionsBillingApi.updateSubscription(subscription.value.id, {
-            paymentMethodId: updated.id,
-          })
-        }
-      })
-      .catch(error => {
-        errors.value.push(error)
-        throw error
+      .catch(() => {
+        // Payment method is optional — absence is not an error
+        paymentMethodLoaded.value = true
       })
   }
 
-  /**
-   * Creates a default basic subscription for a user with no existing record.
-   * @param {string} userId
-   * @returns {Promise<void>}
-   */
-  function provisionBasicSubscription(userId) {
-    const now = new Date()
-    const periodEnd = new Date(now)
-    periodEnd.setDate(periodEnd.getDate() + 30)
-
-    const resource = {
-      userId,
-      planId: 'plan-basic',
-      status: 'active',
-      billingPeriod: 'monthly',
-      periodStart: now.toISOString(),
-      periodEnd: periodEnd.toISOString(),
-      cancelAtPeriodEnd: false,
-      stripeSubscriptionId: null,
-    }
-
-    return subscriptionsBillingApi.createSubscription(resource)
-      .then(response => {
-        subscription.value = UserSubscriptionAssembler.toEntityFromResponse(response)
-        subscriptionLoaded.value = true
-      })
-      .catch(error => errors.value.push(error))
-  }
-
-  /**
-   * Loads all available subscription plans.
-   */
   function fetchPlans() {
-    subscriptionsBillingApi.getPlans()
+    api.getPlans()
       .then(response => {
         plans.value = SubscriptionPlanAssembler.toEntitiesFromResponse(response)
         plansLoaded.value = true
@@ -230,15 +168,18 @@ export const useSubscriptionsBillingStore = defineStore('subscriptions-billing',
   }
 
   /**
-   * Loads payment history for a given user, sorted most-recent first.
-   * @param {string} userId
+   * Fetches payment history using the subscription ID already in state.
+   * Safe to call when subscription is not yet loaded — resolves immediately.
    */
-  function fetchPaymentHistory(userId) {
-    subscriptionsBillingApi.getPaymentHistory()
+  function fetchPaymentHistory() {
+    const subscriptionId = subscription.value?.id
+    if (!subscriptionId) {
+      paymentHistoryLoaded.value = true
+      return
+    }
+    api.getPaymentHistory(subscriptionId)
       .then(response => {
-        const all = PaymentRecordAssembler.toEntitiesFromResponse(response)
-        paymentHistory.value = all
-          .filter(p => p.userId === userId)
+        paymentHistory.value = PaymentRecordAssembler.toEntitiesFromResponse(response)
           .sort((a, b) => (b.paidAt ?? '').localeCompare(a.paidAt ?? ''))
         paymentHistoryLoaded.value = true
       })
@@ -246,43 +187,34 @@ export const useSubscriptionsBillingStore = defineStore('subscriptions-billing',
   }
 
   /**
-   * Creates the initial subscription for a new user with their chosen plan.
-   * @param {string} userId
-   * @param {string} planId
+   * Activates a new subscription for the user on the given plan.
+   * paymentMethodId must be a registered payment method ID from the backend.
+   * @param {number|string} userId
+   * @param {string} planKey  - e.g. "basic" | "pro" | "premium"
+   * @param {number} paymentMethodId
+   * @param {'monthly'|'annual'} [billingPeriod]
    * @returns {Promise<void>}
    */
-  function selectInitialPlan(userId, planId) {
-    const now = new Date()
-    const periodEnd = new Date(now)
-    periodEnd.setDate(periodEnd.getDate() + 30)
-    return subscriptionsBillingApi.createSubscription({
-      userId,
-      planId,
-      status: 'active',
-      billingPeriod: 'monthly',
-      periodStart: now.toISOString(),
-      periodEnd: periodEnd.toISOString(),
-      cancelAtPeriodEnd: false,
-      stripeSubscriptionId: null,
-    })
+  function selectInitialPlan(userId, planKey, paymentMethodId, billingPeriod = 'monthly') {
+    return api.selectPlan({ userId: parseInt(userId, 10), planKey, paymentMethodId, billingPeriod })
       .then(response => {
         subscription.value = UserSubscriptionAssembler.toEntityFromResponse(response)
         subscriptionLoaded.value = true
         emit(createDomainEvent(SUBSCRIPTION_ACTIVATED, { userId }))
       })
-      .catch(error => errors.value.push(error))
+      .catch(error => {
+        errors.value.push(error)
+        throw error
+      })
   }
 
   /**
-   * Changes the current subscription to a different plan and billing period.
-   * Enforces the one-change-per-day rule and records a prorated charge or
-   * credit as an upgrade/downgrade entry in payment history.
-   * @param {string} planId
-   * @param {'monthly'|'annual'} billingPeriodValue
+   * Upgrades or downgrades the current subscription to a different plan.
+   * @param {string} newPlanKey
+   * @param {'monthly'|'annual'} billingPeriod
    * @returns {Promise<void>}
-   * @throws {Error} if the daily change limit has already been reached
    */
-  function changePlan(planId, billingPeriodValue) {
+  function changePlan(newPlanKey, billingPeriod) {
     if (!subscription.value) return Promise.resolve()
 
     if (!subscription.value.canChangePlanToday()) {
@@ -291,93 +223,101 @@ export const useSubscriptionsBillingStore = defineStore('subscriptions-billing',
       return Promise.reject(error)
     }
 
-    changingPlanId.value = planId
-    const userId = subscription.value.userId
-    const fromPlanId = subscription.value.planId
-    const fromPlan = plans.value.find(p => p.id === fromPlanId)
-    const toPlan = plans.value.find(p => p.id === planId)
-    const eventType = toPlan?.planChangeType(fromPlan) ?? 'upgrade'
-    const proratedAmount = subscription.value.proratedChangeAmount(fromPlan, toPlan)
-    const now = new Date()
-
-    return subscriptionsBillingApi.updateSubscription(subscription.value.id, {
-      planId,
-      billingPeriod: billingPeriodValue,
-      lastPlanChangeAt: now.toISOString(),
-    })
+    changingPlanId.value = newPlanKey
+    return api.changePlan(subscription.value.id, { newPlanKey, billingPeriod })
       .then(response => {
         subscription.value = UserSubscriptionAssembler.toEntityFromResponse(response)
+        const userId = subscription.value?.userId
         if (userId) emit(createDomainEvent(SUBSCRIPTION_ACTIVATED, { userId }))
-        return subscriptionsBillingApi.createPaymentRecord({
-          userId,
-          planId,
-          fromPlanId,
-          amountUsd: proratedAmount,
-          status: 'paid',
-          type: eventType,
-          paidAt: now.toISOString(),
-        })
       })
-      .then(() => fetchPaymentHistory(userId))
       .catch(error => errors.value.push(error))
       .finally(() => { changingPlanId.value = null })
   }
 
   /**
-   * Schedules the subscription for cancellation at the current period end.
+   * Schedules the subscription to cancel at the current period end.
    */
   function cancelSubscription() {
-    if (!subscription.value) return
-    const userId = subscription.value.userId
-    subscriptionsBillingApi.updateSubscription(subscription.value.id, { cancelAtPeriodEnd: true })
+    if (!subscription.value) return Promise.resolve()
+    return api.cancelSubscription(subscription.value.id, { cancelAtPeriodEnd: true })
       .then(response => {
         subscription.value = UserSubscriptionAssembler.toEntityFromResponse(response)
-        if (userId) emit(createDomainEvent(SUBSCRIPTION_ACTIVATED, { userId }))
       })
       .catch(error => errors.value.push(error))
   }
 
   /**
-   * Removes the cancellation flag from the current subscription.
+   * Removes a pending cancellation and renews the subscription.
    */
   function reactivateSubscription() {
-    if (!subscription.value) return
-    const userId = subscription.value.userId
-    subscriptionsBillingApi.updateSubscription(subscription.value.id, { cancelAtPeriodEnd: false })
+    if (!subscription.value) return Promise.resolve()
+    return api.renewSubscription(subscription.value.id)
       .then(response => {
         subscription.value = UserSubscriptionAssembler.toEntityFromResponse(response)
-        if (userId) emit(createDomainEvent(SUBSCRIPTION_ACTIVATED, { userId }))
       })
       .catch(error => errors.value.push(error))
   }
 
   /**
-   * Processes initial subscription payment in three sequential steps:
-   * saves the card as a payment method, creates a paid payment record,
-   * then activates the subscription via selectInitialPlan.
-   * @param {string} userId
-   * @param {string} planId
-   * @param {{ cardNumber: string, expiryMonth: number, expiryYear: number, cardholderName: string }} cardData
+   * Registers a new card tokenized via Stripe and updates the active payment method.
+   * @param {number|string} userId
+   * @param {string} stripePaymentMethodId - pm_xxx from stripe.createPaymentMethod()
+   * @param {import('../../shared/infrastructure/use-stripe-card.js').CardMeta} cardMeta
    * @returns {Promise<void>}
-   * @throws {Error} re-thrown after being pushed to errors, so the view can react
    */
-  function processPayment(userId, planId, cardData) {
-    paymentProcessing.value = true
-    const plan = plans.value.find(p => p.id === planId)
-    const cardResource = PaymentMethodAssembler.toResource(userId, cardData)
-
-    return subscriptionsBillingApi.createPaymentMethod(cardResource)
+  function updatePaymentMethod(userId, stripePaymentMethodId, cardMeta) {
+    const resource = PaymentMethodAssembler.toResource(userId, stripePaymentMethodId, cardMeta)
+    return api.createPaymentMethod(resource)
       .then(res => {
-        lastPaymentMethod.value = PaymentMethodAssembler.toEntityFromResponse(res)
-        return subscriptionsBillingApi.createPaymentRecord({
-          userId,
-          planId,
-          amountUsd: plan?.priceMonthly ?? 0,
-          status:    'paid',
-          paidAt:    new Date().toISOString(),
-        })
+        const updated = PaymentMethodAssembler.toEntityFromResponse(res)
+        paymentMethod.value = updated
+        lastPaymentMethod.value = updated
       })
-      .then(() => selectInitialPlan(userId, planId))
+      .catch(error => {
+        errors.value.push(error)
+        throw error
+      })
+  }
+
+  /**
+   * Removes a payment method by id.
+   * @param {number} id
+   * @returns {Promise<void>}
+   */
+  function deletePaymentMethod(id) {
+    return api.deletePaymentMethod(id)
+      .then(() => {
+        paymentMethod.value = null
+        lastPaymentMethod.value = null
+      })
+      .catch(error => {
+        errors.value.push(error)
+        throw error
+      })
+  }
+
+  /**
+   * Processes initial subscription checkout after Stripe tokenisation.
+   * Step 1: Register payment method with backend.
+   * Step 2: Activate subscription via selectInitialPlan.
+   * @param {number|string} userId
+   * @param {string} planKey
+   * @param {string} stripePaymentMethodId - pm_xxx from stripe.createPaymentMethod()
+   * @param {import('../../shared/infrastructure/use-stripe-card.js').CardMeta} cardMeta
+   * @param {'monthly'|'annual'} [billingPeriod]
+   * @returns {Promise<void>}
+   */
+  function processPayment(userId, planKey, stripePaymentMethodId, cardMeta, billingPeriod = 'monthly') {
+    paymentProcessing.value = true
+    const resource = PaymentMethodAssembler.toResource(userId, stripePaymentMethodId, cardMeta)
+
+    return api.createPaymentMethod(resource)
+      .then(res => {
+        const method = PaymentMethodAssembler.toEntityFromResponse(res)
+        lastPaymentMethod.value = method
+        paymentMethod.value = method
+        return selectInitialPlan(userId, planKey, method.id, billingPeriod)
+      })
       .catch(error => {
         errors.value.push(error)
         throw error
@@ -385,8 +325,27 @@ export const useSubscriptionsBillingStore = defineStore('subscriptions-billing',
       .finally(() => { paymentProcessing.value = false })
   }
 
-  /** Clears the errors array. */
   function clearErrors() {
+    errors.value = []
+  }
+
+  /**
+   * Resets all billing state. Must be called on sign-out / account switch so
+   * one user's subscription is never seen by the next user in the same SPA session.
+   */
+  function reset() {
+    subscription.value = null
+    plans.value = []
+    paymentHistory.value = []
+    subscriptionLoaded.value = false
+    loadedForUserId.value = null
+    plansLoaded.value = false
+    paymentHistoryLoaded.value = false
+    changingPlanId.value = null
+    paymentProcessing.value = false
+    lastPaymentMethod.value = null
+    paymentMethod.value = null
+    paymentMethodLoaded.value = false
     errors.value = []
   }
 
@@ -395,6 +354,7 @@ export const useSubscriptionsBillingStore = defineStore('subscriptions-billing',
     plans,
     paymentHistory,
     subscriptionLoaded,
+    loadedForUserId,
     plansLoaded,
     paymentHistoryLoaded,
     changingPlanId,
@@ -419,8 +379,10 @@ export const useSubscriptionsBillingStore = defineStore('subscriptions-billing',
     processPayment,
     changePlan,
     updatePaymentMethod,
+    deletePaymentMethod,
     cancelSubscription,
     reactivateSubscription,
     clearErrors,
+    reset,
   }
 })

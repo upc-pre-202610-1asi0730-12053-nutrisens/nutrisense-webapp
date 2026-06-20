@@ -28,31 +28,30 @@ const billingOptions = [
   { label: t('subscription.annual'),  value: 'annual' },
 ]
 
-const pendingPlanId = ref(/** @type {string|null} */ (null))
+/** @type {import('vue').Ref<string|null>} */
+const pendingPlanKey = ref(null)
 const showConfirmDialog = ref(false)
 const planChangeSuccess = ref(false)
 
 /** @type {import('vue').ComputedRef<ReturnType<import('../../domain/model/subscription-plan.entity.js').SubscriptionPlan>|null>} */
 const pendingPlan = computed(() =>
-  plans.value.find(p => p.id === pendingPlanId.value) ?? null
+  plans.value.find(p => p.key === pendingPlanKey.value) ?? null
 )
 
-/** Whether the user has already changed their plan today. */
 const planChangeLimitReached = computed(() =>
   subscription.value ? !subscription.value.canChangePlanToday() : false
 )
 
 /**
- * @param {string} planId
+ * @param {string} planKey
  * @returns {boolean}
  */
-function isPlanUpgrade(planId) {
+function isPlanUpgrade(planKey) {
   if (!currentPlan.value) return true
-  const target = plans.value.find(p => p.id === planId)
+  const target = plans.value.find(p => p.key === planKey)
   return target ? target.isUpgradeFrom(currentPlan.value) : true
 }
 
-/** Prorated amount and remaining days for the pending plan change. */
 const proratedInfo = computed(() => {
   if (!pendingPlan.value || !subscription.value || !currentPlan.value) return { amount: 0, days: 0 }
   const raw = subscription.value.proratedChangeAmount(currentPlan.value, pendingPlan.value)
@@ -63,44 +62,51 @@ const proratedInfo = computed(() => {
   }
 })
 
+/**
+ * Returns the severity and label for the current subscription status badge.
+ * @returns {{ severity: string, label: string }}
+ */
+const statusBadge = computed(() => {
+  const s = subscription.value?.status
+  if (!s) return { severity: 'secondary', label: '' }
+  if (s.isActive()) return { severity: 'success', label: t('subscription.active') }
+  if (s.isPendingPayment()) return { severity: 'warn', label: t('subscription.pendingPayment') }
+  if (s.isExpired()) return { severity: 'danger', label: t('subscription.expired') }
+  if (s.isCancelled()) return { severity: 'secondary', label: t('subscription.cancelledStatus') }
+  return { severity: 'secondary', label: s.value }
+})
+
 onMounted(() => {
   store.fetchSubscription(userId)
   store.fetchPlans()
 })
 
-/**
- * Opens the confirmation dialog for a plan change.
- * @param {string} planId
- */
-function handleSelectPlan(planId) {
+/** @param {string} planKey */
+function handleSelectPlan(planKey) {
   if (planChangeLimitReached.value) return
-  pendingPlanId.value = planId
+  pendingPlanKey.value = planKey
   showConfirmDialog.value = true
   planChangeSuccess.value = false
 }
 
-/** Submits the pending plan change to the store, then clears the dialog state. */
 function handleConfirmChange() {
-  if (!pendingPlanId.value) return
+  if (!pendingPlanKey.value) return
   showConfirmDialog.value = false
-  store.changePlan(pendingPlanId.value, billingPeriod.value)
+  store.changePlan(pendingPlanKey.value, billingPeriod.value)
     .then(() => { planChangeSuccess.value = true })
     .catch(() => {})
-  pendingPlanId.value = null
+  pendingPlanKey.value = null
 }
 
-/** Closes the confirmation dialog without applying any changes. */
 function handleCancelDialog() {
   showConfirmDialog.value = false
-  pendingPlanId.value = null
+  pendingPlanKey.value = null
 }
 
-/** Cancels the active subscription at the end of the current billing period. */
 function handleCancel() {
   store.cancelSubscription()
 }
 
-/** Reactivates a subscription that was previously set to cancel at period end. */
 function handleReactivate() {
   store.reactivateSubscription()
 }
@@ -122,6 +128,16 @@ function handleReactivate() {
       {{ t('subscription.changeLimitTooltip') }}
     </pv-message>
 
+    <!-- Pending payment warning -->
+    <pv-message v-if="subscription?.status?.isPendingPayment()" severity="warn" :closable="false">
+      {{ t('subscription.pendingPaymentWarning') }}
+    </pv-message>
+
+    <!-- Expired warning -->
+    <pv-message v-if="subscription?.status?.isExpired()" severity="error" :closable="false">
+      {{ t('subscription.expiredWarning') }}
+    </pv-message>
+
     <pv-skeleton v-if="!subscriptionLoaded || !plansLoaded" height="300px" border-radius="12px" />
 
     <div v-else>
@@ -131,14 +147,18 @@ function handleReactivate() {
           <div class="current-plan">
             <div class="current-plan__name">
               {{ currentPlan ? t(currentPlan.key) : t('subscription.free') }}
-              <pv-tag severity="success" :value="t('subscription.active')" class="ml-2" />
+              <pv-tag
+                :severity="statusBadge.severity"
+                :value="statusBadge.label"
+                class="ml-2"
+              />
             </div>
 
             <div v-if="subscription?.periodEnd" class="current-plan__renewal">
               <span v-if="willCancelAtPeriodEnd" class="text-danger">
                 {{ t('subscription.cancelsOn', { date: renewalDateLabel }) }}
               </span>
-              <span v-else>
+              <span v-else-if="subscription?.status?.isActive()">
                 {{ t('subscription.renewsOn', { date: renewalDateLabel }) }}
               </span>
             </div>
@@ -152,7 +172,7 @@ function handleReactivate() {
                 @click="handleReactivate"
               />
               <pv-button
-                v-else-if="currentPlan?.priceMonthly > 0"
+                v-else-if="currentPlan?.priceMonthly > 0 && subscription?.status?.isActive()"
                 :label="t('subscription.cancelSubscription')"
                 severity="secondary"
                 outlined
@@ -164,7 +184,7 @@ function handleReactivate() {
         </template>
       </pv-card>
 
-      <pv-card class="subscription-view__plans">
+      <pv-card v-if="subscription?.status?.isActive()" class="subscription-view__plans">
         <template #title>{{ t('subscription.availablePlans') }}</template>
         <template #content>
           <div class="billing-toggle">
@@ -180,13 +200,13 @@ function handleReactivate() {
           <div class="plans-grid">
             <plan-card
               v-for="plan in plans"
-              :key="plan.id"
+              :key="plan.key"
               :plan="plan"
-              :is-current-plan="currentPlan?.id === plan.id"
+              :is-current-plan="currentPlan?.key === plan.key"
               :billing-period="billingPeriod"
-              :is-changing="changingPlanId === plan.id"
-              :is-upgrade="isPlanUpgrade(plan.id)"
-              :disabled="planChangeLimitReached && currentPlan?.id !== plan.id"
+              :is-changing="changingPlanId === plan.key"
+              :is-upgrade="isPlanUpgrade(plan.key)"
+              :disabled="planChangeLimitReached && currentPlan?.key !== plan.key"
               @select="handleSelectPlan"
             />
           </div>
@@ -229,7 +249,7 @@ function handleReactivate() {
         />
         <pv-button
           :label="t('subscription.confirm')"
-          :icon="isPlanUpgrade(pendingPlanId ?? '') ? 'pi pi-arrow-up' : 'pi pi-arrow-down'"
+          :icon="isPlanUpgrade(pendingPlanKey ?? '') ? 'pi pi-arrow-up' : 'pi pi-arrow-down'"
           icon-pos="right"
           :aria-label="t('subscription.confirm')"
           @click="handleConfirmChange"

@@ -32,8 +32,7 @@ function handleLogin() {
         errorMsg.value = t('auth.login.error')
         return null
       }
-      localStorage.setItem('ns_user_id', user.id)
-      return billingStore.checkSubscription(user.id)
+      return billingStore.checkSubscription(user.userId)
     })
     .then(hasSub => {
       if (hasSub === null) return

@@ -32,7 +32,6 @@ let   chartInstance = null
 onMounted(async () => {
   if (!userId) return
   nutritionStore.fetchLogs(userId)
-  nutritionStore.fetchFoods()
   analyticsStore.fetchStreak(userId)
   bodyStore.fetchUserGoal(userId)
   activityStore.fetchActivityLogs(userId)
@@ -43,11 +42,11 @@ onMounted(async () => {
 onBeforeUnmount(() => { chartInstance?.destroy() })
 
 const isMusclGain = computed(() => currentUser.value?.goal?.value === 'muscle-gain')
-const calorieGoal = computed(() => bodyStore.userGoal?.dailyCalorieTarget ?? 1911)
-const proteinGoal = computed(() => bodyStore.userGoal?.macroTargets?.proteinG ?? 112)
-const carbsGoal   = computed(() => bodyStore.userGoal?.macroTargets?.carbsG   ?? 247)
-const fatGoal     = computed(() => bodyStore.userGoal?.macroTargets?.fatG     ?? 53)
-const fiberGoal   = computed(() => bodyStore.userGoal?.macroTargets?.fiberG   ?? 25)
+const calorieGoal = computed(() => bodyStore.userGoal?.macroTargets?.dailyCalorieTarget ?? 1911)
+const proteinGoal = computed(() => bodyStore.userGoal?.macroTargets?.proteinTargetG     ?? 112)
+const carbsGoal   = computed(() => bodyStore.userGoal?.macroTargets?.carbsTargetG       ?? 247)
+const fatGoal     = computed(() => bodyStore.userGoal?.macroTargets?.fatTargetG         ?? 53)
+const fiberGoal   = computed(() => bodyStore.userGoal?.macroTargets?.fiberTargetG       ?? 25)
 
 const greeting = computed(() => {
   const h    = new Date().getHours()
@@ -300,7 +299,6 @@ function goToLog(meal) {
             <div class="meal-row__body">
               <span class="meal-row__name">{{ t(mealConfig[type].labelKey) }}</span>
               <span v-if="mealFirstFood(type)" class="meal-row__sub">{{ mealFirstFood(type) }}</span>
-              <span v-else class="meal-row__sub meal-row__sub--empty">{{ t('dashboard.mealNotLogged') }}</span>
             </div>
             <span class="meal-row__kcal" :class="{ 'meal-row__kcal--logged': mealKcal(type) !== null }">
               {{ mealKcal(type) !== null ? mealKcal(type) + ' ' + t('macros.kcal') : '— ' + t('macros.kcal') }}

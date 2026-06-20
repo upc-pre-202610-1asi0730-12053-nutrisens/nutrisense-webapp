@@ -2,15 +2,17 @@ import { Macros } from '../../../shared/domain/model/macros.record.js'
 
 /**
  * @typedef {Object} RecipeIngredient
- * @property {string} ingredientId
+ * @property {number} ingredientId
  * @property {number} quantity
  * @property {'g' | 'ml' | 'unit'} unit
  */
 
 /**
  * @typedef {Object} RecipeProps
- * @property {string} id
+ * @property {number} id
  * @property {string} key
+ * @property {string} nameEn
+ * @property {string} nameEs
  * @property {import('../../../../shared/domain/model/goal-type.record.js').GoalTypeValue | 'both'} goalType
  * @property {number} prepTimeMinutes
  * @property {number} servings
@@ -36,6 +38,8 @@ export function Recipe(props) {
   return Object.freeze({
     id: props.id,
     key: props.key,
+    nameEn: props.nameEn,
+    nameEs: props.nameEs,
     goalType: props.goalType,
     prepTimeMinutes: props.prepTimeMinutes,
     servings: props.servings,

@@ -31,7 +31,11 @@
     "select": "Obtener {plan}",
     "later": "Quizás después — cerrar sesión",
     "loading": "Cargando planes...",
-    "includedFeatures": "Funciones incluidas"
+    "includedFeatures": "Funciones incluidas",
+    "monthly": "Mensual",
+    "annual": "Anual",
+    "annualSavings": "Ahorra 20%",
+    "billedAnnually": "Facturado ${total}/año"
   },
   "onboarding": {
     "stepOf": "Paso {current} de {total}",
@@ -252,6 +256,7 @@
     "streakCaloriesLow": "Consume al menos el 80% de tu objetivo calórico.",
     "streakCaloriesOver": "Superaste el 105% — reduce la ingesta para proteger tu racha.",
     "streakProtein": "Alcanza al menos el 50% de tu objetivo de proteínas.",
+    "streakNoGoal": "Configura tu objetivo nutricional para empezar una racha.",
     "restrictionWarning": "Este alimento podría no ser compatible con tus restricciones o condiciones de salud."
   },
   "bodyProgress": {
@@ -338,6 +343,14 @@
     "filterCalories": "Máx. calorías",
     "clearFilters": "Limpiar filtros",
     "travelMode": "Modo viaje",
+    "weather": {
+      "sunny": "Soleado",
+      "partly-cloudy": "Parcialmente nublado",
+      "cloudy": "Nublado",
+      "rainy": "Lluvioso",
+      "stormy": "Tormenta",
+      "snowy": "Nieve"
+    },
     "enableTravel": "Activar modo viaje",
     "disableTravel": "Desactivar modo viaje",
     "selectCity": "Seleccionar ciudad de viaje",
@@ -386,6 +399,8 @@
     "locationCurrent": "Ubicación actual",
     "searchCity": "Buscar ciudad...",
     "noCity": "Ninguna ciudad coincide con tu búsqueda",
+    "searchingCity": "Buscando…",
+    "newCity": "Ciudad nueva — se añadirá",
     "searchIngredient": "Buscar ingrediente...",
     "noIngredient": "Ningún ingrediente coincide con tu búsqueda",
     "pantryEmpty": "Tu despensa está vacía",
@@ -446,6 +461,8 @@
     "sectionWeight": "Gráfico de peso",
     "sectionStreak": "Racha y adherencia",
     "generate": "Generar PDF",
+    "exportSuccess": "Informe PDF descargado",
+    "exportError": "No se pudo generar el PDF",
     "adherence": "Adherencia",
     "calorieHistory": "Historial de calorías",
     "calorieHistoryChartLabel": "Gráfico de barras del historial de calorías",
@@ -596,8 +613,12 @@
     "featurePantry": "Despensa y sugerencias de recetas",
     "featureGoogleFit": "Sincronización con Google Fit",
     "featureMenuScan": "Análisis de menús de restaurantes",
+    "featureHistory30d": "Historial de 30 días",
+    "featureHistory90d": "Historial de 90 días",
     "featureUnlimitedHistory": "Historial ilimitado",
     "featurePdfReports": "Informes en PDF",
+    "featureEverythingBasic": "Todo lo incluido en Basic",
+    "featureEverythingPro": "Todo lo incluido en Pro",
     "upgradeRequiresPro": "Esta función requiere el plan Pro",
     "upgradeRequiresPremium": "Esta función requiere el plan Premium",
     "maybeLater": "Quizás después",
@@ -851,7 +872,14 @@
     "menuWillExceed110": "Agregar este ítem te pondrá por encima del 110% de tu objetivo diario.",
     "menuWillExceed130": "Agregar este ítem superará significativamente tu objetivo calórico.",
     "menuWillReach80": "Este ítem se ajusta a tu objetivo calórico diario.",
-    "calorieStatus": "{pct}% del objetivo diario"
+    "calorieStatus": "{pct}% del objetivo diario",
+    "scanError": "No pudimos analizar la imagen. Inténtalo de nuevo.",
+    "nothingToLog": "Estos elementos no se pudieron guardar en el catálogo, así que no se pueden registrar. Intenta escanear de nuevo.",
+    "noDishesTitle": "No se detectaron platos",
+    "noDishesDesc": "No pudimos reconocer ningún alimento en esta foto. Prueba con una imagen más clara y bien iluminada de tu plato.",
+    "noMenuTitle": "No se detectó ningún menú",
+    "noMenuDesc": "No pudimos leer ningún plato en esta foto. Prueba con una imagen más clara del menú.",
+    "estimated": "Estimado"
   },
   "activityType": {
     "walking": "Caminar",

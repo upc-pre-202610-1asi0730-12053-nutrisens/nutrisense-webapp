@@ -1,10 +1,13 @@
-const PLAN_RANK = { 'plan-basic': 0, 'plan-pro': 1, 'plan-premium': 2 }
+// Keys match backend PlanKey values: basic / pro / premium
+const PLAN_RANK = { basic: 0, pro: 1, premium: 2 }
 
 /**
  * @typedef {Object} SubscriptionPlanProps
- * @property {string} id
+ * @property {number} id
  * @property {string} key
  * @property {number} priceMonthly
+ * @property {number|null} [priceAnnual]
+ * @property {string} [currency]
  * @property {string[]} features
  */
 
@@ -14,6 +17,8 @@ export function SubscriptionPlan(props) {
     id: props.id,
     key: props.key,
     priceMonthly: props.priceMonthly,
+    priceAnnual: props.priceAnnual ?? null,
+    currency: props.currency ?? 'USD',
     features: props.features,
 
     /**
@@ -25,24 +30,23 @@ export function SubscriptionPlan(props) {
     isFree() { return props.priceMonthly === 0 },
     /**
      * @param {SubscriptionPlanProps} lowerPlan
-     * @returns {boolean} this plan is a higher tier than lowerPlan
+     * @returns {boolean}
      */
     isUpgradeFrom(lowerPlan) {
-      return (PLAN_RANK[props.id] ?? -1) > (PLAN_RANK[lowerPlan.id] ?? -1)
+      return (PLAN_RANK[props.key] ?? -1) > (PLAN_RANK[lowerPlan.key] ?? -1)
     },
     /**
-     * Resolves the direction of a plan change relative to another plan.
-     * @param {SubscriptionPlanProps} fromPlan - The plan being left.
+     * @param {SubscriptionPlanProps} fromPlan
      * @returns {'upgrade' | 'downgrade'}
      */
     planChangeType(fromPlan) {
-      return (PLAN_RANK[props.id] ?? -1) > (PLAN_RANK[fromPlan.id] ?? -1)
+      return (PLAN_RANK[props.key] ?? -1) > (PLAN_RANK[fromPlan.key] ?? -1)
         ? 'upgrade'
         : 'downgrade'
     },
     /**
      * @param {SubscriptionPlanProps} lowerPlan
-     * @returns {string[]} feature IDs gained when upgrading to this plan
+     * @returns {string[]}
      */
     featuresGainedOver(lowerPlan) {
       return props.features.filter(f => !lowerPlan.features.includes(f))

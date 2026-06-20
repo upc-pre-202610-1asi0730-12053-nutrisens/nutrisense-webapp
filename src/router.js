@@ -13,6 +13,19 @@ import { subscriptionsBillingRoutes, planSelectionRoute, checkoutRoute, paymentS
 const authRoutes   = iamRoutes.filter(r => r.meta?.requiresGuest)
 const profileRoute = iamRoutes.find(r => r.name === 'profile')
 
+/**
+ * Routes reachable by an authenticated user who does NOT yet have an active
+ * subscription (the onboarding / billing flow). Every other authenticated
+ * route requires an active subscription.
+ * @type {Set<string>}
+ */
+const SUBSCRIPTION_EXEMPT_ROUTES = new Set([
+  'onboarding',
+  'plan-selection',
+  'checkout',
+  'payment-success',
+])
+
 const router = createRouter({
   history: createWebHistory(),
   routes: [
@@ -45,17 +58,43 @@ const router = createRouter({
   ],
 })
 
+function parseJwtExp(token) {
+  try {
+    const payload = token.split('.')[1]
+    const base64 = payload.replace(/-/g, '+').replace(/_/g, '/')
+    return JSON.parse(atob(base64)).exp ?? null
+  } catch {
+    return null
+  }
+}
+
+function isTokenValid(token) {
+  if (!token) return false
+  const exp = parseJwtExp(token)
+  return exp !== null && Date.now() / 1000 < exp
+}
+
+function clearSession() {
+  localStorage.removeItem('ns_token')
+  localStorage.removeItem('ns_user_id')
+  localStorage.removeItem('ns_session_id')
+}
+
 router.beforeEach(async (to, _from) => {
   if (to.meta?.title) document.title = to.meta.title
 
+  const token = localStorage.getItem('ns_token')
   const userId = localStorage.getItem('ns_user_id')
 
-  if (to.meta?.requiresAuth && !userId) return { name: 'login' }
-  if (to.meta?.requiresGuest && userId) return { name: 'dashboard' }
+  if (to.meta?.requiresAuth && !isTokenValid(token)) {
+    clearSession()
+    return { name: 'login' }
+  }
+  if (to.meta?.requiresGuest && isTokenValid(token)) return { name: 'dashboard' }
 
   if (userId && to.meta?.requiresAuth) {
     const iamStore = useIamStore()
-    if (!iamStore.userLoaded) await iamStore.fetchCurrentUser(userId)
+    if (!iamStore.currentUser) await iamStore.fetchCurrentUser(parseInt(userId, 10))
 
     const user = iamStore.currentUser
     if (user && !user.isOnboardingComplete() && to.name !== 'onboarding') {
@@ -67,20 +106,35 @@ router.beforeEach(async (to, _from) => {
 
     if (to.name === 'plan-selection') {
       const billingStore = useSubscriptionsBillingStore()
-      if (!billingStore.subscriptionLoaded) await billingStore.checkSubscription(userId)
-      if (billingStore.subscription) return { name: 'dashboard' }
+      if (!billingStore.subscriptionLoaded || billingStore.loadedForUserId !== String(userId)) {
+        await billingStore.checkSubscription(userId)
+      }
+      if (billingStore.subscription?.isActive()) return { name: 'dashboard' }
     }
 
     if (to.name === 'checkout') {
-      if (!to.query.planId) return { name: 'plan-selection' }
+      if (!to.query.planKey) return { name: 'plan-selection' }
       const billingStore = useSubscriptionsBillingStore()
-      if (!billingStore.subscriptionLoaded) await billingStore.checkSubscription(userId)
-      if (billingStore.subscription) return { name: 'dashboard' }
+      if (!billingStore.subscriptionLoaded || billingStore.loadedForUserId !== String(userId)) {
+        await billingStore.checkSubscription(userId)
+      }
+      if (billingStore.subscription?.isActive()) return { name: 'dashboard' }
     }
 
     if (to.name === 'payment-success') {
       const billingStore = useSubscriptionsBillingStore()
       if (!billingStore.lastPaymentMethod) return { name: 'dashboard' }
+    }
+
+    // Subscription gate: the core app requires an active subscription.
+    // Exempt the onboarding/billing flow routes (which must stay reachable
+    // without one); everything else under requiresAuth is gated.
+    if (user && user.isOnboardingComplete() && !SUBSCRIPTION_EXEMPT_ROUTES.has(to.name)) {
+      const billingStore = useSubscriptionsBillingStore()
+      if (!billingStore.subscriptionLoaded || billingStore.loadedForUserId !== String(userId)) {
+        await billingStore.checkSubscription(userId)
+      }
+      if (!billingStore.subscription?.isActive()) return { name: 'plan-selection' }
     }
   }
 })

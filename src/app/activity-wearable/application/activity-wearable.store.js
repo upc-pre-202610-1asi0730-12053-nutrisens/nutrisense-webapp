@@ -91,14 +91,15 @@ export const useActivityWearableStore = defineStore('activity-wearable', () => {
   })
 
   /**
-   * Loads activity logs for a given user.
+   * Loads activity logs for a given user from the backend (server-side filtered).
    * @param {string} userId
+   * @param {string} [from] - yyyy-MM-dd
+   * @param {string} [to] - yyyy-MM-dd
    */
-  function fetchActivityLogs(userId) {
-    activityWearableApi.getLogs()
+  function fetchActivityLogs(userId, from, to) {
+    activityWearableApi.getLogsByUser(Number(userId), from, to)
       .then(response => {
-        const all = ActivityLogAssembler.toEntitiesFromResponse(response)
-        activityLogs.value = all.filter(l => l.userId === userId)
+        activityLogs.value = ActivityLogAssembler.toEntitiesFromResponse(response)
         logsLoaded.value = true
       })
       .catch(error => errors.value.push(error))
@@ -122,10 +123,13 @@ export const useActivityWearableStore = defineStore('activity-wearable', () => {
 
   /**
    * Removes an activity log entry by ID.
+   * The backend requires the owner userId as a query param for ownership validation.
    * @param {string} logId
    */
   function removeActivity(logId) {
-    activityWearableApi.deleteLog(logId)
+    const log = activityLogs.value.find(l => l.id === logId)
+    if (!log) return
+    activityWearableApi.deleteLog(Number(logId), Number(log.userId))
       .then(() => {
         activityLogs.value = activityLogs.value.filter(l => l.id !== logId)
         emit(createDomainEvent(ACTIVITY_LOGGED, {}))
@@ -134,32 +138,26 @@ export const useActivityWearableStore = defineStore('activity-wearable', () => {
   }
 
   /**
-   * Loads wearable connections for a given user.
+   * Loads wearable connections for a given user from the backend.
    * @param {string} userId
    */
   function fetchConnections(userId) {
-    activityWearableApi.getConnections()
+    activityWearableApi.getConnectionsByUser(Number(userId))
       .then(response => {
-        const all = WearableConnectionAssembler.toEntitiesFromResponse(response)
-        wearableConnections.value = all.filter(c => c.userId === userId)
+        wearableConnections.value = WearableConnectionAssembler.toEntitiesFromResponse(response)
         connectionsLoaded.value = true
       })
       .catch(error => errors.value.push(error))
   }
 
   /**
-   * Creates a Google Fit connection for the given user.
+   * Connects a Google Fit account via OAuth code exchange.
+   * The oauthCode must be a real authorization code from the Google OAuth flow.
    * @param {string} userId
-   * @param {{ accessToken: string, refreshToken: string }} authData
+   * @param {{ oauthCode: string }} authData
    */
   function connectGoogleFit(userId, authData) {
-    const resource = {
-      userId,
-      provider: 'google-fit',
-      status: 'connected',
-      authorizedAt: new Date().toISOString(),
-      lastSyncedAt: new Date().toISOString(),
-    }
+    const resource = WearableConnectionAssembler.toResource(userId, 'google-fit', authData.oauthCode)
     activityWearableApi.createConnection(resource)
       .then(response => {
         const newConnection = WearableConnectionAssembler.toEntityFromResource(response.data)
@@ -169,15 +167,13 @@ export const useActivityWearableStore = defineStore('activity-wearable', () => {
   }
 
   /**
-   * Marks a wearable connection as disconnected.
+   * Disconnects a wearable device. The backend removes the connection (DELETE).
    * @param {string} connectionId
    */
   function disconnectWearable(connectionId) {
-    activityWearableApi.updateConnection(connectionId, { status: 'disconnected' })
-      .then(response => {
-        const updated = WearableConnectionAssembler.toEntityFromResource(response.data)
-        const idx = wearableConnections.value.findIndex(c => c.id === connectionId)
-        if (idx !== -1 && updated) wearableConnections.value.splice(idx, 1, updated)
+    activityWearableApi.deleteConnection(Number(connectionId))
+      .then(() => {
+        wearableConnections.value = wearableConnections.value.filter(c => c.id !== connectionId)
       })
       .catch(error => errors.value.push(error))
   }

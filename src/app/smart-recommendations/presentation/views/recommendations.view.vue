@@ -15,7 +15,7 @@ import FeatureGate from '../../../subscriptions-billing/presentation/components/
 import LogDishDialog from '../components/log-dish-dialog.component.vue'
 import RecipeDetailDialog from '../components/recipe-detail-dialog.component.vue'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const toast = useToast()
 const store = useSmartRecommendationsStore()
 const iamStore = useIamStore()
@@ -30,6 +30,7 @@ const {
   ingredientCatalog,
   cities,
   activeCity,
+  currentWeather,
   homeCity,
   homeCityId,
   activeCityName,
@@ -46,7 +47,7 @@ const {
 
 const { dailyCaloriesConsumed, isViewingToday } = toRefs(nutritionStore)
 
-const calorieGoal = computed(() => bodyStore.userGoal?.dailyCalorieTarget ?? 1911)
+const calorieGoal = computed(() => bodyStore.userGoal?.macroTargets?.dailyCalorieTarget ?? 1911)
 
 /**
  * Projected daily calorie % after adding a given number of calories.
@@ -82,21 +83,63 @@ const showLocationModal = ref(false)
 const locationPermitted = ref(false)
 const showManualInput = ref(false)
 const showTravelDialog = ref(false)
-const selectedTravelCityId = ref(null)
+/** @type {import('vue').Ref<Object|null>} The selected city/candidate object (may lack an id). */
+const selectedCity = ref(null)
 const citySearch = ref('')
+/** @type {import('vue').Ref<Object[]>} Backend search hits (local catalog + geocoding candidates). */
+const citySearchResults = ref([])
+const citySearchLoading = ref(false)
+/** @type {ReturnType<typeof setTimeout>|null} */
+let citySearchTimer = null
 
 /**
- * Travel-eligible cities: excludes the user's home city and filters by search query.
- * @type {import('vue').ComputedRef<ReturnType<import('../../domain/model/city.entity.js').City>[]>}
+ * Debounced backend city search. With <2 chars it falls back to the locally loaded catalog.
+ */
+watch(citySearch, q => {
+  const term = q.trim()
+  if (citySearchTimer) clearTimeout(citySearchTimer)
+  if (term.length < 2) {
+    citySearchResults.value = []
+    citySearchLoading.value = false
+    return
+  }
+  citySearchLoading.value = true
+  citySearchTimer = setTimeout(async () => {
+    citySearchResults.value = await store.searchCities(term, 5)
+    citySearchLoading.value = false
+  }, 350)
+})
+
+/**
+ * Cities shown in the picker: backend results while searching (≥2 chars), otherwise the local
+ * catalog. The user's home city is excluded (you don't "travel" to where you live).
+ * @type {import('vue').ComputedRef<Object[]>}
  */
 const filteredCities = computed(() => {
-  const q = citySearch.value.toLowerCase().trim()
-  return cities.value.filter(c => {
-    if (c.id === homeCityId.value) return false
-    if (!q) return true
-    return t(c.key).toLowerCase().includes(q) || c.country.toLowerCase().includes(q)
-  })
+  const term = citySearch.value.trim()
+  const source = term.length >= 2
+    ? citySearchResults.value
+    : cities.value.map(c => ({ id: c.id, key: c.key, nameEn: c.nameEn, nameEs: c.nameEs, country: c.country, lat: c.lat, lng: c.lng, state: null }))
+  return source.filter(c => c.id == null || c.id !== homeCityId.value)
 })
+
+/**
+ * Stable v-for key for a city result (geocoding candidates have no id).
+ * @param {Object} c
+ * @returns {string}
+ */
+function cityKey(c) {
+  return String(c.id ?? c.key ?? `${c.lat},${c.lng}`)
+}
+
+/**
+ * Whether two city results refer to the same entry.
+ * @param {Object|null} a
+ * @param {Object|null} b
+ */
+function sameCity(a, b) {
+  return !!a && !!b && cityKey(a) === cityKey(b)
+}
 
 /**
  * @param {string} countryCode - ISO 3166-1 alpha-2
@@ -108,16 +151,6 @@ function countryFlag(countryCode) {
     .join('')
 }
 
-/**
- * @param {import('../../domain/model/weather-type.record.js').WeatherTypeValue} wt
- * @returns {{ icon: string, color: string }}
- */
-function weatherStyle(wt) {
-  if (wt === 'hot')  return { icon: 'pi-sun',   color: '#f97316' }
-  if (wt === 'warm') return { icon: 'pi-sun',   color: '#f59e0b' }
-  if (wt === 'cold') return { icon: 'pi-cloud', color: '#3b82f6' }
-  return { icon: 'pi-cloud', color: '#9ca3af' }
-}
 
 /** @type {import('vue').Ref<ReturnType<import('../../domain/model/recommendation-card.entity.js').RecommendationCard>|null>} */
 const logDishTarget = ref(null)
@@ -166,7 +199,7 @@ function handleLogDishConfirm({ foodId, grams, mealType, estimatedMacros }) {
     nutritionStore.addEstimatedToLog(
       userId,
       foodId,
-      logDishTarget.value?.customFoodNameKey ?? foodId ?? '',
+      (locale.value.startsWith('es') ? logDishTarget.value?.foodNameEs : logDishTarget.value?.foodNameEn) ?? foodId ?? '',
       estimatedMacros,
       mealType,
       'manual',
@@ -199,13 +232,26 @@ const pantryQuantity = ref(1)
 const ingredientSearch = ref('')
 
 /**
- * Ingredients filtered by search query against the translated name.
+ * Human-readable ingredient name in the active locale, falling back to the key.
+ * Names come from the backend (`nameEn`/`nameEs`); the catalog is derived dynamically
+ * from the food catalog, so there are no i18n keys to translate against.
+ * @param {ReturnType<import('../../domain/model/ingredient-catalog-item.entity.js').IngredientCatalogItem>} i
+ * @returns {string}
+ */
+function ingredientName(i) {
+  if (!i) return ''
+  const name = locale.value.startsWith('es') ? i.nameEs : i.nameEn
+  return name || i.nameEn || i.nameEs || i.key
+}
+
+/**
+ * Ingredients filtered by search query against the localized name.
  * @type {import('vue').ComputedRef<ReturnType<import('../../domain/model/ingredient-catalog-item.entity.js').IngredientCatalogItem>[]>}
  */
 const filteredIngredients = computed(() => {
   const q = ingredientSearch.value.toLowerCase().trim()
   if (!q) return ingredientCatalog.value
-  return ingredientCatalog.value.filter(i => t(i.key).toLowerCase().includes(q))
+  return ingredientCatalog.value.filter(i => ingredientName(i).toLowerCase().includes(q))
 })
 
 /**
@@ -284,7 +330,7 @@ watch(
   ([user, weightKg]) => {
     if (!user) return
     if (user.goal?.value) store.setUserGoal(user.goal.value)
-    if (user.homeCityId) store.setHomeCity(user.homeCityId, user.homeCityId)
+    if (user.homeCityId) store.setHomeCity(user.homeCityId, '')
     const bmi = weightKg && user.heightCm
       ? bodyStore.getBmi(weightKg, user.heightCm)
       : null
@@ -299,7 +345,7 @@ watch(
 
 onMounted(() => {
   if (userId) {
-    store.fetchRecommendations()
+    store.fetchRecommendations(userId)
     store.fetchRecipes()
     store.fetchPantry(userId)
     store.fetchCities()
@@ -307,7 +353,6 @@ onMounted(() => {
     billingStore.fetchSubscription(userId)
     billingStore.fetchPlans()
     iamStore.fetchCurrentUser(userId)
-    nutritionStore.fetchFoods()
     nutritionStore.fetchLogs(userId)
     bodyStore.fetchWeightLogs(userId)
     bodyStore.fetchUserGoal(userId)
@@ -323,9 +368,10 @@ onMounted(() => {
 
 function handleAllowLocation() {
   navigator.geolocation?.getCurrentPosition(
-    () => {
+    pos => {
       locationPermitted.value = true
       localStorage.setItem('ns_location_granted', 'true')
+      if (userId) store.detectLocation(userId, pos.coords.latitude, pos.coords.longitude)
     },
     () => { showManualInput.value = true },
   )
@@ -342,13 +388,15 @@ function handleManualLocation() {
 watch(showTravelDialog, open => {
   if (!open) return
   citySearch.value = ''
-  selectedTravelCityId.value = null
+  citySearchResults.value = []
+  selectedCity.value = null
 })
 
 watch(showManualInput, open => {
   if (!open) return
   citySearch.value = ''
-  selectedTravelCityId.value = null
+  citySearchResults.value = []
+  selectedCity.value = null
 })
 
 watch(showPantryForm, open => {
@@ -358,15 +406,28 @@ watch(showPantryForm, open => {
   pantryQuantity.value = 1
 })
 
-function handleEnableTravel() {
-  if (!selectedTravelCityId.value) return
-  const city = cities.value.find(c => c.id === selectedTravelCityId.value)
-  if (city) store.enableTravelMode(city.id, t(city.key))
+async function handleEnableTravel() {
+  if (!selectedCity.value) return
+  const city = await store.importCity(selectedCity.value)
+  if (city) {
+    const name = locale.value.startsWith('es') ? (city.nameEs || city.nameEn) : (city.nameEn || city.nameEs)
+    store.enableTravelMode(userId, city.id, name)
+  }
   showTravelDialog.value = false
 }
 
+/**
+ * Manual fallback when GPS is unavailable: use the chosen city's coordinates to detect
+ * (and server-side import) the user's current city. Not Pro-gated, unlike travel mode.
+ */
+function handleManualConfirm() {
+  if (!selectedCity.value || !userId) return
+  store.detectLocation(userId, selectedCity.value.lat, selectedCity.value.lng)
+  showManualInput.value = false
+}
+
 function handleDisableTravel() {
-  store.disableTravelMode()
+  store.disableTravelMode(userId)
 }
 
 /**
@@ -385,7 +446,7 @@ function handleUpdateQuantity({ id, quantity }) {
 function handleAddToPantry() {
   if (!selectedIngredientEntity.value) return
   const ing = selectedIngredientEntity.value
-  store.addToPantry(userId, ing.id, t(ing.key), pantryQuantity.value, ing.defaultUnit)
+  store.addToPantry(userId, ing.id, pantryQuantity.value, ing.defaultUnit)
   showPantryForm.value = false
 }
 
@@ -465,7 +526,15 @@ function handleHighInToggle(macro) {
         <!-- City context bar -->
         <div v-if="activeCity" class="city-bar" role="note">
           <i class="pi pi-map-marker" aria-hidden="true" />
-          <span>{{ t(activeCity.key) }} — {{ activeCity.currentTempC }}°C</span>
+          <span>{{ locale.startsWith('es') ? activeCity.nameEs : activeCity.nameEn }}</span>
+          <span
+            v-if="currentWeather"
+            class="city-bar__weather"
+            :title="t('recommendations.weather.' + currentWeather.condition)"
+          >
+            <i class="pi" :class="currentWeather.icon()" aria-hidden="true" />
+            {{ currentWeather.roundedTemp() }}°C
+          </span>
           <span v-if="travelModeActive" class="ns-tag ns-tag--pro" style="font-size:0.65rem">{{ t('recommendations.travelMode') }}</span>
         </div>
 
@@ -588,7 +657,7 @@ function handleHighInToggle(macro) {
               <span>
                 {{ t('recommendations.locationHome') }}
                 <span v-if="homeCity" class="filter-chip__meta">
-                  {{ t(homeCity.key) }} · {{ homeCity.currentTempC }}°C
+                  {{ locale.startsWith('es') ? homeCity.nameEs : homeCity.nameEn }}
                 </span>
               </span>
             </button>
@@ -756,31 +825,29 @@ function handleHighInToggle(macro) {
         <ul class="city-picker__list" role="listbox" :aria-label="t('recommendations.selectCity')">
           <li
             v-for="city in filteredCities"
-            :key="city.id"
+            :key="cityKey(city)"
             class="city-picker__item"
-            :class="{ 'city-picker__item--selected': selectedTravelCityId === city.id }"
+            :class="{ 'city-picker__item--selected': sameCity(selectedCity, city) }"
             role="option"
-            :aria-selected="selectedTravelCityId === city.id"
+            :aria-selected="sameCity(selectedCity, city)"
             tabindex="0"
-            @click="selectedTravelCityId = city.id"
-            @keydown.enter="selectedTravelCityId = city.id"
+            @click="selectedCity = city"
+            @keydown.enter="selectedCity = city"
           >
             <span class="city-picker__flag" aria-hidden="true">{{ countryFlag(city.country) }}</span>
             <div class="city-picker__info">
-              <span class="city-picker__name">{{ t(city.key) }}</span>
-              <span class="city-picker__country">{{ city.country }}</span>
+              <span class="city-picker__name">{{ locale.startsWith('es') ? city.nameEs : city.nameEn }}</span>
+              <span class="city-picker__country">{{ city.country }}{{ city.state ? ', ' + city.state : '' }}</span>
             </div>
-            <div class="city-picker__weather">
-              <i
-                class="pi"
-                :class="weatherStyle(city.weatherType.value).icon"
-                :style="{ color: weatherStyle(city.weatherType.value).color }"
-                aria-hidden="true"
-              />
-              <span class="city-picker__temp">{{ city.currentTempC }}°C</span>
-            </div>
+            <span v-if="city.id == null" class="city-picker__new" :title="t('recommendations.newCity')" aria-hidden="true">
+              <i class="pi pi-globe" />
+            </span>
           </li>
-          <li v-if="!filteredCities.length" class="city-picker__empty">
+          <li v-if="citySearchLoading" class="city-picker__empty">
+            <i class="pi pi-spin pi-spinner" aria-hidden="true" />
+            {{ t('recommendations.searchingCity') }}
+          </li>
+          <li v-else-if="!filteredCities.length" class="city-picker__empty">
             <i class="pi pi-search" aria-hidden="true" />
             {{ t('recommendations.noCity') }}
           </li>
@@ -790,8 +857,8 @@ function handleHighInToggle(macro) {
         <pv-button :label="t('common.cancel')" text @click="showManualInput = false" />
         <pv-button
           :label="t('common.confirm')"
-          :disabled="!selectedTravelCityId"
-          @click="() => { handleEnableTravel(); showManualInput = false }"
+          :disabled="!selectedCity"
+          @click="handleManualConfirm"
         />
       </template>
     </pv-dialog>
@@ -820,31 +887,29 @@ function handleHighInToggle(macro) {
         <ul class="city-picker__list" role="listbox" :aria-label="t('recommendations.selectCity')">
           <li
             v-for="city in filteredCities"
-            :key="city.id"
+            :key="cityKey(city)"
             class="city-picker__item"
-            :class="{ 'city-picker__item--selected': selectedTravelCityId === city.id }"
+            :class="{ 'city-picker__item--selected': sameCity(selectedCity, city) }"
             role="option"
-            :aria-selected="selectedTravelCityId === city.id"
+            :aria-selected="sameCity(selectedCity, city)"
             tabindex="0"
-            @click="selectedTravelCityId = city.id"
-            @keydown.enter="selectedTravelCityId = city.id"
+            @click="selectedCity = city"
+            @keydown.enter="selectedCity = city"
           >
             <span class="city-picker__flag" aria-hidden="true">{{ countryFlag(city.country) }}</span>
             <div class="city-picker__info">
-              <span class="city-picker__name">{{ t(city.key) }}</span>
-              <span class="city-picker__country">{{ city.country }}</span>
+              <span class="city-picker__name">{{ locale.startsWith('es') ? city.nameEs : city.nameEn }}</span>
+              <span class="city-picker__country">{{ city.country }}{{ city.state ? ', ' + city.state : '' }}</span>
             </div>
-            <div class="city-picker__weather">
-              <i
-                class="pi"
-                :class="weatherStyle(city.weatherType.value).icon"
-                :style="{ color: weatherStyle(city.weatherType.value).color }"
-                aria-hidden="true"
-              />
-              <span class="city-picker__temp">{{ city.currentTempC }}°C</span>
-            </div>
+            <span v-if="city.id == null" class="city-picker__new" :title="t('recommendations.newCity')" aria-hidden="true">
+              <i class="pi pi-globe" />
+            </span>
           </li>
-          <li v-if="!filteredCities.length" class="city-picker__empty">
+          <li v-if="citySearchLoading" class="city-picker__empty">
+            <i class="pi pi-spin pi-spinner" aria-hidden="true" />
+            {{ t('recommendations.searchingCity') }}
+          </li>
+          <li v-else-if="!filteredCities.length" class="city-picker__empty">
             <i class="pi pi-search" aria-hidden="true" />
             {{ t('recommendations.noCity') }}
           </li>
@@ -864,7 +929,7 @@ function handleHighInToggle(macro) {
         <pv-button :label="t('recommendations.cancel')" text @click="showTravelDialog = false" />
         <pv-button
           :label="t('recommendations.enableTravel')"
-          :disabled="!selectedTravelCityId"
+          :disabled="!selectedCity"
           @click="handleEnableTravel"
         />
       </template>
@@ -927,7 +992,7 @@ function handleHighInToggle(macro) {
             @keydown.enter="selectedIngredient = ing.id"
           >
             <span class="ing-picker__cat">{{ t('ingredient.category.' + ing.category.value) }}</span>
-            <span class="ing-picker__name">{{ t(ing.key) }}</span>
+            <span class="ing-picker__name">{{ ingredientName(ing) }}</span>
             <span class="ing-picker__unit-badge">{{ ing.defaultUnit }}</span>
             <i
               v-if="selectedIngredient === ing.id"
@@ -945,7 +1010,7 @@ function handleHighInToggle(macro) {
         <transition name="ing-fade">
           <div v-if="selectedIngredientEntity" class="ing-picker__qty-row">
             <div class="ing-picker__qty-label">
-              <span class="ing-picker__selected-name">{{ t(selectedIngredientEntity.key) }}</span>
+              <span class="ing-picker__selected-name">{{ ingredientName(selectedIngredientEntity) }}</span>
               <span class="ing-picker__qty-hint">{{ t('recommendations.quantity') }}</span>
             </div>
             <div class="ing-picker__qty-input-wrap">
@@ -1056,6 +1121,19 @@ function handleHighInToggle(macro) {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
 }
+
+.city-bar__weather {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-weight: 700;
+  color: var(--color-primary);
+  padding-left: 0.5rem;
+  margin-left: 0.25rem;
+  border-left: 1px solid var(--color-border);
+}
+
+.city-bar__weather .pi { font-size: 0.9375rem; }
 
 .goal-bar {
   color: var(--p-primary-700, #047857);
@@ -1421,6 +1499,13 @@ function handleHighInToggle(macro) {
   color: var(--color-text-secondary);
   letter-spacing: 0.06em;
   text-transform: uppercase;
+}
+
+.city-picker__new {
+  flex-shrink: 0;
+  color: var(--color-primary);
+  opacity: 0.7;
+  font-size: 0.9rem;
 }
 
 .city-picker__weather {

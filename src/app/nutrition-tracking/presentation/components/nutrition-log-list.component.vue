@@ -17,7 +17,7 @@ defineProps({
 /** @type {(event: 'remove', logId: string) => void} */
 const emit = defineEmits(['remove'])
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 </script>
 
 <template>
@@ -39,7 +39,7 @@ const { t } = useI18n()
         role="listitem"
       >
         <div class="log-item__info">
-          <span class="log-item__name">{{ t(log.foodKey) }}</span>
+          <span class="log-item__name">{{ log.displayName(locale) }}</span>
           <span class="log-item__qty">{{ t('nutrition.grams', { n: log.quantityG }) }}</span>
         </div>
         <div class="log-item__macros">

@@ -1,17 +1,39 @@
 import { WearableConnection } from '../domain/model/wearable-connection.entity.js'
 
+// Backend WearableStatus values differ from the frontend domain model.
+const STATUS_MAP = {
+  'authorized':   'connected',
+  'needs-reauth': 'error',
+}
+
 export class WearableConnectionAssembler {
   /**
-   * @param {Object} resource
+   * Builds the API request body for ConnectDeviceResource.
+   * @param {string} userId
+   * @param {string} provider
+   * @param {string} oauthCode
+   * @returns {Object}
+   */
+  static toResource(userId, provider, oauthCode) {
+    return {
+      userId:    Number(userId),
+      provider,
+      oauthCode,
+    }
+  }
+
+  /**
+   * @param {Object} resource - camelCase response from backend (WearableConnectionResource)
    * @returns {ReturnType<typeof WearableConnection>|null}
    */
   static toEntityFromResource(resource) {
     try {
+      const status = STATUS_MAP[resource.status] ?? 'disconnected'
       return WearableConnection({
-        id: resource.id,
-        userId: resource.userId,
-        provider: resource.provider,
-        status: resource.status,
+        id:           String(resource.id),
+        userId:       String(resource.userId),
+        provider:     resource.provider,
+        status,
         lastSyncedAt: resource.lastSyncedAt ?? null,
         authorizedAt: resource.authorizedAt,
       })

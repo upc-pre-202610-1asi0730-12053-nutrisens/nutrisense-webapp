@@ -16,11 +16,13 @@ const props = defineProps({
 
 const emit = defineEmits(['update:visible', 'log'])
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 
 const servings = ref(1)
 /** @type {import('vue').Ref<'breakfast'|'lunch'|'snack'|'dinner'>} */
 const selectedMealType = ref('lunch')
+/** Guards against double-submit: a second click before the dialog closes is ignored. */
+const submitting = ref(false)
 
 const mealTypes = ['breakfast', 'lunch', 'snack', 'dinner']
 
@@ -28,6 +30,7 @@ watch(() => props.visible, open => {
   if (!open) return
   servings.value = 1
   selectedMealType.value = 'lunch'
+  submitting.value = false
 })
 
 /** @type {import('vue').ComputedRef<string[]>} */
@@ -46,9 +49,13 @@ const enrichedIngredients = computed(() => {
   if (!props.recipe) return []
   return props.recipe.ingredients.map(ing => {
     const catalogItem = props.ingredientCatalog.find(c => c.id === ing.ingredientId)
+    const localizedName = catalogItem
+      ? ((locale.value.startsWith('es') ? catalogItem.nameEs : catalogItem.nameEn)
+          || catalogItem.nameEn || catalogItem.nameEs || catalogItem.key)
+      : ing.ingredientId
     return {
       id: ing.ingredientId,
-      name: catalogItem ? t(catalogItem.key) : ing.ingredientId,
+      name: localizedName,
       quantity: ing.quantity,
       unit: ing.unit,
       inPantry: props.pantryIngredientIds.includes(ing.ingredientId),
@@ -67,6 +74,8 @@ const scaledMacros = computed(() => {
 })
 
 function handleLog() {
+  if (submitting.value) return
+  submitting.value = true
   emit('log', { recipe: props.recipe, servings: servings.value, mealType: selectedMealType.value })
   emit('update:visible', false)
 }
@@ -75,7 +84,7 @@ function handleLog() {
 <template>
   <pv-dialog
     :visible="visible"
-    :header="recipe ? t(recipe.key) : t('recommendations.recipeDetail')"
+    :header="recipe ? ((locale.startsWith('es') ? recipe.nameEs : recipe.nameEn) || recipe.nameEn || recipe.nameEs || recipe.key) : t('recommendations.recipeDetail')"
     :modal="true"
     :draggable="false"
     style="width:480px;max-width:95vw"
@@ -216,7 +225,7 @@ function handleLog() {
       <pv-button
         :label="t('recommendations.logRecipe')"
         icon="pi pi-check"
-        :disabled="missingIds.length > 0"
+        :disabled="missingIds.length > 0 || submitting"
         @click="handleLog"
       />
     </template>

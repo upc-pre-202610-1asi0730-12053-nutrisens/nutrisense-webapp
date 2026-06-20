@@ -2,18 +2,19 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { BodyHealthMetricsApi } from '../infrastructure/body-health-metrics.api.js'
-import { BodyMeasurementAssembler } from '../infrastructure/body-measurement.assembler.js'
+import { BodyMetricsAssembler } from '../infrastructure/body-metrics.assembler.js'
 import { WeightLogAssembler } from '../infrastructure/weight-log.assembler.js'
-import { UserGoalAssembler } from '../infrastructure/user-goal.assembler.js'
+import { BodyMeasurement } from '../domain/model/body-measurement.entity.js'
 import { calculateBmi, calculateBmr, calculateTdee } from '../domain/services/body-metrics.service.js'
-import { on, emit } from '../../shared/infrastructure/event-bus.js'
+import { emit } from '../../shared/infrastructure/event-bus.js'
 import { createDomainEvent } from '../../shared/domain/events/domain-event.js'
 import { GOAL_UPDATED, WEIGHT_UPDATED } from '../../shared/domain/events/event-types.js'
 
 const bodyHealthMetricsApi = new BodyHealthMetricsApi()
 
 /**
- * Store for body measurements, weight logs, and user goals.
+ * Store for body metrics, weight history, and health goals.
+ * All mutations go through the consolidated /body-metrics API.
  * BMI, BMR, and TDEE are exposed as functions to keep external dependencies explicit.
  */
 export const useBodyHealthMetricsStore = defineStore('body-health-metrics', () => {
@@ -36,6 +37,7 @@ export const useBodyHealthMetricsStore = defineStore('body-health-metrics', () =
 
   /**
    * Last 7 weight logs sorted ascending by date.
+   * Feeds the weight trend chart.
    * @type {import('vue').ComputedRef<ReturnType<import('../domain/model/weight-log.entity.js').WeightLog>[]>}
    */
   const weightTrend = computed(() =>
@@ -59,7 +61,6 @@ export const useBodyHealthMetricsStore = defineStore('body-health-metrics', () =
   const latestWeightKg = computed(() => weightLogs.value[0]?.weightKg ?? null)
 
   /**
-   * Calculates BMI for given weight and height.
    * @param {number} weightKg
    * @param {number} heightCm
    * @returns {ReturnType<import('../domain/model/bmi-result.record.js').BmiResult>|null}
@@ -70,7 +71,6 @@ export const useBodyHealthMetricsStore = defineStore('body-health-metrics', () =
   }
 
   /**
-   * Calculates BMR using Mifflin-St Jeor.
    * @param {number} weightKg
    * @param {number} heightCm
    * @param {number} ageYears
@@ -83,7 +83,6 @@ export const useBodyHealthMetricsStore = defineStore('body-health-metrics', () =
   }
 
   /**
-   * Calculates TDEE from BMR and PAL multiplier.
    * @param {number} bmr
    * @param {number} palMultiplier
    * @returns {number|null}
@@ -93,10 +92,6 @@ export const useBodyHealthMetricsStore = defineStore('body-health-metrics', () =
     return calculateTdee(bmr, palMultiplier)
   }
 
-  /**
-   * Emits goal and weight domain events so dependent BCs can react.
-   * Called after any mutation that may change TDEE or BMI (goal save, weight log).
-   */
   function _propagateTdee() {
     if (!userGoal.value) return
     const cal  = userGoal.value.macroTargets.dailyCalorieTarget
@@ -116,66 +111,53 @@ export const useBodyHealthMetricsStore = defineStore('body-health-metrics', () =
     }
   }
 
-  /**
-   * Stores the user's height so BMI can be computed without depending on the IAM context.
-   * Call this from the view after the current user is available.
-   * @param {number} heightCm
-   */
+  /** @param {number} heightCm */
   function setUserHeight(heightCm) {
     userHeightCm.value = heightCm
   }
 
   /**
-   * Loads all body measurements for a given user.
-   * @param {string} userId
+   * Fetches body metrics to mark the measurement state as loaded.
+   * Individual measurement values (waistCm, neckCm) are not returned by the backend
+   * in the GET response; they become available locally after createBodyMeasurement.
+   * @param {number} userId
    */
   function fetchBodyMeasurements(userId) {
-    bodyHealthMetricsApi.getBodyMeasurements()
-      .then(response => {
-        const all = BodyMeasurementAssembler.toEntitiesFromResponse(response)
-        bodyMeasurements.value = all.filter(m => m.userId === userId)
-        bodyMeasurement.value = bodyMeasurements.value[0] ?? null
-        measurementLoaded.value = true
-      })
+    bodyHealthMetricsApi.getBodyMetrics(userId)
+      .then(() => { measurementLoaded.value = true })
       .catch(error => errors.value.push(error))
   }
 
+  /** No-op: individual measurements are not fetchable by ID via the current API. */
+  function fetchBodyMeasurement(_id) {
+    measurementLoaded.value = true
+  }
+
   /**
-   * Loads a single body measurement by ID.
-   * @param {string} id
+   * Updates body measurements for an existing user.
+   * @param {number} userId
+   * @param {{ waistCm: number, neckCm?: number }} measurementData
    */
-  function fetchBodyMeasurement(id) {
-    bodyHealthMetricsApi.getBodyMeasurement(id)
-      .then(response => {
-        bodyMeasurement.value = BodyMeasurementAssembler.toEntityFromResponse(response)
-        measurementLoaded.value = true
+  function updateBodyMeasurement(userId, measurementData) {
+    const resource = { waistCm: measurementData.waistCm, neckCm: measurementData.neckCm ?? 0 }
+    bodyHealthMetricsApi.registerBodyMeasurement(userId, resource)
+      .then(() => {
+        const now = new Date().toISOString()
+        const updated = BodyMeasurement({ id: now, userId: String(userId), ...resource, measuredAt: now })
+        bodyMeasurement.value = updated
+        bodyMeasurements.value = [updated, ...bodyMeasurements.value]
       })
       .catch(error => errors.value.push(error))
   }
 
   /**
-   * Updates the current body measurement record.
-   * @param {Object} measurementData
-   */
-  function updateBodyMeasurement(measurementData) {
-    if (!bodyMeasurement.value) return
-    bodyHealthMetricsApi.updateBodyMeasurement(bodyMeasurement.value.id, measurementData)
-      .then(response => {
-        bodyMeasurement.value = BodyMeasurementAssembler.toEntityFromResponse(response)
-      })
-      .catch(error => errors.value.push(error))
-  }
-
-  /**
-   * Loads all weight logs for a given user, sorted most-recent first.
-   * @param {string} userId
+   * Loads weight history from GET /body-metrics/{userId}/weight-history, sorted most-recent first.
+   * @param {number} userId
    */
   function fetchWeightLogs(userId) {
-    bodyHealthMetricsApi.getWeightLogs()
+    bodyHealthMetricsApi.getWeightHistory(userId)
       .then(response => {
-        const all = WeightLogAssembler.toEntitiesFromResponse(response)
-        weightLogs.value = all
-          .filter(l => l.userId === userId)
+        weightLogs.value = WeightLogAssembler.toEntitiesFromHistoryResponse(response, userId)
           .sort((a, b) => b.loggedAt.localeCompare(a.loggedAt))
         weightLogsLoaded.value = true
       })
@@ -183,105 +165,114 @@ export const useBodyHealthMetricsStore = defineStore('body-health-metrics', () =
   }
 
   /**
-   * Creates a new weight log entry, prepended to the list.
-   * @param {string} userId
+   * Updates the current weight, then refreshes the local weight history.
+   * The backend persists a new WeightLog record on every PUT.
+   * @param {number} userId
    * @param {number} weightKg
-   * @param {Date} date
+   * @param {Date} [_date] - ignored; date is set server-side
    * @returns {Promise<void>}
    */
-  function logWeight(userId, weightKg, date) {
-    const resource = { userId, weightKg, loggedAt: date.toISOString(), note: null }
-    return bodyHealthMetricsApi.createWeightLog(resource)
+  function logWeight(userId, weightKg, _date) {
+    return bodyHealthMetricsApi.updateWeight(userId, { weightKg, note: null })
+      .then(() => bodyHealthMetricsApi.getWeightHistory(userId))
       .then(response => {
-        const newLog = WeightLogAssembler.toEntityFromResource(response.data)
-        if (newLog) weightLogs.value.unshift(newLog)
+        weightLogs.value = WeightLogAssembler.toEntitiesFromHistoryResponse(response, userId)
+          .sort((a, b) => b.loggedAt.localeCompare(a.loggedAt))
         _propagateTdee()
       })
       .catch(error => errors.value.push(error))
   }
 
   /**
-   * Updates today's weight log if it exists, or creates a new one.
+   * Updates the current weight for a user.
    * Sets `weightSaving` to true while the request is in flight.
-   * @param {string} userId
+   * @param {number} userId
    * @param {number} weightKg
    */
   function updateTodayWeight(userId, weightKg) {
     weightSaving.value = true
-    if (todayWeightLog.value) {
-      const itemId = todayWeightLog.value.id
-      bodyHealthMetricsApi.updateWeightLog(itemId, { weightKg })
-        .then(response => {
-          const updated = WeightLogAssembler.toEntityFromResource(response.data)
-          const idx = weightLogs.value.findIndex(l => l.id === itemId)
-          if (idx !== -1 && updated) weightLogs.value.splice(idx, 1, updated)
-        })
-        .catch(error => errors.value.push(error))
-        .finally(() => { weightSaving.value = false })
-    } else {
-      logWeight(userId, weightKg, new Date())
-        .finally(() => { weightSaving.value = false })
-    }
+    bodyHealthMetricsApi.updateWeight(userId, { weightKg, note: null })
+      .then(() => bodyHealthMetricsApi.getWeightHistory(userId))
+      .then(response => {
+        weightLogs.value = WeightLogAssembler.toEntitiesFromHistoryResponse(response, userId)
+          .sort((a, b) => b.loggedAt.localeCompare(a.loggedAt))
+        _propagateTdee()
+      })
+      .catch(error => errors.value.push(error))
+      .finally(() => { weightSaving.value = false })
   }
 
   /**
-   * Loads user goals and sets the active one.
-   * @param {string} userId
+   * Loads body metrics and maps the active goal to a UserGoal entity.
+   * @param {number} userId
    */
   function fetchUserGoal(userId) {
-    bodyHealthMetricsApi.getUserGoals()
+    bodyHealthMetricsApi.getBodyMetrics(userId)
       .then(response => {
-        const all = UserGoalAssembler.toEntitiesFromResponse(response)
-        userGoal.value = all.find(g => g.userId === userId && g.isActive()) ?? null
+        userGoal.value = BodyMetricsAssembler.toUserGoalFromResource(response.data)
         goalLoaded.value = true
       })
       .catch(error => errors.value.push(error))
   }
 
   /**
-   * Creates an initial body measurement record for a new user.
-   * @param {string} userId
-   * @param {number} waistCm
+   * Registers initial body metrics for a new user (POST /body-metrics).
+   * Called once during onboarding after the profile is saved. When `goal` is provided
+   * the backend seeds a default active goal (with computed macro targets) in the same
+   * request, so no separate goal-setting step is required.
+   * @param {{ userId: number, heightCm: number, weightKg: number, dateOfBirth: string, biologicalSex: string, activityLevel: string, goal?: string, weeklyRateKg?: number }} data
+   * @returns {Promise<void>}
    */
-  function createBodyMeasurement(userId, waistCm) {
-    const resource = {
-      userId,
-      waistCm,
-      neckCm: 0,
-      measuredAt: new Date().toISOString(),
-    }
-    bodyHealthMetricsApi.createBodyMeasurement(resource)
+  function registerBodyMetrics(data) {
+    return bodyHealthMetricsApi.registerBodyMetrics(data)
       .then(response => {
-        const created = BodyMeasurementAssembler.toEntityFromResource(response.data)
-        if (created) {
-          bodyMeasurements.value.unshift(created)
-          bodyMeasurement.value = created
+        userGoal.value = BodyMetricsAssembler.toUserGoalFromResource(response.data)
+        const wKg = response.data.currentWeightKg
+        if (wKg) {
+          const entry = WeightLogAssembler.toEntityFromHistoryEntry(
+            { weightKg: wKg, loggedAt: new Date().toISOString(), note: null },
+            data.userId,
+          )
+          if (entry) weightLogs.value = [entry]
         }
+        weightLogsLoaded.value = true
       })
       .catch(error => errors.value.push(error))
   }
 
   /**
-   * Creates or updates the user goal.
-   * @param {string} userId
+   * Creates an initial body measurement record for a new user.
+   * The response is BodyMetricsResource (no measurement fields), so the entity is
+   * created locally from the request data.
+   * @param {number} userId
+   * @param {number} waistCm
+   * @param {number} [neckCm]
+   */
+  function createBodyMeasurement(userId, waistCm, neckCm = 0) {
+    bodyHealthMetricsApi.registerBodyMeasurement(userId, { waistCm, neckCm })
+      .then(() => {
+        const now = new Date().toISOString()
+        const created = BodyMeasurement({ id: now, userId: String(userId), waistCm, neckCm, measuredAt: now })
+        bodyMeasurements.value.unshift(created)
+        bodyMeasurement.value = created
+        measurementLoaded.value = true
+      })
+      .catch(error => errors.value.push(error))
+  }
+
+  /**
+   * Sets the active health goal for a user.
+   * The backend always replaces the previous active goal.
+   * @param {number} userId
    * @param {{ goal: string, targetWeightKg: number, weeklyRateKg: number }} goalData
    */
   function saveUserGoal(userId, goalData) {
-    if (userGoal.value) {
-      bodyHealthMetricsApi.updateUserGoal(userGoal.value.id, goalData)
-        .then(response => {
-          userGoal.value = UserGoalAssembler.toEntityFromResource(response.data)
-          _propagateTdee()
-        })
-        .catch(error => errors.value.push(error))
-    } else {
-      bodyHealthMetricsApi.createUserGoal({ ...goalData, userId, active: true })
-        .then(response => {
-          userGoal.value = UserGoalAssembler.toEntityFromResource(response.data)
-          _propagateTdee()
-        })
-        .catch(error => errors.value.push(error))
-    }
+    bodyHealthMetricsApi.setHealthGoal(userId, goalData)
+      .then(response => {
+        userGoal.value = BodyMetricsAssembler.toUserGoalFromResource(response.data)
+        _propagateTdee()
+      })
+      .catch(error => errors.value.push(error))
   }
 
   /** Clears the errors array. */
@@ -310,6 +301,7 @@ export const useBodyHealthMetricsStore = defineStore('body-health-metrics', () =
     fetchBodyMeasurement,
     createBodyMeasurement,
     updateBodyMeasurement,
+    registerBodyMetrics,
     fetchWeightLogs,
     logWeight,
     updateTodayWeight,

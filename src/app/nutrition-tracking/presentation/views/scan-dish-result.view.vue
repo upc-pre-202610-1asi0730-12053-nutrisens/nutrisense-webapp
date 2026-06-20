@@ -21,7 +21,6 @@ onMounted(() => {
   if (!dishScanResult.value) {
     router.replace({ name: 'nutrition-log', query: { tab: 'smart-scan' } })
   }
-  if (!store.foods.length) store.fetchFoods()
   bodyStore.fetchUserGoal(userId)
 })
 
@@ -35,7 +34,7 @@ const mealOptions = computed(() => [
   { label: t('meal.dinner'),    value: 'dinner'    },
 ])
 
-const calorieGoal = computed(() => bodyStore.userGoal?.dailyCalorieTarget ?? 1911)
+const calorieGoal = computed(() => bodyStore.userGoal?.macroTargets?.dailyCalorieTarget ?? 1911)
 
 /**
  * Totals aggregated across all detected items.
@@ -69,9 +68,19 @@ const dishBannerLevel = computed(() => {
 /** Adds all detected dish items to the selected meal in the nutrition log. */
 function addAllToLog() {
   if (!dishScanResult.value || !isViewingToday.value) return
-  dishScanResult.value.detectedItems.forEach(({ food, estimatedGrams }) => {
-    store.addToLog(userId, food.id, estimatedGrams, selectedMeal.value, 'smart-scan')
+
+  const items   = dishScanResult.value.detectedItems
+  const loggable = items.filter(({ food }) => food?.id != null)
+
+  if (loggable.length === 0) {
+    toast.add({ severity: 'warn', summary: t('scan.nothingToLog'), life: 3000 })
+    return
+  }
+
+  loggable.forEach(({ food, estimatedGrams }) => {
+    store.addToLog(userId, food.id, estimatedGrams, selectedMeal.value, 'scan-dish')
   })
+
   toast.add({
     severity: 'success',
     summary: t('scan.addedToLog', { meal: t(`meal.${selectedMeal.value}`) }),
@@ -125,7 +134,15 @@ function scanAgain() {
       </span>
     </div>
 
-    <div class="sdr__body">
+    <!-- Fallback: nothing detected -->
+    <div v-if="dishScanResult.detectedItems.length === 0" class="sdr__empty">
+      <i class="pi pi-search" aria-hidden="true" />
+      <h2 class="sdr__empty-title">{{ t('scan.noDishesTitle') }}</h2>
+      <p class="sdr__empty-desc">{{ t('scan.noDishesDesc') }}</p>
+      <pv-button :label="t('scan.scanAgain')" icon="pi pi-refresh" @click="scanAgain" />
+    </div>
+
+    <div v-else class="sdr__body">
 
       <!-- Detected ingredients -->
       <section class="sdr__section" aria-labelledby="sdr-ingredients-title">
@@ -141,7 +158,7 @@ function scanAgain() {
             class="sdr__ingredient"
           >
             <div class="sdr__ing-top">
-              <span class="sdr__ing-name">{{ t(item.food.key) }}</span>
+              <span class="sdr__ing-name">{{ item.food.name }}</span>
               <span class="sdr__ing-portion">~{{ item.estimatedGrams }}g</span>
             </div>
 
@@ -293,6 +310,26 @@ function scanAgain() {
 </template>
 
 <style scoped>
+.sdr__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.75rem;
+  padding: 3rem 1.5rem;
+  border: 1px dashed var(--surface-border, #d1d5db);
+  border-radius: 1rem;
+}
+.sdr__empty i {
+  font-size: 2.5rem;
+  color: var(--text-color-secondary, #6b7280);
+}
+.sdr__empty-title { margin: 0; font-size: 1.25rem; }
+.sdr__empty-desc {
+  margin: 0 0 0.5rem;
+  max-width: 28rem;
+  color: var(--text-color-secondary, #6b7280);
+}
 .sdr {
   display: flex;
   flex-direction: column;

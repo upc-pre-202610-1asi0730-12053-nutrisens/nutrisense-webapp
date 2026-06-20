@@ -7,35 +7,19 @@ import { useSubscriptionsBillingStore } from '../../application/subscriptions-bi
 const { t } = useI18n()
 const store = useSubscriptionsBillingStore()
 
-const { paymentHistory, paymentHistoryLoaded, plans, errors } = toRefs(store)
+const { paymentHistory, paymentHistoryLoaded, subscriptionLoaded, errors } = toRefs(store)
 
 const userId = localStorage.getItem('ns_user_id') ?? ''
 
 onMounted(() => {
-  store.fetchPaymentHistory(userId)
-  store.fetchPlans()
+  // fetchSubscription chains fetchPaymentHistory automatically once the
+  // subscription ID is known (needed to call GET /payments/by-subscription/{id})
+  if (!store.subscriptionLoaded) {
+    store.fetchSubscription(userId)
+  } else {
+    store.fetchPaymentHistory()
+  }
 })
-
-/**
- * Returns the translated plan name for a given plan ID, falling back to the raw ID.
- * @param {string} planId
- * @returns {string}
- */
-function getPlanName(planId) {
-  const plan = plans.value.find(p => p.id === planId)
-  return plan ? t(plan.key) : planId
-}
-
-/**
- * Returns the severity for the event type badge.
- * @param {'payment'|'upgrade'|'downgrade'} type
- * @returns {string}
- */
-function typeSeverity(type) {
-  if (type === 'upgrade') return 'success'
-  if (type === 'downgrade') return 'warn'
-  return 'secondary'
-}
 </script>
 
 <template>
@@ -46,7 +30,7 @@ function typeSeverity(type) {
       {{ t('common.error') }}
     </pv-message>
 
-    <pv-skeleton v-if="!paymentHistoryLoaded" height="250px" border-radius="12px" />
+    <pv-skeleton v-if="!subscriptionLoaded || !paymentHistoryLoaded" height="250px" border-radius="12px" />
 
     <div v-else-if="!paymentHistory.length" class="payment-view__empty">
       <i class="pi pi-receipt" aria-hidden="true" />
@@ -62,31 +46,13 @@ function typeSeverity(type) {
     >
       <pv-column field="paidAt" :header="t('paymentHistory.date')">
         <template #body="{ data }">
-          {{ new Date(data.paidAt).toLocaleDateString() }}
+          {{ data.paidAt ? new Date(data.paidAt).toLocaleDateString() : '—' }}
         </template>
       </pv-column>
 
-      <pv-column field="type" :header="t('paymentHistory.type')">
+      <pv-column field="amount" :header="t('paymentHistory.amount')">
         <template #body="{ data }">
-          <pv-tag
-            :value="t(`paymentHistory.type${data.type.charAt(0).toUpperCase() + data.type.slice(1)}`)"
-            :severity="typeSeverity(data.type)"
-          />
-        </template>
-      </pv-column>
-
-      <pv-column field="planId" :header="t('paymentHistory.plan')">
-        <template #body="{ data }">
-          <span v-if="data.isPlanChange()">
-            {{ t('paymentHistory.planChange', { from: getPlanName(data.fromPlanId), to: getPlanName(data.planId) }) }}
-          </span>
-          <span v-else>{{ getPlanName(data.planId) }}</span>
-        </template>
-      </pv-column>
-
-      <pv-column field="amountUsd" :header="t('paymentHistory.amount')">
-        <template #body="{ data }">
-          ${{ data.amountUsd.toFixed(2) }}
+          ${{ data.amount.toFixed(2) }} {{ data.currency }}
         </template>
       </pv-column>
 
@@ -94,7 +60,7 @@ function typeSeverity(type) {
         <template #body="{ data }">
           <pv-tag
             :value="t(`paymentHistory.${data.status}`)"
-            :severity="data.status === 'paid' ? 'success' : 'secondary'"
+            :severity="data.status === 'paid' ? 'success' : data.status === 'failed' ? 'danger' : 'secondary'"
           />
         </template>
       </pv-column>
