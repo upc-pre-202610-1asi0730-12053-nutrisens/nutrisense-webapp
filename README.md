@@ -21,4 +21,3 @@ NutriSense is an intelligent contextual nutrition SaaS platform that helps users
 - Vue I18n (en_US / es_419)
 - Axios
 - Chart.js
-- json-server (mock API)
