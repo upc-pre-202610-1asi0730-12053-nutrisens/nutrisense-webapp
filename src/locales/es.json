@@ -118,7 +118,8 @@
       "passwordMismatch": "Las contraseñas no coinciden",
       "emailAlreadyRegistered": "Este correo ya está registrado. Intenta iniciar sesión.",
       "errorEmailInvalid": "Ingresa un correo electrónico válido",
-      "errorPasswordTooShort": "La contraseña debe tener al menos 6 caracteres"
+      "errorPasswordTooShort": "La contraseña debe tener al menos 6 caracteres",
+      "errorPasswordNeedsLetter": "La contraseña debe contener al menos una letra"
     },
     "recoverPassword": {
       "title": "Recuperar contraseña",
@@ -929,7 +930,8 @@
     "ageTooYoung": "Debes tener al menos 13 años para registrarte",
     "heightRange": "La altura debe estar entre 100 y 250 cm",
     "weightRange": "El peso debe estar entre 30 y 300 kg",
-    "cityRequired": "Por favor selecciona tu ciudad"
+    "cityRequired": "Por favor selecciona tu ciudad",
+    "waistMethodRequired": "Por favor elige un método de medición de cintura"
   },
   "macros": {
     "kcal": "kcal",

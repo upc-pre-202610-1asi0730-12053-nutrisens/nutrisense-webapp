@@ -4,6 +4,7 @@ import { ref, toRefs } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useToast } from 'primevue/usetoast'
 import { useRouter } from 'vue-router'
+import { backendMessage } from '../../../shared/infrastructure/api-error.js'
 import { useIamStore } from '../../application/iam.store.js'
 
 const { t } = useI18n()
@@ -46,8 +47,8 @@ function handleDeleteAccount() {
   if (!canDelete()) return
   iamStore.deleteAccount()
     .then(() => router.push({ name: 'login' }))
-    .catch(() => {
-      toast.add({ severity: 'error', summary: t('common.error'), life: 3000 })
+    .catch(err => {
+      toast.add({ severity: 'error', summary: backendMessage(err) ?? t('common.error'), life: 3000 })
     })
 }
 </script>

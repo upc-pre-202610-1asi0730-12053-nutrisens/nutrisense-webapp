@@ -4,6 +4,7 @@ import { ref, computed, onMounted, toRefs } from 'vue'
 import { useRouter } from 'vue-router'
 import { useConfirm } from 'primevue/useconfirm'
 import { useI18n } from 'vue-i18n'
+import { backendMessage } from '../../../shared/infrastructure/api-error.js'
 import { useActivityWearableStore } from '../../application/activity-wearable.store.js'
 import { useSubscriptionsBillingStore } from '../../../subscriptions-billing/application/subscriptions-billing.store.js'
 import ActivityLogList from '../components/activity-log-list.component.vue'
@@ -104,7 +105,7 @@ function handleRemove(logId) {
     </div>
 
     <pv-message v-if="errors.length" severity="error" :closable="false">
-      {{ t('common.error') }}
+      {{ backendMessage(errors[errors.length - 1]) ?? t('common.error') }}
     </pv-message>
 
     <div class="activity-view__kpis">

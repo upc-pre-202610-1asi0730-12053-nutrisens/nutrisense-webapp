@@ -5,6 +5,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useToast } from 'primevue/usetoast'
 import { useSubscriptionsBillingStore } from '../../application/subscriptions-billing.store.js'
+import { backendMessage } from '../../../shared/infrastructure/api-error.js'
 import { useIamStore } from '../../../iam/application/iam.store.js'
 import { useStripeCard } from '../../../shared/infrastructure/use-stripe-card.js'
 import { formatNum } from '../../../shared/infrastructure/format-utils.js'
@@ -70,7 +71,7 @@ async function handlePay() {
   } catch (err) {
     // Stripe errors are already in stripeCard.stripeError; backend errors go to toast
     if (!err?.type?.startsWith('card_error') && !err?.type?.startsWith('validation_error')) {
-      toast.add({ severity: 'error', summary: t('checkout.errorPayment'), life: 4000 })
+      toast.add({ severity: 'error', summary: backendMessage(err) ?? t('checkout.errorPayment'), life: 4000 })
     }
   }
 }
