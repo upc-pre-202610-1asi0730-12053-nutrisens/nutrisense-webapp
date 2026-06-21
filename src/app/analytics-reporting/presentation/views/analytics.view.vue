@@ -4,6 +4,7 @@ import { ref, computed, onMounted, toRefs, watch, onBeforeUnmount } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useToast } from 'primevue/usetoast'
 import { Chart } from 'chart.js/auto'
+import { backendMessage } from '../../../shared/infrastructure/api-error.js'
 import { useAnalyticsReportingStore } from '../../application/analytics-reporting.store.js'
 import { useNutritionTrackingStore } from '../../../nutrition-tracking/application/nutrition-tracking.store.js'
 import { useBodyHealthMetricsStore } from '../../../body-health-metrics/application/body-health-metrics.store.js'
@@ -297,7 +298,7 @@ async function handleExportPdf() {
     </div>
 
     <pv-message v-if="errors.length" severity="error" :closable="false">
-      {{ t('common.error') }}
+      {{ backendMessage(errors[errors.length - 1]) ?? t('common.error') }}
     </pv-message>
 
     <!-- KPI cards -->

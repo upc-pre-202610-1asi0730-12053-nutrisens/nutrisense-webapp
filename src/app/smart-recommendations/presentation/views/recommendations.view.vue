@@ -3,6 +3,7 @@
 import { ref, computed, watch, onMounted, toRefs } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useToast } from 'primevue/usetoast'
+import { backendMessage } from '../../../shared/infrastructure/api-error.js'
 import { useSmartRecommendationsStore } from '../../application/smart-recommendations.store.js'
 import { useIamStore } from '../../../iam/application/iam.store.js'
 import { useSubscriptionsBillingStore } from '../../../subscriptions-billing/application/subscriptions-billing.store.js'
@@ -509,7 +510,7 @@ function handleHighInToggle(macro) {
     </div>
 
     <pv-message v-if="errors.length" severity="error" :closable="false">
-      {{ t('common.error') }}
+      {{ backendMessage(errors[errors.length - 1]) ?? t('common.error') }}
     </pv-message>
 
     <feature-gate feature="recommendations" :has-access="hasRecommendationsAccess" required-plan="pro">

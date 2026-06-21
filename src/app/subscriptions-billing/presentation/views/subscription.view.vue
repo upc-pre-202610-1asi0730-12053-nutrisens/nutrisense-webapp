@@ -2,6 +2,7 @@
 <script setup>
 import { ref, computed, onMounted, toRefs } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { backendMessage } from '../../../shared/infrastructure/api-error.js'
 import { useSubscriptionsBillingStore } from '../../application/subscriptions-billing.store.js'
 import PlanCard from '../components/plan-card.component.vue'
 
@@ -117,7 +118,7 @@ function handleReactivate() {
     <h2 class="subscription-view__title">{{ t('subscription.title') }}</h2>
 
     <pv-message v-if="errors.length" severity="error" :closable="false">
-      {{ t('common.error') }}
+      {{ backendMessage(errors[errors.length - 1]) ?? t('common.error') }}
     </pv-message>
 
     <pv-message v-if="planChangeSuccess" severity="success" :closable="true" @close="planChangeSuccess = false">

@@ -3,6 +3,7 @@
 import { ref, computed, watch, toRefs, nextTick, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useToast } from 'primevue/usetoast'
+import { backendMessage } from '../../../shared/infrastructure/api-error.js'
 import { useIamStore } from '../../application/iam.store.js'
 import { SmartRecommendationsApi } from '../../../smart-recommendations/infrastructure/smart-recommendations.api.js'
 import { CityAssembler } from '../../../smart-recommendations/infrastructure/city.assembler.js'
@@ -177,8 +178,8 @@ function handleSave() {
     .then(() => {
       toast.add({ severity: 'success', summary: t('profile.profileUpdated'), life: 3000 })
     })
-    .catch(() => {
-      toast.add({ severity: 'error', summary: t('common.error'), life: 3000 })
+    .catch(err => {
+      toast.add({ severity: 'error', summary: backendMessage(err) ?? t('common.error'), life: 3000 })
     })
 }
 </script>
@@ -201,7 +202,7 @@ function handleSave() {
     </div>
 
     <pv-message v-if="errors.length" severity="error" :closable="false" class="mb-3">
-      {{ t('common.error') }}
+      {{ backendMessage(errors[errors.length - 1]) ?? t('common.error') }}
     </pv-message>
 
     <!-- Loading skeleton -->
