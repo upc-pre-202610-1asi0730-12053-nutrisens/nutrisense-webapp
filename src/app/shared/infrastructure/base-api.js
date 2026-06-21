@@ -2,6 +2,11 @@ import axios from 'axios'
 
 const PUBLIC_PATHS = ['/authentication/sign-in', '/authentication/sign-up']
 
+// Mirrors i18n.js's LOCALE_KEY. Kept as a local literal so this infrastructure
+// module stays free of i18n.js's import-time side effects (it reads
+// localStorage on load, which breaks in non-browser test environments).
+const LOCALE_KEY = 'ns_locale'
+
 function isPlainObject(value) {
   if (typeof value !== 'object' || value === null) return false
   const proto = Object.getPrototypeOf(value)
@@ -49,6 +54,15 @@ export class BaseApi {
         const token = localStorage.getItem('ns_token')
         if (token) config.headers.Authorization = `Bearer ${token}`
       }
+      return config
+    })
+
+    // Advertise the user's selected UI locale so the backend can localize
+    // its responses (error messages + Content-Language). Resolved per request
+    // so it tracks the language switcher; backend falls back to 'en' if absent.
+    this.#http.interceptors.request.use(config => {
+      const locale = localStorage.getItem(LOCALE_KEY)
+      if (locale) config.headers['Accept-Language'] = locale
       return config
     })
 
