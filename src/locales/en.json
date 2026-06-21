@@ -118,7 +118,8 @@
       "passwordMismatch": "Passwords do not match",
       "emailAlreadyRegistered": "This email is already registered. Try signing in instead.",
       "errorEmailInvalid": "Enter a valid email address",
-      "errorPasswordTooShort": "Password must be at least 6 characters"
+      "errorPasswordTooShort": "Password must be at least 6 characters",
+      "errorPasswordNeedsLetter": "Password must contain at least one letter"
     },
     "recoverPassword": {
       "title": "Recover password",
@@ -929,7 +930,8 @@
     "ageTooYoung": "You must be at least 13 years old to register",
     "heightRange": "Height must be between 100 and 250 cm",
     "weightRange": "Weight must be between 30 and 300 kg",
-    "cityRequired": "Please select your home city"
+    "cityRequired": "Please select your home city",
+    "waistMethodRequired": "Please choose a waist measurement method"
   },
   "macros": {
     "kcal": "kcal",
