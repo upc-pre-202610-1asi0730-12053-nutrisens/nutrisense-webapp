@@ -2,6 +2,7 @@
 <script setup>
 import { onMounted, toRefs } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { backendMessage } from '../../../shared/infrastructure/api-error.js'
 import { useSubscriptionsBillingStore } from '../../application/subscriptions-billing.store.js'
 
 const { t } = useI18n()
@@ -27,7 +28,7 @@ onMounted(() => {
     <h2 class="payment-view__title">{{ t('paymentHistory.title') }}</h2>
 
     <pv-message v-if="errors.length" severity="error" :closable="false">
-      {{ t('common.error') }}
+      {{ backendMessage(errors[errors.length - 1]) ?? t('common.error') }}
     </pv-message>
 
     <pv-skeleton v-if="!subscriptionLoaded || !paymentHistoryLoaded" height="250px" border-radius="12px" />

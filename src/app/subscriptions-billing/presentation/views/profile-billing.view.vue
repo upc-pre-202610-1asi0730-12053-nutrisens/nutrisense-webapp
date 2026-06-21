@@ -4,6 +4,7 @@ import { ref, computed, onMounted, toRefs } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useToast } from 'primevue/usetoast'
 import { useConfirm } from 'primevue/useconfirm'
+import { backendMessage } from '../../../shared/infrastructure/api-error.js'
 import { useSubscriptionsBillingStore } from '../../application/subscriptions-billing.store.js'
 import { useDomainLabels } from '../../../shared/composables/use-domain-labels.js'
 import PlanCard from '../components/plan-card.component.vue'
@@ -104,7 +105,7 @@ function handleSelectPlan(planKey) {
       showUpgradeDialog.value = false
       store.changePlan(planKey, billingPeriod.value)
         .then(() => toast.add({ severity: 'success', summary: t('subscription.planChangeSuccess'), life: 3000 }))
-        .catch(() => toast.add({ severity: 'error', summary: t('subscription.errorChangeLimitReached'), life: 4000 }))
+        .catch(err => toast.add({ severity: 'error', summary: backendMessage(err) ?? t('subscription.errorChangeLimitReached'), life: 4000 }))
     },
   })
 }
@@ -139,7 +140,7 @@ function handleUpdateCard({ stripePaymentMethodId, cardMeta }) {
       showUpdateCardDialog.value = false
       toast.add({ severity: 'success', summary: t('profile.cardUpdatedSuccess'), life: 3000 })
     })
-    .catch(() => toast.add({ severity: 'error', summary: t('common.error'), life: 4000 }))
+    .catch(err => toast.add({ severity: 'error', summary: backendMessage(err) ?? t('common.error'), life: 4000 }))
     .finally(() => { cardUpdating.value = false })
 }
 
@@ -157,7 +158,7 @@ function handleDeleteCard() {
       deletingCard.value = true
       store.deletePaymentMethod(paymentMethod.value.id)
         .then(() => toast.add({ severity: 'info', summary: t('profile.cardDeleted'), life: 3000 }))
-        .catch(() => toast.add({ severity: 'error', summary: t('common.error'), life: 4000 }))
+        .catch(err => toast.add({ severity: 'error', summary: backendMessage(err) ?? t('common.error'), life: 4000 }))
         .finally(() => { deletingCard.value = false })
     },
   })
@@ -169,7 +170,7 @@ function handleDeleteCard() {
     <h2 class="section-title">{{ t('profile.billing') }}</h2>
 
     <pv-message v-if="errors.length" severity="error" :closable="false" class="mb-3">
-      {{ t('common.error') }}
+      {{ backendMessage(errors[errors.length - 1]) ?? t('common.error') }}
     </pv-message>
 
     <!-- Pending payment banner -->

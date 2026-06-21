@@ -2,6 +2,7 @@
 <script setup>
 import { ref, computed, onMounted, toRefs, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { backendMessage } from '../../../shared/infrastructure/api-error.js'
 import { useBodyHealthMetricsStore } from '../../application/body-health-metrics.store.js'
 import { useIamStore } from '../../../iam/application/iam.store.js'
 import { useSubscriptionsBillingStore } from '../../../subscriptions-billing/application/subscriptions-billing.store.js'
@@ -173,7 +174,7 @@ function handleLogWeight() {
     </div>
 
     <pv-message v-if="errors.length" severity="error" :closable="false">
-      {{ t('common.error') }}
+      {{ backendMessage(errors[errors.length - 1]) ?? t('common.error') }}
     </pv-message>
 
     <!-- Already logged banner -->

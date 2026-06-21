@@ -3,6 +3,7 @@
 import { ref, computed, toRefs, nextTick, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
+import { backendMessage } from '../../../shared/infrastructure/api-error.js'
 import { useIamStore } from '../../application/iam.store.js'
 import LanguageSwitcher from '../../../shared/presentation/components/language-switcher.component.vue'
 import { useBodyHealthMetricsStore } from '../../../body-health-metrics/application/body-health-metrics.store.js'
@@ -37,7 +38,7 @@ const form = ref({
   goal: 'weight-loss',
   activityLevel: 'moderately-active',
   weightKg: 70,
-  waistMethod: 'exact',
+  waistMethod: /** @type {'exact'|'pants'|'visual'|''} */ (''),
   waistExactCm: 80,
   waistPantsSize: 32,
   waistVisual: 'normal',
@@ -83,6 +84,9 @@ const step3FieldErrors = computed(() => {
   const errs = /** @type {Record<string,string>} */ ({})
   if (form.value.weightKg < 30 || form.value.weightKg > 300) {
     errs.weightKg = t('validation.weightRange')
+  }
+  if (!form.value.waistMethod) {
+    errs.waistMethod = t('validation.waistMethodRequired')
   }
   if (!form.value.homeCityId) {
     errs.homeCityId = t('validation.cityRequired')
@@ -355,7 +359,7 @@ async function handleSubmit() {
       <p class="onboarding-card__step-label">{{ t('onboarding.stepOf', { current: step, total: TOTAL_STEPS }) }}</p>
 
       <pv-skeleton v-if="!userLoaded" height="360px" border-radius="12px" />
-      <div v-if="errors.length" class="onboarding-error">{{ t('common.error') }}</div>
+      <div v-if="errors.length" class="onboarding-error">{{ backendMessage(errors[errors.length - 1]) ?? t('common.error') }}</div>
 
       <template v-if="userLoaded">
         <h1 class="onboarding-card__title">{{ stepTitle }}</h1>
@@ -482,7 +486,9 @@ async function handleSubmit() {
               :options="waistMethodOptions"
               option-label="label"
               option-value="value"
+              :allow-empty="false"
               :aria-label="t('onboarding.waistMethod')"
+              :invalid="step3Touched && !!step3FieldErrors.waistMethod"
               class="w-full mb-2"
             />
 
@@ -520,6 +526,10 @@ async function handleSubmit() {
                 <span class="visual-option__approx">{{ opt.approx }}</span>
               </button>
             </div>
+
+            <span v-if="step3Touched && step3FieldErrors.waistMethod" class="field-error">
+              {{ step3FieldErrors.waistMethod }}
+            </span>
           </div>
 
           <div class="onboarding-form__field">

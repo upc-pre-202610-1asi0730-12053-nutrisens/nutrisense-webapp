@@ -6,6 +6,7 @@ import { useI18n } from 'vue-i18n'
 import { useToast } from 'primevue/usetoast'
 import { useConfirm } from 'primevue/useconfirm'
 import { useNutritionTrackingStore } from '../../application/nutrition-tracking.store.js'
+import { backendMessage } from '../../../shared/infrastructure/api-error.js'
 import { conflictingFlags } from '../../domain/services/food-restriction.service.js'
 import { useBodyHealthMetricsStore } from '../../../body-health-metrics/application/body-health-metrics.store.js'
 import { useIamStore } from '../../../iam/application/iam.store.js'
@@ -303,7 +304,7 @@ function removeEntry(logId) {
     accept: () => {
       nutritionStore.removeFromLog(logId)
         .then(() => toast.add({ severity: 'info', summary: t('nutrition.entryRemoved'), life: 2000 }))
-        .catch(() => toast.add({ severity: 'error', summary: t('nutrition.removeEntryError'), life: 3000 }))
+        .catch(err => toast.add({ severity: 'error', summary: backendMessage(err) ?? t('nutrition.removeEntryError'), life: 3000 }))
     },
   })
 }
@@ -425,8 +426,8 @@ async function processScanFile(type, file) {
         currentUser.value?.medicalConditions ?? [],
       )
     }
-  } catch {
-    toast.add({ severity: 'error', summary: t('scan.scanError'), life: 3000 })
+  } catch (err) {
+    toast.add({ severity: 'error', summary: backendMessage(err) ?? t('scan.scanError'), life: 3000 })
   }
 }
 

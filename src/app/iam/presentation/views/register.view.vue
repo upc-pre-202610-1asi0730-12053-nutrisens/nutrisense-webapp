@@ -21,6 +21,7 @@ const errorMsg = ref('')
 const fieldErrors = ref({})
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const HAS_LETTER_REGEX = /[a-zA-Z]/
 
 /**
  * Validates all fields and populates fieldErrors.
@@ -33,6 +34,8 @@ function validate() {
   }
   if (password.value.length < 6) {
     errors.password = t('auth.register.errorPasswordTooShort')
+  } else if (!HAS_LETTER_REGEX.test(password.value)) {
+    errors.password = t('auth.register.errorPasswordNeedsLetter')
   }
   fieldErrors.value = errors
   return Object.keys(errors).length === 0
@@ -73,7 +76,7 @@ function handleRegister() {
       }
     })
     .catch(error => {
-      errorMsg.value = error?.message === 'email_already_registered'
+      errorMsg.value = error?.response?.status === 409
         ? t('auth.register.emailAlreadyRegistered')
         : t('common.error')
     })
