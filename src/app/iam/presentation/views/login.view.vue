@@ -1,16 +1,23 @@
 <!-- PATH: src/app/iam/presentation/views/login.view.vue -->
 <script setup>
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, computed } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useIamStore } from '../../application/iam.store.js'
 import { useSubscriptionsBillingStore } from '../../../subscriptions-billing/application/subscriptions-billing.store.js'
+import { isValidPlanTier } from '../../../subscriptions-billing/domain/model/plan-tier.record.js'
 import LanguageSwitcher from '../../../shared/presentation/components/language-switcher.component.vue'
 
 const { t } = useI18n()
 const router = useRouter()
+const route = useRoute()
 const iamStore = useIamStore()
 const billingStore = useSubscriptionsBillingStore()
+
+/** Plan carried over from the website (`?plan=`), sanitised; null if absent/invalid. */
+const plan = computed(() => isValidPlanTier(route.query.plan) ? route.query.plan : null)
+/** Query forwarded to the "create account" link so register keeps the plan. */
+const crossLinkQuery = computed(() => plan.value ? { plan: plan.value } : {})
 
 const email = ref('')
 const password = ref('')
@@ -36,7 +43,12 @@ function handleLogin() {
     })
     .then(hasSub => {
       if (hasSub === null) return
-      router.push({ name: hasSub ? 'dashboard' : 'plan-selection' })
+      if (hasSub) return router.push({ name: 'dashboard' })
+      // No subscription: head to checkout for the carried-over plan, or to
+      // plan-selection when no valid plan was provided.
+      router.push(plan.value
+        ? { name: 'checkout', query: { planKey: plan.value } }
+        : { name: 'plan-selection' })
     })
     .catch(() => {
       errorMsg.value = t('auth.login.error')
@@ -107,7 +119,7 @@ function handleLogin() {
 
       <p class="auth-card__footer">
         {{ t('auth.login.noAccount') }}
-        <router-link :to="{ name: 'register' }" class="auth-link auth-link--strong">
+        <router-link :to="{ name: 'register', query: crossLinkQuery }" class="auth-link auth-link--strong">
           {{ t('auth.login.register') }}
         </router-link>
       </p>

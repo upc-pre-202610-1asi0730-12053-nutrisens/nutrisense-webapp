@@ -273,18 +273,27 @@ export const useIamStore = defineStore('iam', () => {
   }
 
   /**
-   * Registers a new user account via POST /authentication/sign-up.
+   * Registers a new user account via POST /authentication/sign-up and then
+   * immediately authenticates so the user is left logged in (zero re-logins).
+   *
+   * The sign-up endpoint returns a tokenless UserResource, so we chain a
+   * sign-in with the same credentials to establish token + session.
    * @param {Object} formData
    * @returns {Promise<{ userId: number, token: string, sessionId: number }>}
    */
   function signUp(formData) {
     errors.value = []
     return iamApi.signUp(formData)
-      .then(({ userId, token: tok, sessionId: sid }) => {
+      .then(() => {
         // New account starts with a clean billing slate — drop any state left
         // over from a previously authenticated user in this SPA session.
         useSubscriptionsBillingStore().reset()
+        // Sign-up returns no token, so chain a sign-in to start the session.
+        return iamApi.signIn({ email: formData.email, password: formData.password })
+      })
+      .then(async ({ userId, token: tok, sessionId: sid }) => {
         _persistAuth(userId, tok, sid)
+        await fetchCurrentUser(userId)
         return { userId, token: tok, sessionId: sid }
       })
       .catch(error => { errors.value.push(error); throw error })

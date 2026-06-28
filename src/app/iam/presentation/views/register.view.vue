@@ -1,14 +1,21 @@
 <!-- PATH: src/app/iam/presentation/views/register.view.vue -->
 <script setup>
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, computed } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useIamStore } from '../../application/iam.store.js'
+import { isValidPlanTier } from '../../../subscriptions-billing/domain/model/plan-tier.record.js'
 import LanguageSwitcher from '../../../shared/presentation/components/language-switcher.component.vue'
 
 const { t } = useI18n()
 const router = useRouter()
+const route = useRoute()
 const iamStore = useIamStore()
+
+/** Plan chosen on the website (`?plan=`), sanitised; null when absent/invalid. */
+const plan = computed(() => isValidPlanTier(route.query.plan) ? route.query.plan : null)
+/** Query forwarded to the "already have an account" link so login keeps the plan. */
+const crossLinkQuery = computed(() => plan.value ? { plan: plan.value } : {})
 
 const firstName = ref('')
 const lastName = ref('')
@@ -71,8 +78,12 @@ function handleRegister() {
   })
     .then(user => {
       if (user) {
-        localStorage.setItem('ns_user_id', user.userId)
-        router.push({ name: 'onboarding' })
+        // sign-up auto-logs-in (token + ns_user_id persisted by the store).
+        // Subscription happens before onboarding: go straight to checkout for
+        // the chosen plan, or to plan-selection when no plan was carried over.
+        router.push(plan.value
+          ? { name: 'checkout', query: { planKey: plan.value } }
+          : { name: 'plan-selection' })
       }
     })
     .catch(error => {
@@ -173,7 +184,7 @@ function handleRegister() {
 
       <p class="auth-card__footer">
         {{ t('auth.register.hasAccount') }}
-        <router-link :to="{ name: 'login' }" class="auth-link auth-link--strong">
+        <router-link :to="{ name: 'login', query: crossLinkQuery }" class="auth-link auth-link--strong">
           {{ t('auth.register.login') }}
         </router-link>
       </p>

@@ -333,7 +333,8 @@ async function handleSubmit() {
     })
     bodyMetricsStore.createBodyMeasurement(userId, resolvedWaistCm.value)
 
-    router.push({ name: 'plan-selection' })
+    // Onboarding now runs AFTER payment, so finishing it goes straight to the app.
+    router.push({ name: 'dashboard' })
   } finally {
     loading.value = false
   }
