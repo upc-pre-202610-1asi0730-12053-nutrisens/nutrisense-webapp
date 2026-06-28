@@ -4,14 +4,26 @@ import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useSubscriptionsBillingStore } from '../../application/subscriptions-billing.store.js'
+import { useIamStore } from '../../../iam/application/iam.store.js'
 
 const { t } = useI18n()
 const router = useRouter()
 const billingStore = useSubscriptionsBillingStore()
+const iamStore = useIamStore()
 
 const paymentMethod  = computed(() => billingStore.paymentMethod ?? billingStore.lastPaymentMethod)
 const currentPlan    = computed(() => billingStore.currentPlan)
 const planName       = computed(() => currentPlan.value ? t('plan.' + currentPlan.value.key) : '')
+
+/**
+ * After paying, send the user to onboarding if it's still incomplete (it now
+ * runs post-payment), otherwise straight to the dashboard. Making the target
+ * explicit avoids the redirect "flicker" the guard would otherwise cause.
+ */
+function continueAfterPayment() {
+  const onboardingComplete = iamStore.currentUser?.isOnboardingComplete()
+  router.push({ name: onboardingComplete ? 'dashboard' : 'onboarding' })
+}
 </script>
 
 <template>
@@ -45,7 +57,7 @@ const planName       = computed(() => currentPlan.value ? t('plan.' + currentPla
         icon-pos="right"
         size="large"
         class="confirm-wrap__cta"
-        @click="router.push({ name: 'dashboard' })"
+        @click="continueAfterPayment"
       />
     </div>
   </div>
