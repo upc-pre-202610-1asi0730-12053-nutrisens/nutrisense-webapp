@@ -25,6 +25,27 @@ export class IamApi extends BaseApi {
       .then(r => r.data)
   }
 
+  /**
+   * Requests a password reset link. Always resolves on a registered or
+   * unregistered email alike (the backend never reveals which), so callers
+   * should show the same confirmation regardless.
+   * @param {string} email
+   * @returns {Promise<{ message: string }>}
+   */
+  requestPasswordReset(email) {
+    return this.http.post('/authentication/forgot-password', { email }).then(r => r.data)
+  }
+
+  /**
+   * Sets a new password using a reset token received by email.
+   * @param {string} token
+   * @param {string} newPassword
+   * @returns {Promise<{ message: string }>}
+   */
+  resetPassword(token, newPassword) {
+    return this.http.post('/authentication/reset-password', { token, newPassword }).then(r => r.data)
+  }
+
   // ── User ─────────────────────────────────────────────────────────────────────
 
   /**

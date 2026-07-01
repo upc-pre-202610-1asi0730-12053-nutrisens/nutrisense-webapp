@@ -9,6 +9,7 @@ import { WearableStatus } from './wearable-status.record.js'
  * @property {import('./wearable-status.record.js').WearableStatusValue} status
  * @property {string|null} lastSyncedAt
  * @property {string} authorizedAt
+ * @property {boolean} [autoSyncEnabled]
  */
 
 /** @param {WearableConnectionProps} props */
@@ -23,6 +24,7 @@ export function WearableConnection(props) {
     status,
     lastSyncedAt: props.lastSyncedAt,
     authorizedAt: props.authorizedAt,
+    autoSyncEnabled: props.autoSyncEnabled ?? false,
 
     /** @returns {boolean} */
     isConnected() { return status.isConnected() },

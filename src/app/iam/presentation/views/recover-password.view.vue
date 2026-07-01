@@ -2,22 +2,29 @@
 <script setup>
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useIamStore } from '../../application/iam.store.js'
 import LanguageSwitcher from '../../../shared/presentation/components/language-switcher.component.vue'
 
 const { t } = useI18n()
+const iamStore = useIamStore()
 
 const email = ref('')
 const submitted = ref(false)
 const loading = ref(false)
 
-/** Simulates sending a password recovery email. */
-function handleSubmit() {
+/**
+ * Requests a password reset link. The backend never reveals whether the email
+ * is registered, so we always show the same confirmation on a completed request.
+ */
+async function handleSubmit() {
   if (!email.value) return
   loading.value = true
-  setTimeout(() => {
-    loading.value = false
+  try {
+    await iamStore.requestPasswordReset(email.value)
     submitted.value = true
-  }, 800)
+  } finally {
+    loading.value = false
+  }
 }
 </script>
 

@@ -38,6 +38,7 @@ const {
   travelModeActive,
   recommendationsLoaded,
   pantryLoaded,
+  generating,
   macroProfile,
   profileFilterActive,
   errors,
@@ -344,6 +345,9 @@ watch(
   { immediate: true },
 )
 
+/** True once we know the active city (current or home); drives the empty-state guidance. */
+const hasLocation = computed(() => store.activeCityId != null)
+
 onMounted(() => {
   if (userId) {
     store.fetchRecommendations(userId)
@@ -351,6 +355,7 @@ onMounted(() => {
     store.fetchPantry(userId)
     store.fetchCities()
     store.fetchIngredientCatalog()
+    store.fetchLocationPreference(userId)
     billingStore.fetchSubscription(userId)
     billingStore.fetchPlans()
     iamStore.fetchCurrentUser(userId)
@@ -359,20 +364,80 @@ onMounted(() => {
     bodyStore.fetchUserGoal(userId)
   }
 
-  const alreadyAsked = localStorage.getItem('ns_location_asked')
-  if (!alreadyAsked) {
-    showLocationModal.value = true
-  } else {
-    locationPermitted.value = localStorage.getItem('ns_location_granted') === 'true'
-  }
+  initLocation()
 })
+
+/**
+ * Reads the current GPS position and asks the backend to detect/persist the city, which
+ * (re)generates recommendations server-side. The backend guards against regenerating an
+ * unchanged context, so this is safe to call on every visit.
+ */
+function detectFromGps() {
+  if (!userId) return
+  navigator.geolocation?.getCurrentPosition(
+    pos => store.detectLocation(userId, pos.coords.latitude, pos.coords.longitude),
+    () => {},
+  )
+}
+
+/**
+ * Resolves the location flow using the browser Permissions API as the authoritative gate for
+ * silent detection (the server flag is only account-level intent). Falls back to the legacy
+ * localStorage gate when the Permissions API is unavailable.
+ */
+async function initLocation() {
+  if (!navigator.permissions?.query) {
+    const alreadyAsked = localStorage.getItem('ns_location_asked')
+    if (!alreadyAsked) showLocationModal.value = true
+    else locationPermitted.value = localStorage.getItem('ns_location_granted') === 'true'
+    return
+  }
+
+  let status
+  try {
+    status = await navigator.permissions.query({ name: 'geolocation' })
+  } catch {
+    if (!localStorage.getItem('ns_location_asked')) showLocationModal.value = true
+    return
+  }
+
+  applyPermissionState(status.state)
+  // Reactive: grant/revoke in browser settings updates the feed without a reload.
+  status.onchange = () => applyPermissionState(status.state)
+}
+
+/**
+ * @param {'granted'|'denied'|'prompt'} state
+ */
+function applyPermissionState(state) {
+  if (state === 'granted') {
+    locationPermitted.value = true
+    showLocationModal.value = false
+    localStorage.setItem('ns_location_asked', 'true')
+    localStorage.setItem('ns_location_granted', 'true')
+    if (userId) store.setLocationPermission(userId, true)
+    detectFromGps()
+  } else if (state === 'denied') {
+    locationPermitted.value = false
+    showLocationModal.value = false
+    localStorage.setItem('ns_location_granted', 'false')
+    if (userId) store.setLocationPermission(userId, false)
+  } else {
+    // 'prompt' — ask once per browser; otherwise let the empty state guide manual selection.
+    locationPermitted.value = false
+    if (!localStorage.getItem('ns_location_asked')) showLocationModal.value = true
+  }
+}
 
 function handleAllowLocation() {
   navigator.geolocation?.getCurrentPosition(
     pos => {
       locationPermitted.value = true
       localStorage.setItem('ns_location_granted', 'true')
-      if (userId) store.detectLocation(userId, pos.coords.latitude, pos.coords.longitude)
+      if (userId) {
+        store.setLocationPermission(userId, true)
+        store.detectLocation(userId, pos.coords.latitude, pos.coords.longitude)
+      }
     },
     () => { showManualInput.value = true },
   )
@@ -567,12 +632,28 @@ function handleHighInToggle(macro) {
             <h2 class="rec-section__title">{{ t('recommendations.feedSection') }}</h2>
           </div>
 
-          <div v-if="!recommendationsLoaded" class="rec-grid">
+          <div v-if="generating" class="rec-generating" role="status" aria-live="polite">
+            <i class="pi pi-spin pi-spinner" aria-hidden="true" />
+            <span>{{ t('recommendations.generating') }}</span>
+          </div>
+          <div v-if="generating || !recommendationsLoaded" class="rec-grid">
             <pv-skeleton v-for="i in 6" :key="i" height="140px" border-radius="12px" />
           </div>
-          <div v-else-if="!unifiedFeed.length" class="rec-empty">
-            <i class="pi pi-inbox" aria-hidden="true" />
-            <span>{{ t('recommendations.noRecommendations') }}</span>
+          <div v-else-if="!unifiedFeed.length" class="rec-empty" :class="{ 'rec-empty--action': !hasLocation }">
+            <template v-if="!hasLocation">
+              <i class="pi pi-map-marker" aria-hidden="true" />
+              <span>{{ t('recommendations.noLocationYet') }}</span>
+              <pv-button
+                :label="t('recommendations.setCurrentLocation')"
+                size="small"
+                icon="pi pi-map-marker"
+                @click="showManualInput = true"
+              />
+            </template>
+            <template v-else>
+              <i class="pi pi-inbox" aria-hidden="true" />
+              <span>{{ t('recommendations.noRecommendations') }}</span>
+            </template>
           </div>
           <div v-else class="rec-grid">
             <template v-for="entry in unifiedFeed" :key="entry.item.id">
@@ -634,38 +715,6 @@ function handleHighInToggle(macro) {
           </div>
           <div class="filter-sidebar__divider" aria-hidden="true" />
         </template>
-
-        <!-- Location filter -->
-        <div class="filter-sidebar__section">
-          <span class="filter-sidebar__label">{{ t('recommendations.filterLocation') }}</span>
-          <div class="filter-sidebar__chips">
-            <button
-              class="filter-chip filter-chip--location"
-              :class="{ 'filter-chip--active': activeFilters.citySource === 'current' }"
-              :aria-pressed="activeFilters.citySource === 'current'"
-              @click="store.setFilters({ citySource: 'current' })"
-            >
-              <i class="pi pi-map-marker" aria-hidden="true" />
-              {{ t('recommendations.locationCurrent') }}
-            </button>
-            <button
-              class="filter-chip filter-chip--location"
-              :class="{ 'filter-chip--active': activeFilters.citySource === 'home' }"
-              :aria-pressed="activeFilters.citySource === 'home'"
-              @click="store.setFilters({ citySource: 'home' })"
-            >
-              <i class="pi pi-home" aria-hidden="true" />
-              <span>
-                {{ t('recommendations.locationHome') }}
-                <span v-if="homeCity" class="filter-chip__meta">
-                  {{ locale.startsWith('es') ? homeCity.nameEs : homeCity.nameEn }}
-                </span>
-              </span>
-            </button>
-          </div>
-        </div>
-
-        <div class="filter-sidebar__divider" aria-hidden="true" />
 
         <div class="filter-sidebar__section">
           <span class="filter-sidebar__label">{{ t('recommendations.filterSource') }}</span>
@@ -1263,6 +1312,32 @@ function handleHighInToggle(macro) {
 }
 
 .rec-empty i { font-size: 1.5rem; color: var(--color-border); flex-shrink: 0; }
+
+/* Actionable empty state (no location set yet) */
+.rec-empty--action {
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.875rem;
+  padding: 2.5rem 1.25rem;
+}
+.rec-empty--action i { color: var(--color-primary); }
+
+/* ── Generating banner ──────────────────── */
+.rec-generating {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.75rem 1rem;
+  margin-bottom: 0.875rem;
+  border-radius: 10px;
+  background: rgba(80,139,137,0.08);
+  border: 1px solid var(--color-border);
+  color: var(--color-primary);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+.rec-generating .pi { font-size: 1rem; }
 
 /* ── Filter sidebar ─────────────────────── */
 .filter-sidebar {

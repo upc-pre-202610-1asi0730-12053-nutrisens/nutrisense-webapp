@@ -48,6 +48,25 @@ export class ActivityWearableApi extends BaseApi {
   }
 
   /**
+   * Manually triggers an activity-data sync for a wearable connection.
+   * @param {number} id
+   * @returns {Promise<import('axios').AxiosResponse>}
+   */
+  syncConnection(id) {
+    return this.http.post(`/wearable-connections/${id}/sync`)
+  }
+
+  /**
+   * Enables or disables automatic syncing for a wearable connection.
+   * @param {number} id
+   * @param {boolean} enabled
+   * @returns {Promise<import('axios').AxiosResponse>}
+   */
+  setAutoSync(id, enabled) {
+    return this.http.patch(`/wearable-connections/${id}/auto-sync`, { enabled })
+  }
+
+  /**
    * @param {number} id
    * @returns {Promise<import('axios').AxiosResponse>}
    */

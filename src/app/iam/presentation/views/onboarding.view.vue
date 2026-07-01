@@ -213,6 +213,57 @@ function handleCityBlur() {
   setTimeout(() => { cityOpen.value = false }, 150)
 }
 
+// --- Geolocation auto-detect (step 3) ---
+const cityDetecting = ref(false)
+const cityDetectFailed = ref(false)
+let geoTried = false
+
+/**
+ * Auto-detects the user's home city from the browser geolocation. Runs once, the first
+ * time the user reaches step 3. On denial/unavailability it silently falls back to the
+ * manual search; a failed reverse-geocode shows a hint. Never overrides a manual pick.
+ */
+async function autoDetectCity() {
+  if (geoTried) return
+  geoTried = true
+  if (!navigator.geolocation || !userId) return
+
+  // Skip the prompt entirely if the user has already denied location access.
+  try {
+    const status = await navigator.permissions?.query({ name: 'geolocation' })
+    if (status?.state === 'denied') return
+  } catch { /* Permissions API unsupported: fall through and try getCurrentPosition. */ }
+
+  cityDetecting.value = true
+  navigator.geolocation.getCurrentPosition(
+    async pos => {
+      try {
+        const res = await _smartRecsApi.detectLocation(userId, pos.coords.latitude, pos.coords.longitude)
+        const detectedId = res.data?.currentCityId
+        if (detectedId == null) { cityDetectFailed.value = true; return }
+        // The detected city may have been freshly imported and absent from the local catalog.
+        if (!_availableCities.value.some(c => c.id === detectedId)) {
+          await _smartRecsApi.getCities()
+            .then(r => { _availableCities.value = CityAssembler.toEntitiesFromResponse(r) })
+            .catch(() => {})
+        }
+        // Don't clobber a city the user picked manually while GPS was resolving.
+        if (form.value.homeCityId) return
+        if (_availableCities.value.some(c => c.id === detectedId)) form.value.homeCityId = detectedId
+        else cityDetectFailed.value = true
+      } catch {
+        cityDetectFailed.value = true
+      } finally {
+        cityDetecting.value = false
+      }
+    },
+    () => { cityDetecting.value = false }, // Permission denied / unavailable: silent manual fallback.
+    { timeout: 10000, maximumAge: 300000 },
+  )
+}
+
+watch(step, s => { if (s === 3) autoDetectCity() })
+
 // --- Form options ---
 /** @type {import('vue').ComputedRef<{ label: string, value: string }[]>} */
 const sexOptions = computed(() => [
@@ -596,6 +647,8 @@ async function handleSubmit() {
                 </li>
               </ul>
             </div>
+            <span v-if="cityDetecting" class="onboarding-form__hint">{{ t('onboarding.detectingCity') }}</span>
+            <span v-else-if="cityDetectFailed && !form.homeCityId" class="onboarding-form__hint">{{ t('onboarding.detectCityFailed') }}</span>
             <span v-if="step3Touched && step3FieldErrors.homeCityId" class="field-error">
               {{ step3FieldErrors.homeCityId }}
             </span>
