@@ -118,8 +118,9 @@
       "passwordMismatch": "Las contraseñas no coinciden",
       "emailAlreadyRegistered": "Este correo ya está registrado. Intenta iniciar sesión.",
       "errorEmailInvalid": "Ingresa un correo electrónico válido",
-      "errorPasswordTooShort": "La contraseña debe tener al menos 6 caracteres",
-      "errorPasswordNeedsLetter": "La contraseña debe contener al menos una letra"
+      "errorPasswordTooShort": "La contraseña debe tener al menos 8 caracteres",
+      "errorPasswordNeedsLetter": "La contraseña debe contener al menos una letra",
+      "errorPasswordNeedsDigit": "La contraseña debe contener al menos un número"
     },
     "recoverPassword": {
       "title": "Recuperar contraseña",
@@ -134,7 +135,10 @@
       "newPassword": "Nueva contraseña",
       "confirmPassword": "Confirmar contraseña",
       "submit": "Establecer nueva contraseña",
-      "success": "Contraseña actualizada correctamente"
+      "success": "Contraseña actualizada correctamente",
+      "invalidLink": "Este enlace de restablecimiento no es válido o ha expirado. Solicita uno nuevo.",
+      "errorPasswordWeak": "La contraseña debe tener al menos 8 caracteres e incluir una letra y un número.",
+      "errorPasswordMismatch": "Las contraseñas no coinciden."
     }
   },
   "dashboard": {

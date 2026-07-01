@@ -1,6 +1,11 @@
 import axios from 'axios'
 
-const PUBLIC_PATHS = ['/authentication/sign-in', '/authentication/sign-up']
+const PUBLIC_PATHS = [
+  '/authentication/sign-in',
+  '/authentication/sign-up',
+  '/authentication/forgot-password',
+  '/authentication/reset-password',
+]
 
 // Mirrors i18n.js's LOCALE_KEY. Kept as a local literal so this infrastructure
 // module stays free of i18n.js's import-time side effects (it reads

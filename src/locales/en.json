@@ -118,8 +118,9 @@
       "passwordMismatch": "Passwords do not match",
       "emailAlreadyRegistered": "This email is already registered. Try signing in instead.",
       "errorEmailInvalid": "Enter a valid email address",
-      "errorPasswordTooShort": "Password must be at least 6 characters",
-      "errorPasswordNeedsLetter": "Password must contain at least one letter"
+      "errorPasswordTooShort": "Password must be at least 8 characters",
+      "errorPasswordNeedsLetter": "Password must contain at least one letter",
+      "errorPasswordNeedsDigit": "Password must contain at least one number"
     },
     "recoverPassword": {
       "title": "Recover password",
@@ -134,7 +135,10 @@
       "newPassword": "New password",
       "confirmPassword": "Confirm password",
       "submit": "Set new password",
-      "success": "Password updated successfully"
+      "success": "Password updated successfully",
+      "invalidLink": "This reset link is invalid or has expired. Please request a new one.",
+      "errorPasswordWeak": "Password must be at least 8 characters and include a letter and a number.",
+      "errorPasswordMismatch": "Passwords do not match."
     }
   },
   "dashboard": {

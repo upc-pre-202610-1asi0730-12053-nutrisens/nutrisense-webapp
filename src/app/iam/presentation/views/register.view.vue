@@ -28,7 +28,11 @@ const errorMsg = ref('')
 const fieldErrors = ref({})
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+// Mirrors the backend Password value object: at least 8 characters, including
+// at least one letter and one digit.
+const PASSWORD_MIN_LENGTH = 8
 const HAS_LETTER_REGEX = /[a-zA-Z]/
+const HAS_DIGIT_REGEX = /\d/
 
 /**
  * Validates all fields and populates fieldErrors.
@@ -39,10 +43,12 @@ function validate() {
   if (!EMAIL_REGEX.test(email.value.trim())) {
     errors.email = t('auth.register.errorEmailInvalid')
   }
-  if (password.value.length < 6) {
+  if (password.value.length < PASSWORD_MIN_LENGTH) {
     errors.password = t('auth.register.errorPasswordTooShort')
   } else if (!HAS_LETTER_REGEX.test(password.value)) {
     errors.password = t('auth.register.errorPasswordNeedsLetter')
+  } else if (!HAS_DIGIT_REGEX.test(password.value)) {
+    errors.password = t('auth.register.errorPasswordNeedsDigit')
   }
   fieldErrors.value = errors
   return Object.keys(errors).length === 0

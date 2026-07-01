@@ -322,6 +322,39 @@ export const useIamStore = defineStore('iam', () => {
       })
   }
 
+  /**
+   * Requests a password reset link for the given email. The backend never
+   * reveals whether the email is registered, so this resolves to true on any
+   * non-network outcome; callers show the same confirmation regardless.
+   * @param {string} email
+   * @returns {Promise<boolean>} true if the request was accepted
+   */
+  function requestPasswordReset(email) {
+    errors.value = []
+    return iamApi.requestPasswordReset(email)
+      .then(() => true)
+      .catch(error => { errors.value.push(error); return false })
+  }
+
+  /**
+   * Sets a new password using a reset token received by email.
+   *
+   * Returns the backend's localized error message on failure so the caller can
+   * distinguish a weak password from an invalid/expired token (both are 400).
+   * @param {string} token
+   * @param {string} newPassword
+   * @returns {Promise<{ ok: boolean, message: string|null }>}
+   */
+  function resetPassword(token, newPassword) {
+    errors.value = []
+    return iamApi.resetPassword(token, newPassword)
+      .then(() => ({ ok: true, message: null }))
+      .catch(error => {
+        errors.value.push(error)
+        return { ok: false, message: error?.response?.data?.message ?? null }
+      })
+  }
+
   on(SUBSCRIPTION_ACTIVATED, ({ userId }) => {
     fetchCurrentUser(parseInt(userId, 10))
   })
@@ -355,6 +388,8 @@ export const useIamStore = defineStore('iam', () => {
     signIn,
     signOut,
     signUp,
+    requestPasswordReset,
+    resetPassword,
     deleteAccount,
     clearErrors,
   }
