@@ -120,6 +120,25 @@ export class SmartRecommendationsApi extends BaseApi {
   }
 
   /**
+   * Retrieves the user's persisted location preferences (home/current city, travel mode, permission intent).
+   * @param {string|number} userId
+   * @returns {Promise<import('axios').AxiosResponse>}
+   */
+  getLocationPreference(userId) {
+    return this.http.get(`/location-preferences/by-user/${userId}`)
+  }
+
+  /**
+   * Persists the user's location-permission intent (account-level, drives UX across devices).
+   * @param {string|number} userId
+   * @param {boolean} granted
+   * @returns {Promise<import('axios').AxiosResponse>}
+   */
+  setLocationPermission(userId, granted) {
+    return this.http.put(`/location-preferences/${userId}/permission`, { granted })
+  }
+
+  /**
    * Enables travel mode for a city server-side, which also regenerates the user's recommendations
    * for that city. Pro-gated on the backend.
    * @param {string|number} userId

@@ -82,6 +82,8 @@
     "homeCity": "Your city",
     "searchCity": "Search city...",
     "noCity": "No cities found",
+    "detectingCity": "Detecting your location…",
+    "detectCityFailed": "We couldn't detect your city. Search for it manually.",
     "dietaryRestrictions": "Dietary restrictions",
     "medicalConditions": "Medical conditions",
     "restrictionsOptional": "Optional — you can skip this step"
@@ -398,6 +400,9 @@
     "pantry": "Your pantry",
     "addIngredient": "Add ingredient",
     "noRecommendations": "No recommendations available for your current location",
+    "noLocationYet": "We don't know your location yet. Select it to generate recommendations.",
+    "setCurrentLocation": "Select my location",
+    "generating": "Generating recommendations...",
     "noRecipes": "No recipes match your pantry right now",
     "loading": "Loading recommendations...",
     "missing": "{n} missing",

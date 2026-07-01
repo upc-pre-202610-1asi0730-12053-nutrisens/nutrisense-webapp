@@ -58,6 +58,10 @@ export const useSmartRecommendationsStore = defineStore('smart-recommendations',
   })
   const recommendationsLoaded = ref(false)
   const pantryLoaded = ref(false)
+  /** True while a server-side generation (detect / travel) is in flight. */
+  const generating = ref(false)
+  /** User's persisted intent to use location-based recommendations (hydrated from the server). */
+  const locationPermissionGranted = ref(false)
   /** @type {import('vue').Ref<ReturnType<typeof MacroProfile>|null>} */
   const macroProfile = ref(null)
   const profileFilterActive = ref(true)
@@ -386,14 +390,18 @@ export const useSmartRecommendationsStore = defineStore('smart-recommendations',
   }
 
   /**
-   * Detects and persists the user's current city from GPS coordinates.
-   * Refreshes the catalog (the detected city may have been imported) and recommendations.
+   * Detects and persists the user's current city from GPS coordinates. The backend regenerates
+   * recommendations for the detected city as part of this call (guarded server-side so an unchanged
+   * context is reused, not regenerated). Refreshes the catalog (the detected city may have been
+   * imported) and recommendations.
    * @param {string|number} userId
    * @param {number} lat
    * @param {number} lng
+   * @returns {Promise<void>}
    */
   function detectLocation(userId, lat, lng) {
-    smartRecommendationsApi.detectLocation(userId, lat, lng)
+    generating.value = true
+    return smartRecommendationsApi.detectLocation(userId, lat, lng)
       .then(async response => {
         const detectedId = response.data?.currentCityId
         if (detectedId == null) return
@@ -408,6 +416,43 @@ export const useSmartRecommendationsStore = defineStore('smart-recommendations',
         currentCityName.value = city ? (city.nameEs || city.nameEn) : ''
         fetchRecommendations(userId)
       })
+      .catch(error => errors.value.push(error))
+      .finally(() => { generating.value = false })
+  }
+
+  /**
+   * Hydrates the user's persisted location preferences (home/current city, travel mode, permission
+   * intent) from the server. Tolerates a 404 for users without preferences yet.
+   * @param {string|number} userId
+   * @returns {Promise<void>}
+   */
+  function fetchLocationPreference(userId) {
+    return smartRecommendationsApi.getLocationPreference(userId)
+      .then(response => {
+        const lp = response.data
+        if (!lp) return
+        if (lp.homeCityId != null) homeCityId.value = lp.homeCityId
+        if (lp.currentCityId != null) currentCityId.value = lp.currentCityId
+        travelModeActive.value = !!lp.travelModeActive
+        if (lp.travelModeActive && lp.currentCityId != null) travelCityId.value = lp.currentCityId
+        locationPermissionGranted.value = !!lp.locationPermissionGranted
+      })
+      .catch(error => {
+        // 404 = no preferences yet; not an error worth surfacing.
+        if (error?.response?.status !== 404) errors.value.push(error)
+      })
+  }
+
+  /**
+   * Persists the user's location-permission intent (account-level) and updates local state.
+   * @param {string|number} userId
+   * @param {boolean} granted
+   * @returns {Promise<void>}
+   */
+  function setLocationPermission(userId, granted) {
+    locationPermissionGranted.value = granted
+    return smartRecommendationsApi.setLocationPermission(userId, granted)
+      .then(() => {})
       .catch(error => errors.value.push(error))
   }
 
@@ -491,6 +536,7 @@ export const useSmartRecommendationsStore = defineStore('smart-recommendations',
    * @returns {Promise<void>}
    */
   function enableTravelMode(userId, cityId, cityName) {
+    generating.value = true
     return smartRecommendationsApi.enableTravelMode(userId, cityId)
       .then(() => {
         travelCityId.value = cityId
@@ -499,6 +545,7 @@ export const useSmartRecommendationsStore = defineStore('smart-recommendations',
         fetchRecommendations(userId)
       })
       .catch(error => errors.value.push(error))
+      .finally(() => { generating.value = false })
   }
 
   /**
@@ -507,6 +554,7 @@ export const useSmartRecommendationsStore = defineStore('smart-recommendations',
    * @returns {Promise<void>}
    */
   function disableTravelMode(userId) {
+    generating.value = true
     return smartRecommendationsApi.disableTravelMode(userId)
       .then(() => {
         travelModeActive.value = false
@@ -515,6 +563,7 @@ export const useSmartRecommendationsStore = defineStore('smart-recommendations',
         fetchRecommendations(userId)
       })
       .catch(error => errors.value.push(error))
+      .finally(() => { generating.value = false })
   }
 
   /**
@@ -594,6 +643,8 @@ export const useSmartRecommendationsStore = defineStore('smart-recommendations',
     activeFilters,
     recommendationsLoaded,
     pantryLoaded,
+    generating,
+    locationPermissionGranted,
     macroProfile,
     profileFilterActive,
     errors,
@@ -623,6 +674,8 @@ export const useSmartRecommendationsStore = defineStore('smart-recommendations',
     searchCities,
     importCity,
     detectLocation,
+    fetchLocationPreference,
+    setLocationPermission,
     fetchIngredientCatalog,
     setFilters,
     clearFilters,
