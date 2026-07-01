@@ -1,19 +1,23 @@
 <!-- PATH: src/app/activity-wearable/presentation/views/activity.view.vue -->
 <script setup>
 import { ref, computed, onMounted, toRefs } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { useConfirm } from 'primevue/useconfirm'
+import { useToast } from 'primevue/usetoast'
 import { useI18n } from 'vue-i18n'
 import { backendMessage } from '../../../shared/infrastructure/api-error.js'
 import { useActivityWearableStore } from '../../application/activity-wearable.store.js'
 import { useSubscriptionsBillingStore } from '../../../subscriptions-billing/application/subscriptions-billing.store.js'
 import ActivityLogList from '../components/activity-log-list.component.vue'
 import ActivityLogForm from '../components/activity-log-form.component.vue'
+import HealthSyncDialog from '../components/health-sync-dialog.component.vue'
 import KpiCard from '../../../analytics-reporting/presentation/components/kpi-card.component.vue'
 
 const { t } = useI18n()
 const router = useRouter()
+const route = useRoute()
 const confirm = useConfirm()
+const toast = useToast()
 const store = useActivityWearableStore()
 const billingStore = useSubscriptionsBillingStore()
 
@@ -21,7 +25,8 @@ const {
   todayLogs,
   todayCaloriesBurned,
   todayActiveMinutes,
-  isGoogleFitConnected,
+  healthConnection,
+  isHealthConnected,
   logsLoaded,
   connectionsLoaded,
   errors,
@@ -29,20 +34,59 @@ const {
 
 const userId = localStorage.getItem('ns_user_id') ?? ''
 const showForm = ref(false)
+const showHealthDialog = ref(false)
 
-/** True only for Premium — the tier that includes Google Fit sync. */
-const hasGoogleFitAccess = computed(() =>
+/** True only for Premium — the tier that includes Google Health sync. */
+const hasHealthAccess = computed(() =>
   billingStore.currentTier?.isAtLeast('premium') ?? false
 )
 
 onMounted(() => {
   if (userId) {
     store.fetchActivityLogs(userId)
-    store.fetchConnections(userId)
+    store.fetchConnections(userId).then(maybeAutoSync)
     if (!billingStore.subscriptionLoaded) billingStore.fetchSubscription(userId)
     if (!billingStore.plansLoaded)        billingStore.fetchPlans()
   }
+  notifyHealthOAuthResult()
 })
+
+/**
+ * Surfaces the outcome of the Health OAuth redirect (signalled via ?health=) as a
+ * toast, then strips the query param so it doesn't fire again on navigation.
+ */
+function notifyHealthOAuthResult() {
+  const result = route.query.health
+  if (!result) return
+  if (result === 'connected') {
+    toast.add({ severity: 'success', summary: t('activity.health.connectedTitle'),
+      detail: t('activity.health.connectedDetail'), life: 4000 })
+  } else if (result === 'error') {
+    toast.add({ severity: 'error', summary: t('common.error'),
+      detail: t('activity.health.connectError'), life: 5000 })
+  }
+  router.replace({ name: 'activity', query: {} })
+}
+
+/**
+ * Client-driven auto-sync: if the connection is active, has auto-sync enabled and
+ * is stale, trigger a background sync once on load.
+ */
+function maybeAutoSync() {
+  const c = healthConnection.value
+  if (c && c.isConnected() && c.autoSyncEnabled && c.needsSync()) {
+    store.syncHealth(c.id, userId).catch(() => { /* surfaced via store errors */ })
+  }
+}
+
+/** Opens the Health sync dialog, or routes Premium-locked users to upgrade. */
+function handleHealthChipClick() {
+  if (!hasHealthAccess.value) {
+    router.push({ name: 'plan-selection' })
+    return
+  }
+  showHealthDialog.value = true
+}
 
 /**
  * Saves a new activity log entry.
@@ -75,26 +119,29 @@ function handleRemove(logId) {
     <div class="activity-view__header">
       <h1 class="activity-view__title">{{ t('activity.title') }}</h1>
       <div class="activity-view__header-actions">
-        <pv-skeleton v-if="!connectionsLoaded" width="110px" height="2rem" border-radius="2rem" />
-        <div
-          v-else-if="!hasGoogleFitAccess"
+        <pv-skeleton v-if="!connectionsLoaded" width="120px" height="2rem" border-radius="2rem" />
+        <button
+          v-else-if="!hasHealthAccess"
+          type="button"
           class="wearable-chip wearable-chip--locked"
-          role="img"
-          :aria-label="t('activity.googleFitLocked')"
+          :aria-label="t('activity.health.lockedLabel')"
+          @click="handleHealthChipClick"
         >
           <i class="pi pi-lock wearable-chip__lock" aria-hidden="true" />
-          <span class="wearable-chip__label">Google Fit</span>
-        </div>
-        <div
+          <span class="wearable-chip__label">{{ t('activity.health.provider') }}</span>
+        </button>
+        <button
           v-else
+          type="button"
           class="wearable-chip"
-          :class="isGoogleFitConnected ? 'wearable-chip--connected' : 'wearable-chip--disconnected'"
-          role="status"
-          :aria-label="isGoogleFitConnected ? t('activity.connected') : t('activity.notConnected')"
+          :class="isHealthConnected ? 'wearable-chip--connected' : 'wearable-chip--disconnected'"
+          aria-haspopup="dialog"
+          :aria-label="isHealthConnected ? t('activity.connected') : t('activity.notConnected')"
+          @click="handleHealthChipClick"
         >
           <span class="wearable-chip__dot" aria-hidden="true" />
-          <span class="wearable-chip__label">Google Fit</span>
-        </div>
+          <span class="wearable-chip__label">{{ t('activity.health.provider') }}</span>
+        </button>
         <pv-button
           icon="pi pi-plus"
           :label="t('activity.logActivity')"
@@ -158,6 +205,11 @@ function handleRemove(logId) {
       @cancel="showForm = false"
     />
 
+    <health-sync-dialog
+      v-model:visible="showHealthDialog"
+      :user-id="userId"
+    />
+
   </div>
 </template>
 
@@ -189,8 +241,20 @@ function handleRemove(logId) {
   border-radius: 999px;
   font-size: 0.8125rem;
   font-weight: 500;
+  font-family: inherit;
   border: 1px solid transparent;
   user-select: none;
+  cursor: pointer;
+  transition: filter 0.15s ease, box-shadow 0.15s ease;
+}
+
+.wearable-chip:hover {
+  filter: brightness(0.97);
+}
+
+.wearable-chip:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--ns-primary-soft, rgba(34, 197, 94, 0.35));
 }
 
 .wearable-chip--connected {

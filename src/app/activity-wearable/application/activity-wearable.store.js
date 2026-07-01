@@ -48,19 +48,23 @@ export const useActivityWearableStore = defineStore('activity-wearable', () => {
   )
 
   /**
-   * Google Fit wearable connection, if any.
+   * Google Health wearable connection, if any (most recent wins).
    * @type {import('vue').ComputedRef<ReturnType<import('../domain/model/wearable-connection.entity.js').WearableConnection>|null>}
    */
-  const googleFitConnection = computed(() =>
-    wearableConnections.value.find(c => c.provider.value === 'google-fit') ?? null
-  )
+  const healthConnection = computed(() => {
+    const matches = wearableConnections.value.filter(c => c.provider.value === 'google-health')
+    if (matches.length === 0) return null
+    // Prefer a connected one; otherwise the most recently authorized.
+    return matches.find(c => c.isConnected())
+      ?? [...matches].sort((a, b) => String(b.authorizedAt).localeCompare(String(a.authorizedAt)))[0]
+  })
 
   /**
-   * Whether Google Fit is connected and active.
+   * Whether Google Health is connected and active.
    * @type {import('vue').ComputedRef<boolean>}
    */
-  const isGoogleFitConnected = computed(() =>
-    googleFitConnection.value?.isConnected() ?? false
+  const isHealthConnected = computed(() =>
+    healthConnection.value?.isConnected() ?? false
   )
 
   /**
@@ -142,7 +146,7 @@ export const useActivityWearableStore = defineStore('activity-wearable', () => {
    * @param {string} userId
    */
   function fetchConnections(userId) {
-    activityWearableApi.getConnectionsByUser(Number(userId))
+    return activityWearableApi.getConnectionsByUser(Number(userId))
       .then(response => {
         wearableConnections.value = WearableConnectionAssembler.toEntitiesFromResponse(response)
         connectionsLoaded.value = true
@@ -151,31 +155,72 @@ export const useActivityWearableStore = defineStore('activity-wearable', () => {
   }
 
   /**
-   * Connects a Google Fit account via OAuth code exchange.
+   * Connects a Google Health account via OAuth code exchange.
    * The oauthCode must be a real authorization code from the Google OAuth flow.
+   * Resolves once the connection list has been refreshed; rejects on failure.
    * @param {string} userId
    * @param {{ oauthCode: string }} authData
+   * @returns {Promise<void>}
    */
-  function connectGoogleFit(userId, authData) {
-    const resource = WearableConnectionAssembler.toResource(userId, 'google-fit', authData.oauthCode)
-    activityWearableApi.createConnection(resource)
+  function connectHealth(userId, authData) {
+    const resource = WearableConnectionAssembler.toResource(userId, 'google-health', authData.oauthCode)
+    return activityWearableApi.createConnection(resource)
+      .then(() => fetchConnections(userId))
+      .catch(error => { errors.value.push(error); throw error })
+  }
+
+  /**
+   * Manually triggers an activity-data sync for a connection, then refreshes logs.
+   * @param {string} connectionId
+   * @param {string} userId
+   * @returns {Promise<void>}
+   */
+  function syncHealth(connectionId, userId) {
+    return activityWearableApi.syncConnection(Number(connectionId))
       .then(response => {
-        const newConnection = WearableConnectionAssembler.toEntityFromResource(response.data)
-        if (newConnection) wearableConnections.value.push(newConnection)
+        const updated = WearableConnectionAssembler.toEntityFromResource(response.data)
+        if (updated) replaceConnection(updated)
+        fetchActivityLogs(userId)
       })
-      .catch(error => errors.value.push(error))
+      .catch(error => { errors.value.push(error); throw error })
+  }
+
+  /**
+   * Enables or disables automatic syncing for a connection (optimistic, rolls back on failure).
+   * @param {string} connectionId
+   * @param {boolean} enabled
+   * @returns {Promise<void>}
+   */
+  function setAutoSync(connectionId, enabled) {
+    return activityWearableApi.setAutoSync(Number(connectionId), enabled)
+      .then(response => {
+        const updated = WearableConnectionAssembler.toEntityFromResource(response.data)
+        if (updated) replaceConnection(updated)
+      })
+      .catch(error => { errors.value.push(error); throw error })
+  }
+
+  /**
+   * Replaces a connection in the list by id, preserving order.
+   * @param {ReturnType<import('../domain/model/wearable-connection.entity.js').WearableConnection>} updated
+   */
+  function replaceConnection(updated) {
+    const idx = wearableConnections.value.findIndex(c => c.id === updated.id)
+    if (idx >= 0) wearableConnections.value.splice(idx, 1, updated)
+    else wearableConnections.value.push(updated)
   }
 
   /**
    * Disconnects a wearable device. The backend removes the connection (DELETE).
    * @param {string} connectionId
+   * @returns {Promise<void>}
    */
   function disconnectWearable(connectionId) {
-    activityWearableApi.deleteConnection(Number(connectionId))
+    return activityWearableApi.deleteConnection(Number(connectionId))
       .then(() => {
         wearableConnections.value = wearableConnections.value.filter(c => c.id !== connectionId)
       })
-      .catch(error => errors.value.push(error))
+      .catch(error => { errors.value.push(error); throw error })
   }
 
   /** Clears the errors array. */
@@ -193,15 +238,17 @@ export const useActivityWearableStore = defineStore('activity-wearable', () => {
     allLogsSorted,
     todayCaloriesBurned,
     todayActiveMinutes,
-    googleFitConnection,
-    isGoogleFitConnected,
+    healthConnection,
+    isHealthConnected,
     lastStrengthOrHiit,
     shouldShowPostWorkoutBanner,
     fetchActivityLogs,
     logActivity,
     removeActivity,
     fetchConnections,
-    connectGoogleFit,
+    connectHealth,
+    syncHealth,
+    setAutoSync,
     disconnectWearable,
     clearErrors,
   }

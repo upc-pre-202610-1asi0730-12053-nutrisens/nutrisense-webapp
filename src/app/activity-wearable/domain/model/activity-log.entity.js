@@ -11,7 +11,7 @@ import { toLocalDateString } from '../../../shared/infrastructure/date-utils.js'
  * @property {number} durationMinutes
  * @property {import('./intensity.record.js').IntensityValue} intensity
  * @property {number} caloriesBurned
- * @property {'manual' | 'google-fit'} source
+ * @property {'manual' | 'google-health' | 'google-fit'} source
  * @property {string} loggedAt - ISO datetime
  */
 

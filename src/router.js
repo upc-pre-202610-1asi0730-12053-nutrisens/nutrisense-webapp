@@ -32,6 +32,11 @@ const router = createRouter({
   history: createWebHistory(),
   routes: [
     { path: '/', redirect: '/app/dashboard' },
+    {
+      path: '/oauth/health/callback',
+      name: 'oauth-health-callback',
+      component: () => import('./app/activity-wearable/presentation/views/oauth-health-callback.view.vue'),
+    },
     ...authRoutes,
     subscribeRoute,
     onboardingRoute,
