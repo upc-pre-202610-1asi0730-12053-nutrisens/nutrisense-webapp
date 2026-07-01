@@ -1,9 +1,11 @@
 import { WearableConnection } from '../domain/model/wearable-connection.entity.js'
 
-// Backend WearableStatus values differ from the frontend domain model.
+// Maps backend WearableStatus values ("connected" | "disconnected" | "pending-auth")
+// to the frontend domain model ("connected" | "disconnected" | "error").
 const STATUS_MAP = {
-  'authorized':   'connected',
-  'needs-reauth': 'error',
+  'connected':    'connected',
+  'disconnected': 'disconnected',
+  'pending-auth': 'disconnected',
 }
 
 export class WearableConnectionAssembler {
@@ -30,12 +32,13 @@ export class WearableConnectionAssembler {
     try {
       const status = STATUS_MAP[resource.status] ?? 'disconnected'
       return WearableConnection({
-        id:           String(resource.id),
-        userId:       String(resource.userId),
-        provider:     resource.provider,
+        id:              String(resource.id),
+        userId:          String(resource.userId),
+        provider:        resource.provider,
         status,
-        lastSyncedAt: resource.lastSyncedAt ?? null,
-        authorizedAt: resource.authorizedAt,
+        lastSyncedAt:    resource.lastSyncedAt ?? null,
+        authorizedAt:    resource.authorizedAt,
+        autoSyncEnabled: resource.autoSyncEnabled ?? false,
       })
     } catch (e) {
       console.error('[WearableConnectionAssembler] failed to map resource', e)

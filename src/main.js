@@ -35,6 +35,8 @@ import Chip from 'primevue/chip'
 import Message from 'primevue/message'
 import Panel from 'primevue/panel'
 import Paginator from 'primevue/paginator'
+import ToggleSwitch from 'primevue/toggleswitch'
+import ProgressSpinner from 'primevue/progressspinner'
 import Tooltip from 'primevue/tooltip'
 import NsTabs from './app/shared/presentation/components/ns-tabs.component.vue'
 
@@ -84,6 +86,8 @@ app.component('pv-chip', Chip)
 app.component('pv-message', Message)
 app.component('pv-panel', Panel)
 app.component('pv-paginator', Paginator)
+app.component('pv-toggle-switch', ToggleSwitch)
+app.component('pv-progress-spinner', ProgressSpinner)
 app.component('ns-tabs', NsTabs)
 app.directive('tooltip', Tooltip)
 

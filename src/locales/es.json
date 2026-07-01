@@ -82,6 +82,8 @@
     "homeCity": "Tu ciudad",
     "searchCity": "Buscar ciudad...",
     "noCity": "No se encontraron ciudades",
+    "detectingCity": "Detectando tu ubicación…",
+    "detectCityFailed": "No pudimos detectar tu ciudad. Búscala manualmente.",
     "dietaryRestrictions": "Restricciones alimenticias",
     "medicalConditions": "Condiciones médicas",
     "restrictionsOptional": "Opcional — puedes omitir este paso"
@@ -118,8 +120,9 @@
       "passwordMismatch": "Las contraseñas no coinciden",
       "emailAlreadyRegistered": "Este correo ya está registrado. Intenta iniciar sesión.",
       "errorEmailInvalid": "Ingresa un correo electrónico válido",
-      "errorPasswordTooShort": "La contraseña debe tener al menos 6 caracteres",
-      "errorPasswordNeedsLetter": "La contraseña debe contener al menos una letra"
+      "errorPasswordTooShort": "La contraseña debe tener al menos 8 caracteres",
+      "errorPasswordNeedsLetter": "La contraseña debe contener al menos una letra",
+      "errorPasswordNeedsDigit": "La contraseña debe contener al menos un número"
     },
     "recoverPassword": {
       "title": "Recuperar contraseña",
@@ -134,7 +137,10 @@
       "newPassword": "Nueva contraseña",
       "confirmPassword": "Confirmar contraseña",
       "submit": "Establecer nueva contraseña",
-      "success": "Contraseña actualizada correctamente"
+      "success": "Contraseña actualizada correctamente",
+      "invalidLink": "Este enlace de restablecimiento no es válido o ha expirado. Solicita uno nuevo.",
+      "errorPasswordWeak": "La contraseña debe tener al menos 8 caracteres e incluir una letra y un número.",
+      "errorPasswordMismatch": "Las contraseñas no coinciden."
     }
   },
   "dashboard": {
@@ -334,7 +340,41 @@
     "kcal": "{n} kcal",
     "googleFitLocked": "Google Fit — requiere Premium",
     "errorDurationRange": "La duración debe estar entre 1 y 480 minutos",
-    "loggedAt": "Registrado a las {time}"
+    "loggedAt": "Registrado a las {time}",
+    "lastSyncLabel": "Última sincronización",
+    "health": {
+      "title": "Sincronización con Health",
+      "provider": "Health",
+      "lockedLabel": "Health — requiere Premium",
+      "connectLead": "Conecta tu cuenta de Google Health para importar automáticamente tu actividad y calorías quemadas.",
+      "permActivity": "Leer sesiones de actividad y ejercicio",
+      "permCalories": "Leer calorías quemadas",
+      "connectButton": "Sincronizar",
+      "redirectHint": "Se abrirá una ventana de Google para autorizar los permisos.",
+      "connecting": "Conectando con Health…",
+      "connectedSince": "Conectado desde",
+      "neverSynced": "Nunca sincronizado",
+      "autoSyncTitle": "Sincronización automática",
+      "autoSyncDesc": "Importa tu actividad automáticamente al abrir esta página.",
+      "syncNow": "Sincronizar ahora",
+      "disconnect": "Quitar sincronización",
+      "disconnectHeader": "Quitar sincronización",
+      "disconnectConfirm": "¿Seguro que deseas desconectar Health? Dejaremos de importar tu actividad.",
+      "connectedTitle": "Health conectado",
+      "connectedDetail": "Tu actividad se importó correctamente.",
+      "syncedTitle": "Sincronizado",
+      "syncedDetail": "Tu actividad se actualizó.",
+      "disconnectedTitle": "Sincronización quitada",
+      "disconnectedDetail": "Health se desconectó de tu cuenta.",
+      "oauthError": "No se pudo completar la autorización.",
+      "connectError": "No se pudo conectar con Health. Inténtalo de nuevo.",
+      "syncError": "No se pudo sincronizar la actividad.",
+      "autoSyncError": "No se pudo actualizar la sincronización automática.",
+      "disconnectError": "No se pudo quitar la sincronización.",
+      "popupBlocked": "El navegador bloqueó la ventana emergente. Habilítala e inténtalo de nuevo.",
+      "notConfiguredTitle": "Health no está configurado",
+      "notConfigured": "Falta configurar las credenciales de Google Health (client ID)."
+    }
   },
   "recommendations": {
     "title": "Recomendaciones Inteligentes",
@@ -360,6 +400,9 @@
     "pantry": "Tu despensa",
     "addIngredient": "Agregar ingrediente",
     "noRecommendations": "Sin recomendaciones disponibles para tu ubicación actual",
+    "noLocationYet": "Aún no conocemos tu ubicación. Selecciónala para generar recomendaciones.",
+    "setCurrentLocation": "Seleccionar mi ubicación",
+    "generating": "Generando recomendaciones...",
     "noRecipes": "Ninguna receta coincide con tu despensa ahora",
     "loading": "Cargando recomendaciones...",
     "missing": "{n} faltantes",
